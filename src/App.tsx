@@ -7,6 +7,7 @@ import MyMMR from "./pages/MyMMR";
 import Standings from "./pages/Standings";
 import Sessions from "./pages/Sessions";
 import Videos from "./pages/Videos";
+import Games from "./pages/Games";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/standings" element={<Standings />} />
           <Route path="/sessions" element={<Sessions />} />
           <Route path="/videos" element={<Videos />} />
+          <Route path="/games" element={<Games />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
