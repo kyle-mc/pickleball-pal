@@ -1,29 +1,48 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+
+  const navLinks = [
+    { href: "/", label: "My MMR" },
+    { href: "/standings", label: "Standings" },
+    { href: "/sessions", label: "Sessions" },
+    { href: "/videos", label: "Videos" },
+  ];
+
+  const isActive = (href: string) => location.pathname === href;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-display text-xl">P</span>
             </div>
             <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
-          </a>
+          </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a>
-            <a href="#courts" className="text-muted-foreground hover:text-foreground transition-colors">Find Courts</a>
-            <a href="#community" className="text-muted-foreground hover:text-foreground transition-colors">Community</a>
-            <Button variant="heroOutline" size="sm">Log In</Button>
-            <Button variant="hero" size="sm">Get Started</Button>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={`transition-colors ${
+                  isActive(link.href) 
+                    ? "text-primary font-medium" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           {/* Mobile Menu Button */}
@@ -39,13 +58,20 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-4">
-              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors py-2">Features</a>
-              <a href="#courts" className="text-muted-foreground hover:text-foreground transition-colors py-2">Find Courts</a>
-              <a href="#community" className="text-muted-foreground hover:text-foreground transition-colors py-2">Community</a>
-              <div className="flex gap-2 pt-2">
-                <Button variant="heroOutline" size="sm" className="flex-1">Log In</Button>
-                <Button variant="hero" size="sm" className="flex-1">Get Started</Button>
-              </div>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  onClick={() => setIsOpen(false)}
+                  className={`py-2 transition-colors ${
+                    isActive(link.href) 
+                      ? "text-primary font-medium" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           </div>
         )}
