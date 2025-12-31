@@ -12,10 +12,10 @@ export interface GameRecord {
 }
 
 export const gamesData: GameRecord[] = [
-  { game: 1, result: 'Winner', player: 'Kyle', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 2050, mmrChange: 50, date: '2025-07-28' },
-  { game: 1, result: 'Winner', player: 'Josiah', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 2050, mmrChange: 50, date: '2025-07-28' },
-  { game: 1, result: 'Loser', player: 'Chris', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 1950, mmrChange: -50, date: '2025-07-28' },
-  { game: 1, result: 'Loser', player: 'Corbin', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 1950, mmrChange: -50, date: '2025-07-28' },
+  { game: 1, result: 'Winner', player: 'Kyle', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 2050, mmrChange: 50, date: '2023-07-28' },
+  { game: 1, result: 'Winner', player: 'Josiah', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 2050, mmrChange: 50, date: '2023-07-28' },
+  { game: 1, result: 'Loser', player: 'Chris', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 1950, mmrChange: -50, date: '2023-07-28' },
+  { game: 1, result: 'Loser', player: 'Corbin', score: '', mmrBefore: 2000, teamMmr: 4000, teamMmrDiff: 0, mmrAfter: 1950, mmrChange: -50, date: '2023-07-28' },
   { game: 2, result: 'Winner', player: 'Chris', score: '', mmrBefore: 1950, teamMmr: 4000, teamMmrDiff: 50, mmrAfter: 1999, mmrChange: 49, date: '2025-07-28' },
   { game: 2, result: 'Winner', player: 'Josiah', score: '', mmrBefore: 2050, teamMmr: 4000, teamMmrDiff: 50, mmrAfter: 2099, mmrChange: 49, date: '2025-07-28' },
   { game: 2, result: 'Loser', player: 'Corbin', score: '', mmrBefore: 1950, teamMmr: 3950, teamMmrDiff: 50, mmrAfter: 1901, mmrChange: -49, date: '2025-07-28' },
