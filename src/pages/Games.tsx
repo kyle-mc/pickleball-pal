@@ -1,42 +1,111 @@
+import { useState, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { gamesData } from "@/data/games";
-import { useState } from "react";
 import { format } from "date-fns";
+import { Filter, ArrowUpDown } from "lucide-react";
+
+type SortField = "date" | "game" | "mmrChange";
+type SortDirection = "asc" | "desc";
 
 const Games = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [playerFilter, setPlayerFilter] = useState<string>("all");
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   // Get unique dates for filtering
-  const uniqueDates = [...new Set(gamesData.map(g => g.date))].sort((a, b) => 
-    new Date(b).getTime() - new Date(a).getTime()
-  );
+  const uniqueDates = useMemo(() => 
+    [...new Set(gamesData.map(g => g.date))].sort((a, b) => 
+      new Date(b).getTime() - new Date(a).getTime()
+    ), []);
 
-  // Group games by date and game number for display
-  const filteredGames = selectedDate 
-    ? gamesData.filter(g => g.date === selectedDate)
-    : gamesData;
+  // Get unique players for filtering
+  const uniquePlayers = useMemo(() => 
+    [...new Set(gamesData.map(g => g.player))].sort(), []);
+
+  // Filter games by date and player
+  const filteredGames = useMemo(() => {
+    let games = [...gamesData];
+    
+    if (selectedDate) {
+      games = games.filter(g => g.date === selectedDate);
+    }
+    
+    if (playerFilter !== "all") {
+      // Get all games that include this player
+      const playerGameKeys = new Set(
+        games
+          .filter(g => g.player === playerFilter)
+          .map(g => `${g.date}-${g.game}`)
+      );
+      games = games.filter(g => playerGameKeys.has(`${g.date}-${g.game}`));
+    }
+    
+    return games;
+  }, [selectedDate, playerFilter]);
 
   // Group by date, then by game number
-  const groupedByDate = filteredGames.reduce((acc, game) => {
-    if (!acc[game.date]) acc[game.date] = {};
-    if (!acc[game.date][game.game]) acc[game.date][game.game] = [];
-    acc[game.date][game.game].push(game);
-    return acc;
-  }, {} as Record<string, Record<number, typeof gamesData>>);
+  const groupedByDate = useMemo(() => {
+    const grouped = filteredGames.reduce((acc, game) => {
+      if (!acc[game.date]) acc[game.date] = {};
+      if (!acc[game.date][game.game]) acc[game.date][game.game] = [];
+      acc[game.date][game.game].push(game);
+      return acc;
+    }, {} as Record<string, Record<number, typeof gamesData>>);
+    
+    return grouped;
+  }, [filteredGames]);
 
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => 
-    new Date(b).getTime() - new Date(a).getTime()
-  );
+  const sortedDates = useMemo(() => {
+    const dates = Object.keys(groupedByDate);
+    return dates.sort((a, b) => {
+      if (sortDirection === "desc") {
+        return new Date(b).getTime() - new Date(a).getTime();
+      }
+      return new Date(a).getTime() - new Date(b).getTime();
+    });
+  }, [groupedByDate, sortDirection]);
+
+  const toggleSort = () => {
+    setSortDirection(prev => prev === "desc" ? "asc" : "desc");
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container mx-auto px-4 pt-24 pb-12">
+      <main className="container mx-auto px-4 pt-24 pb-20">
         <div className="mb-8">
           <h1 className="text-4xl font-display text-foreground mb-2">Games</h1>
           <p className="text-muted-foreground">All pickleball games and MMR changes</p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          {/* Player Filter */}
+          <Select value={playerFilter} onValueChange={setPlayerFilter}>
+            <SelectTrigger className="w-[180px] bg-card border-border">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filter by player" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="all">All Players</SelectItem>
+              {uniquePlayers.map(player => (
+                <SelectItem key={player} value={player}>{player}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Sort Toggle */}
+          <button
+            onClick={toggleSort}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+          >
+            <ArrowUpDown className="w-4 h-4" />
+            {sortDirection === "desc" ? "Newest First" : "Oldest First"}
+          </button>
         </div>
 
         {/* Date Filter */}
@@ -110,7 +179,7 @@ const Games = () => {
                                       {player.result === 'Winner' ? 'W' : 'L'}
                                     </span>
                                   </TableCell>
-                                  <TableCell className="font-medium text-foreground">
+                                  <TableCell className={`font-medium ${playerFilter === player.player ? 'text-primary' : 'text-foreground'}`}>
                                     {player.player}
                                   </TableCell>
                                   <TableCell className="text-right text-muted-foreground">
@@ -136,6 +205,12 @@ const Games = () => {
             </div>
           ))}
         </div>
+
+        {sortedDates.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            No games found matching your filters.
+          </div>
+        )}
       </main>
     </div>
   );
