@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -10,7 +9,7 @@ const Navbar = () => {
   const navLinks = [
     { href: "/", label: "My MMR" },
     { href: "/standings", label: "Standings" },
-    { href: "/sessions", label: "Sessions" },
+    { href: "/schedule", label: "Schedule" },
     { href: "/videos", label: "Videos" },
     { href: "/games", label: "Games" },
   ];
