@@ -1,41 +1,50 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { gamesData } from "@/data/games";
+import { gamesData as initialGamesData, GameRecord } from "@/data/games";
+import GameEntryForm from "@/components/GameEntryForm";
+import DataExportPanel from "@/components/DataExportPanel";
 import { format } from "date-fns";
 import { Filter, ArrowUpDown } from "lucide-react";
 
-type SortField = "date" | "game" | "mmrChange";
 type SortDirection = "asc" | "desc";
 
+const ITEMS_PER_PAGE = 5;
+
 const Games = () => {
+  const [localGames, setLocalGames] = useState<GameRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [playerFilter, setPlayerFilter] = useState<string>("all");
-  const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Combine initial games with locally added games
+  const allGames = useMemo(() => {
+    return [...initialGamesData, ...localGames];
+  }, [localGames]);
 
   // Get unique dates for filtering
   const uniqueDates = useMemo(() => 
-    [...new Set(gamesData.map(g => g.date))].sort((a, b) => 
+    [...new Set(allGames.map(g => g.date))].sort((a, b) => 
       new Date(b).getTime() - new Date(a).getTime()
-    ), []);
+    ), [allGames]);
 
   // Get unique players for filtering
   const uniquePlayers = useMemo(() => 
-    [...new Set(gamesData.map(g => g.player))].sort(), []);
+    [...new Set(allGames.map(g => g.player))].sort(), [allGames]);
 
   // Filter games by date and player
   const filteredGames = useMemo(() => {
-    let games = [...gamesData];
+    let games = [...allGames];
     
     if (selectedDate) {
       games = games.filter(g => g.date === selectedDate);
     }
     
     if (playerFilter !== "all") {
-      // Get all games that include this player
       const playerGameKeys = new Set(
         games
           .filter(g => g.player === playerFilter)
@@ -45,7 +54,7 @@ const Games = () => {
     }
     
     return games;
-  }, [selectedDate, playerFilter]);
+  }, [selectedDate, playerFilter, allGames]);
 
   // Group by date, then by game number
   const groupedByDate = useMemo(() => {
@@ -54,7 +63,7 @@ const Games = () => {
       if (!acc[game.date][game.game]) acc[game.date][game.game] = [];
       acc[game.date][game.game].push(game);
       return acc;
-    }, {} as Record<string, Record<number, typeof gamesData>>);
+    }, {} as Record<string, Record<number, typeof allGames>>);
     
     return grouped;
   }, [filteredGames]);
@@ -69,22 +78,56 @@ const Games = () => {
     });
   }, [groupedByDate, sortDirection]);
 
+  const displayedDates = sortedDates.slice(0, displayCount);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && displayCount < sortedDates.length) {
+          setDisplayCount(prev => Math.min(prev + ITEMS_PER_PAGE, sortedDates.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [displayCount, sortedDates.length]);
+
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(ITEMS_PER_PAGE);
+  }, [selectedDate, playerFilter, sortDirection]);
+
   const toggleSort = () => {
     setSortDirection(prev => prev === "desc" ? "asc" : "desc");
+  };
+
+  const handleGameAdded = (newGames: GameRecord[]) => {
+    setLocalGames(prev => [...prev, ...newGames]);
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container mx-auto px-4 pt-24 pb-20">
-        <div className="mb-8">
-          <h1 className="text-4xl font-display text-foreground mb-2">Games</h1>
-          <p className="text-muted-foreground">All pickleball games and MMR changes</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-display text-foreground mb-2">Games</h1>
+            <p className="text-muted-foreground">All pickleball games and MMR changes</p>
+          </div>
+          <div className="flex gap-3">
+            <DataExportPanel games={allGames} />
+            <GameEntryForm players={uniquePlayers} onGameAdded={handleGameAdded} />
+          </div>
         </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
-          {/* Player Filter */}
           <Select value={playerFilter} onValueChange={setPlayerFilter}>
             <SelectTrigger className="w-[180px] bg-card border-border">
               <Filter className="w-4 h-4 mr-2" />
@@ -98,7 +141,6 @@ const Games = () => {
             </SelectContent>
           </Select>
 
-          {/* Sort Toggle */}
           <button
             onClick={toggleSort}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
@@ -137,7 +179,7 @@ const Games = () => {
 
         {/* Games by Date */}
         <div className="space-y-8">
-          {sortedDates.map(date => (
+          {displayedDates.map(date => (
             <div key={date}>
               <h2 className="text-2xl font-display text-foreground mb-4">
                 {format(new Date(date), 'EEEE, MMMM d, yyyy')}
@@ -206,9 +248,24 @@ const Games = () => {
           ))}
         </div>
 
+        {displayCount < sortedDates.length && (
+          <div ref={loadMoreRef} className="py-8 text-center text-muted-foreground">
+            Loading more games...
+          </div>
+        )}
+
         {sortedDates.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             No games found matching your filters.
+          </div>
+        )}
+
+        {localGames.length > 0 && (
+          <div className="mt-8 p-4 bg-accent/10 border border-accent/20 rounded-lg">
+            <p className="text-accent text-sm">
+              {localGames.length} new game record{localGames.length > 1 ? 's' : ''} added this session. 
+              Use the Export Data button to save your data.
+            </p>
           </div>
         )}
       </main>
