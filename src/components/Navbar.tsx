@@ -1,6 +1,7 @@
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,9 +23,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-display text-xl">P</span>
-            </div>
+            <img src={logo} alt="PicklePlay Logo" className="w-10 h-10 rounded-full object-cover" />
             <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
           </Link>
 
