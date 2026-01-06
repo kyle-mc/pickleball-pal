@@ -2,61 +2,45 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { TrendingUp, TrendingDown, Minus, Users } from "lucide-react";
-import { gamesData as initialGamesData, GameRecord } from "@/data/games";
+import { TrendingUp, TrendingDown, Minus, Users, User, Loader2 } from "lucide-react";
+import { useGames } from "@/hooks/useGames";
+import { usePlayers } from "@/hooks/usePlayers";
+import { useSelectedPlayer } from "@/hooks/useSelectedPlayer";
 import AllPlayersView from "@/components/AllPlayersView";
 import PlayerComparisonView from "@/components/PlayerComparisonView";
-import CreatePlayerDialog from "@/components/CreatePlayerDialog";
 import { format } from "date-fns";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { GameRecord } from "@/data/games";
 
 const ITEMS_PER_PAGE = 10;
 
 const MyMMR = () => {
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
-  const [customPlayers, setCustomPlayers] = useState<string[]>([]);
+  const { data: allGames = [], isLoading: gamesLoading } = useGames();
+  const { data: players = [], isLoading: playersLoading } = usePlayers();
+  const { selectedPlayer, setSelectedPlayer } = useSelectedPlayer();
+  
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Combine game-data players with custom players
-  const players = useMemo(() => {
-    const gamePlayers = [...new Set(initialGamesData.map(g => g.player))];
-    const allPlayers = [...new Set([...gamePlayers, ...customPlayers])];
-    return allPlayers.sort();
-  }, [customPlayers]);
-
   // Check if "All Players" is selected
-  const showAllPlayers = selectedPlayers.includes("all");
-
-  // Get combined games for selected players (for comparison mode)
-  const playerGames = useMemo(() => {
-    if (showAllPlayers || selectedPlayers.length === 0) return [];
-    return initialGamesData
-      .filter(g => selectedPlayers.includes(g.player))
-      .sort((a, b) => {
-        const dateCompare = b.date.localeCompare(a.date);
-        if (dateCompare !== 0) return dateCompare;
-        return b.game - a.game;
-      });
-  }, [selectedPlayers, showAllPlayers]);
+  const showAllPlayers = selectedPlayer === "all";
 
   // Get single player's games for individual view
   const singlePlayerGames = useMemo(() => {
-    if (selectedPlayers.length !== 1 || showAllPlayers) return [];
-    return initialGamesData
-      .filter(g => g.player === selectedPlayers[0])
+    if (!selectedPlayer || selectedPlayer === "all") return [];
+    return allGames
+      .filter(g => g.player === selectedPlayer)
       .sort((a, b) => {
         const dateCompare = b.date.localeCompare(a.date);
         if (dateCompare !== 0) return dateCompare;
         return b.game - a.game;
       });
-  }, [selectedPlayers, showAllPlayers]);
+  }, [selectedPlayer, allGames]);
 
   // Calculate stats for single selected player
   const stats = useMemo(() => {
-    if (selectedPlayers.length !== 1 || showAllPlayers || singlePlayerGames.length === 0) {
+    if (!selectedPlayer || selectedPlayer === "all" || singlePlayerGames.length === 0) {
       return { currentMMR: 0, winRate: 0, gamesPlayed: 0 };
     }
     
@@ -69,27 +53,27 @@ const MyMMR = () => {
       winRate,
       gamesPlayed: singlePlayerGames.length
     };
-  }, [selectedPlayers, singlePlayerGames, showAllPlayers]);
+  }, [selectedPlayer, singlePlayerGames]);
 
   // Get teammate for each game
   const getTeammate = useCallback((game: GameRecord): string => {
-    const sameGame = initialGamesData.filter(
+    const sameGame = allGames.filter(
       g => g.date === game.date && g.game === game.game && g.result === game.result && g.player !== game.player
     );
     return sameGame.map(g => g.player).join(", ") || "N/A";
-  }, []);
+  }, [allGames]);
 
   // Get opponents for each game
   const getOpponents = useCallback((game: GameRecord): string => {
-    const opponents = initialGamesData.filter(
+    const opponents = allGames.filter(
       g => g.date === game.date && g.game === game.game && g.result !== game.result
     );
     return opponents.map(g => g.player).join(", ") || "N/A";
-  }, []);
+  }, [allGames]);
 
   // Infinite scroll observer
   useEffect(() => {
-    if (showAllPlayers || selectedPlayers.length > 1) return;
+    if (showAllPlayers || !selectedPlayer) return;
     
     const observer = new IntersectionObserver(
       entries => {
@@ -105,102 +89,64 @@ const MyMMR = () => {
     }
 
     return () => observer.disconnect();
-  }, [displayCount, singlePlayerGames.length, showAllPlayers, selectedPlayers.length]);
+  }, [displayCount, singlePlayerGames.length, showAllPlayers, selectedPlayer]);
 
   // Reset display count when player changes
   useEffect(() => {
     setDisplayCount(ITEMS_PER_PAGE);
-  }, [selectedPlayers]);
+  }, [selectedPlayer]);
 
   const displayedMatches = singlePlayerGames.slice(0, displayCount);
 
-  // Handle player selection toggle
-  const togglePlayer = (player: string) => {
-    if (player === "all") {
-      setSelectedPlayers(prev => prev.includes("all") ? [] : ["all"]);
-    } else {
-      setSelectedPlayers(prev => {
-        const withoutAll = prev.filter(p => p !== "all");
-        if (withoutAll.includes(player)) {
-          return withoutAll.filter(p => p !== player);
-        } else {
-          return [...withoutAll, player];
-        }
-      });
-    }
-  };
+  const isLoading = gamesLoading || playersLoading;
 
-  // Handle new player creation
-  const handlePlayerCreated = (name: string) => {
-    setCustomPlayers(prev => [...prev, name]);
-  };
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 pb-20 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
       <div className="pt-24 pb-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-full overflow-x-hidden">
           <h1 className="font-display text-4xl md:text-5xl text-foreground mb-8">My MMR</h1>
           
-          {/* Player Selector with Multi-Select */}
+          {/* Player Selector Dropdown */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <Label className="text-muted-foreground">Select Players to Compare</Label>
-              <CreatePlayerDialog 
-                existingPlayers={players}
-                onPlayerCreated={handlePlayerCreated}
-              />
-            </div>
-            <Card className="bg-card/50 border-border p-4">
-              <ScrollArea className="h-40">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  <div 
-                    className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                      showAllPlayers ? 'bg-primary/20 border border-primary' : 'bg-muted/50 border border-transparent hover:bg-muted'
-                    }`}
-                    onClick={() => togglePlayer("all")}
-                  >
-                    <Checkbox 
-                      checked={showAllPlayers}
-                      onCheckedChange={() => togglePlayer("all")}
-                      className="border-primary data-[state=checked]:bg-primary"
-                    />
-                    <span className="text-sm font-medium text-foreground">All Players</span>
-                  </div>
-                  {players.map(player => (
-                    <div 
-                      key={player}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedPlayers.includes(player) && !showAllPlayers
-                          ? 'bg-primary/20 border border-primary' 
-                          : 'bg-muted/50 border border-transparent hover:bg-muted'
-                      }`}
-                      onClick={() => togglePlayer(player)}
-                    >
-                      <Checkbox 
-                        checked={selectedPlayers.includes(player) && !showAllPlayers}
-                        onCheckedChange={() => togglePlayer(player)}
-                        disabled={showAllPlayers}
-                        className="border-primary data-[state=checked]:bg-primary"
-                      />
-                      <span className="text-sm font-medium text-foreground">{player}</span>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </Card>
-            {selectedPlayers.length > 0 && !showAllPlayers && (
+            <Label className="text-muted-foreground mb-3 block">Select Your Player</Label>
+            <Select 
+              value={selectedPlayer || ""} 
+              onValueChange={(value) => setSelectedPlayer(value || null)}
+            >
+              <SelectTrigger className="w-full max-w-xs bg-card border-border">
+                <User className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Choose a player..." />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border z-50">
+                <SelectItem value="all">All Players Overview</SelectItem>
+                {players.map(player => (
+                  <SelectItem key={player} value={player}>{player}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedPlayer && selectedPlayer !== "all" && (
               <p className="text-sm text-muted-foreground mt-2">
-                {selectedPlayers.length} player{selectedPlayers.length > 1 ? 's' : ''} selected
+                Your selection is saved and will persist across sessions
               </p>
             )}
           </div>
 
           {showAllPlayers ? (
             <AllPlayersView />
-          ) : selectedPlayers.length > 1 ? (
-            <PlayerComparisonView selectedPlayers={selectedPlayers} />
-          ) : selectedPlayers.length === 1 ? (
+          ) : selectedPlayer ? (
             <>
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 <Card className="bg-card/50 border-border">
@@ -310,7 +256,7 @@ const MyMMR = () => {
             </>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              Select one or more players to view and compare MMR stats
+              Select a player to view their MMR stats
             </div>
           )}
         </div>

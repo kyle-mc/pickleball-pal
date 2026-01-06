@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { gamesData } from "@/data/games";
+import { useGames } from "@/hooks/useGames";
+import { Loader2 } from "lucide-react";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
@@ -20,10 +21,12 @@ interface PlayerComparisonViewProps {
 }
 
 const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) => {
+  const { data: allGames = [], isLoading } = useGames();
+
   // Calculate stats for selected players
   const playerStats = useMemo(() => {
     return selectedPlayers.map(player => {
-      const games = gamesData
+      const games = allGames
         .filter(g => g.player === player)
         .sort((a, b) => {
           const dateCompare = b.date.localeCompare(a.date);
@@ -46,13 +49,13 @@ const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) =>
         color: PLAYER_COLORS[player] || '#888',
       };
     });
-  }, [selectedPlayers]);
+  }, [selectedPlayers, allGames]);
 
   // Build MMR history data for chart (only for selected players)
   const mmrHistory = useMemo(() => {
     const dataMap: Map<string, Record<string, number>> = new Map();
     
-    gamesData
+    allGames
       .filter(g => selectedPlayers.includes(g.player))
       .forEach(game => {
         const key = game.date;
@@ -77,7 +80,15 @@ const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) =>
       });
       return entry;
     });
-  }, [selectedPlayers]);
+  }, [selectedPlayers, allGames]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (selectedPlayers.length === 0) {
     return (
@@ -100,7 +111,7 @@ const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) =>
             <CardHeader className="pb-2">
               <CardTitle className="text-foreground flex items-center gap-2">
                 <div 
-                  className="w-4 h-4 rounded-full" 
+                  className="w-4 h-4 rounded-full flex-shrink-0" 
                   style={{ backgroundColor: stat.color }}
                 />
                 {stat.player}
@@ -136,7 +147,7 @@ const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) =>
           <CardTitle className="text-foreground">MMR Comparison Over Time</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[400px]">
+          <div className="h-[400px] w-full overflow-x-auto">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={mmrHistory}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

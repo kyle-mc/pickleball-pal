@@ -4,17 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { gamesData, GameRecord } from "@/data/games";
+import { GameRecord } from "@/data/games";
+import { useGames, useNextGameNumber, getPlayerMMR, useAddGames } from "@/hooks/useGames";
+import { usePlayers, useAddPlayer } from "@/hooks/usePlayers";
 
 interface GameEntryFormProps {
-  players: string[];
-  onGameAdded: (games: GameRecord[]) => void;
+  onGameAdded?: () => void;
 }
 
-const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
+const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const { toast } = useToast();
+  const { data: allGames = [] } = useGames();
+  const { data: players = [] } = usePlayers();
+  const addGamesMutation = useAddGames();
+  const addPlayerMutation = useAddPlayer();
+
   const [isOpen, setIsOpen] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [team1Player1, setTeam1Player1] = useState("");
@@ -23,27 +29,52 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
   const [team2Player2, setTeam2Player2] = useState("");
   const [team1Score, setTeam1Score] = useState("");
   const [team2Score, setTeam2Score] = useState("");
+  
+  // New player input states
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [showNewPlayerInput, setShowNewPlayerInput] = useState(false);
 
   // Get the next game number for the selected date
-  const nextGameNumber = useMemo(() => {
-    const gamesOnDate = gamesData.filter(g => g.date === date);
-    if (gamesOnDate.length === 0) return 1;
-    return Math.max(...gamesOnDate.map(g => g.game)) + 1;
-  }, [date]);
+  const nextGameNumber = useNextGameNumber(date, allGames);
 
-  // Get current MMR for a player
-  const getPlayerMMR = (player: string): number => {
-    const playerGames = gamesData
-      .filter(g => g.player === player)
-      .sort((a, b) => {
-        const dateCompare = b.date.localeCompare(a.date);
-        if (dateCompare !== 0) return dateCompare;
-        return b.game - a.game;
+  const handleAddNewPlayer = async () => {
+    const name = newPlayerName.trim();
+    if (!name) {
+      toast({
+        title: "Invalid Name",
+        description: "Please enter a player name.",
+        variant: "destructive",
       });
-    return playerGames[0]?.mmrAfter || 2000;
+      return;
+    }
+
+    if (players.includes(name)) {
+      toast({
+        title: "Player Exists",
+        description: "This player already exists.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await addPlayerMutation.mutateAsync(name);
+      toast({
+        title: "Player Added!",
+        description: `${name} has been added to the player list.`,
+      });
+      setNewPlayerName("");
+      setShowNewPlayerInput(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add player. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate
     if (!team1Player1 || !team1Player2 || !team2Player1 || !team2Player2) {
       toast({
@@ -80,8 +111,8 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
     const team2Players = [team2Player1, team2Player2];
 
     // Calculate MMRs
-    const team1MMR = getPlayerMMR(team1Player1) + getPlayerMMR(team1Player2);
-    const team2MMR = getPlayerMMR(team2Player1) + getPlayerMMR(team2Player2);
+    const team1MMR = getPlayerMMR(team1Player1, allGames) + getPlayerMMR(team1Player2, allGames);
+    const team2MMR = getPlayerMMR(team2Player1, allGames) + getPlayerMMR(team2Player2, allGames);
     const mmrDiff = team1MMR - team2MMR;
 
     // Simple MMR calculation (base 50, adjusted by diff)
@@ -94,7 +125,7 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
 
     // Team 1 records
     team1Players.forEach(player => {
-      const mmrBefore = getPlayerMMR(player);
+      const mmrBefore = getPlayerMMR(player, allGames);
       newGames.push({
         game: nextGameNumber,
         result: team1Wins ? 'Winner' : 'Loser',
@@ -111,7 +142,7 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
 
     // Team 2 records
     team2Players.forEach(player => {
-      const mmrBefore = getPlayerMMR(player);
+      const mmrBefore = getPlayerMMR(player, allGames);
       newGames.push({
         game: nextGameNumber,
         result: team1Wins ? 'Loser' : 'Winner',
@@ -126,21 +157,39 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
       });
     });
 
-    onGameAdded(newGames);
-    
-    toast({
-      title: "Game Added!",
-      description: `Game ${nextGameNumber} has been recorded.`,
-    });
+    try {
+      // Add any new players to the database first
+      const allPlayersInGame = [...team1Players, ...team2Players];
+      for (const player of allPlayersInGame) {
+        if (!players.includes(player)) {
+          await addPlayerMutation.mutateAsync(player);
+        }
+      }
 
-    // Reset form
-    setTeam1Player1("");
-    setTeam1Player2("");
-    setTeam2Player1("");
-    setTeam2Player2("");
-    setTeam1Score("");
-    setTeam2Score("");
-    setIsOpen(false);
+      await addGamesMutation.mutateAsync(newGames);
+      
+      toast({
+        title: "Game Added!",
+        description: `Game ${nextGameNumber} has been recorded and saved.`,
+      });
+
+      // Reset form
+      setTeam1Player1("");
+      setTeam1Player2("");
+      setTeam2Player1("");
+      setTeam2Player2("");
+      setTeam1Score("");
+      setTeam2Score("");
+      setIsOpen(false);
+      
+      onGameAdded?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save game. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const selectedPlayers = [team1Player1, team1Player2, team2Player1, team2Player2].filter(Boolean);
@@ -157,7 +206,7 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
           Add Game
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border max-w-lg">
+      <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">Record New Game</DialogTitle>
         </DialogHeader>
@@ -172,6 +221,48 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
             />
           </div>
 
+          {/* Add New Player Section */}
+          <div className="p-3 rounded-lg bg-muted/50 border border-border">
+            {showNewPlayerInput ? (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="New player name"
+                  value={newPlayerName}
+                  onChange={e => setNewPlayerName(e.target.value)}
+                  className="bg-background border-border flex-1"
+                  onKeyDown={e => e.key === 'Enter' && handleAddNewPlayer()}
+                />
+                <Button 
+                  size="sm" 
+                  onClick={handleAddNewPlayer}
+                  disabled={addPlayerMutation.isPending}
+                >
+                  Add
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  onClick={() => {
+                    setShowNewPlayerInput(false);
+                    setNewPlayerName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowNewPlayerInput(true)}
+                className="w-full text-muted-foreground"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add New Player
+              </Button>
+            )}
+          </div>
+
           <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
             <Label className="text-primary font-medium mb-3 block">Team 1</Label>
             <div className="grid grid-cols-2 gap-3">
@@ -179,7 +270,7 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
                 <SelectTrigger className="bg-muted border-border">
                   <SelectValue placeholder="Player 1" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-card border-border z-50">
                   {getAvailablePlayers(team1Player1).map(p => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -189,7 +280,7 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
                 <SelectTrigger className="bg-muted border-border">
                   <SelectValue placeholder="Player 2" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-card border-border z-50">
                   {getAvailablePlayers(team1Player2).map(p => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -217,7 +308,7 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
                 <SelectTrigger className="bg-muted border-border">
                   <SelectValue placeholder="Player 1" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-card border-border z-50">
                   {getAvailablePlayers(team2Player1).map(p => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -227,7 +318,7 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
                 <SelectTrigger className="bg-muted border-border">
                   <SelectValue placeholder="Player 2" />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border">
+                <SelectContent className="bg-card border-border z-50">
                   {getAvailablePlayers(team2Player2).map(p => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -246,8 +337,13 @@ const GameEntryForm = ({ players, onGameAdded }: GameEntryFormProps) => {
             </div>
           </div>
 
-          <Button onClick={handleSubmit} className="w-full" variant="hero">
-            Record Game
+          <Button 
+            onClick={handleSubmit} 
+            className="w-full" 
+            variant="hero"
+            disabled={addGamesMutation.isPending}
+          >
+            {addGamesMutation.isPending ? "Saving..." : "Record Game"}
           </Button>
         </div>
       </DialogContent>

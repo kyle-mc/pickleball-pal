@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { gamesData } from "@/data/games";
+import { useGames } from "@/hooks/useGames";
+import { Loader2 } from "lucide-react";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
@@ -18,12 +19,14 @@ const PLAYER_COLORS: Record<string, string> = {
 };
 
 const AllPlayersView = () => {
+  const { data: allGames = [], isLoading } = useGames();
+
   // Calculate current stats for all players
   const playerStats = useMemo(() => {
-    const uniquePlayers = [...new Set(gamesData.map(g => g.player))];
+    const uniquePlayers = [...new Set(allGames.map(g => g.player))];
     
     return uniquePlayers.map(player => {
-      const games = gamesData
+      const games = allGames
         .filter(g => g.player === player)
         .sort((a, b) => {
           const dateCompare = b.date.localeCompare(a.date);
@@ -45,15 +48,15 @@ const AllPlayersView = () => {
         winRate,
       };
     }).sort((a, b) => b.currentMMR - a.currentMMR);
-  }, []);
+  }, [allGames]);
 
   // Build MMR history data for chart
   const mmrHistory = useMemo(() => {
-    const uniquePlayers = [...new Set(gamesData.map(g => g.player))];
+    const uniquePlayers = [...new Set(allGames.map(g => g.player))];
     const dataMap: Map<string, Record<string, number>> = new Map();
     
     // Group by date and track MMR for each player
-    gamesData.forEach(game => {
+    allGames.forEach(game => {
       const key = game.date;
       if (!dataMap.has(key)) {
         dataMap.set(key, { date: key } as any);
@@ -77,9 +80,17 @@ const AllPlayersView = () => {
       });
       return entry;
     });
-  }, []);
+  }, [allGames]);
 
-  const uniquePlayers = [...new Set(gamesData.map(g => g.player))];
+  const uniquePlayers = [...new Set(allGames.map(g => g.player))];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <Tabs defaultValue="table" className="w-full">
@@ -98,13 +109,13 @@ const AllPlayersView = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border bg-muted/30">
-                    <TableHead className="text-muted-foreground">Rank</TableHead>
-                    <TableHead className="text-muted-foreground">Player</TableHead>
-                    <TableHead className="text-muted-foreground text-right">MMR</TableHead>
-                    <TableHead className="text-muted-foreground text-right">W</TableHead>
-                    <TableHead className="text-muted-foreground text-right">L</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Win %</TableHead>
-                    <TableHead className="text-muted-foreground text-right">Games</TableHead>
+                    <TableHead className="text-muted-foreground whitespace-nowrap">Rank</TableHead>
+                    <TableHead className="text-muted-foreground whitespace-nowrap">Player</TableHead>
+                    <TableHead className="text-muted-foreground text-right whitespace-nowrap">MMR</TableHead>
+                    <TableHead className="text-muted-foreground text-right whitespace-nowrap">W</TableHead>
+                    <TableHead className="text-muted-foreground text-right whitespace-nowrap">L</TableHead>
+                    <TableHead className="text-muted-foreground text-right whitespace-nowrap">Win %</TableHead>
+                    <TableHead className="text-muted-foreground text-right whitespace-nowrap">Games</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -120,22 +131,22 @@ const AllPlayersView = () => {
                           {i + 1}
                         </span>
                       </TableCell>
-                      <TableCell className="font-medium text-foreground">
+                      <TableCell className="font-medium text-foreground whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <div 
-                            className="w-3 h-3 rounded-full" 
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: PLAYER_COLORS[player.player] || '#888' }}
                           />
                           {player.player}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right text-primary font-display text-lg">
+                      <TableCell className="text-right text-primary font-display text-lg whitespace-nowrap">
                         {player.currentMMR.toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">{player.wins}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{player.losses}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{player.winRate}%</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{player.gamesPlayed}</TableCell>
+                      <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.wins}</TableCell>
+                      <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.losses}</TableCell>
+                      <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.winRate}%</TableCell>
+                      <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.gamesPlayed}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -151,7 +162,7 @@ const AllPlayersView = () => {
             <CardTitle className="text-foreground">MMR Over Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[400px]">
+            <div className="h-[400px] w-full overflow-x-auto">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={mmrHistory}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

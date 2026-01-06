@@ -3,28 +3,23 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { gamesData as initialGamesData, GameRecord } from "@/data/games";
+import { useGames } from "@/hooks/useGames";
 import GameEntryForm from "@/components/GameEntryForm";
 import DataExportPanel from "@/components/DataExportPanel";
 import { format } from "date-fns";
-import { Filter, ArrowUpDown } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2 } from "lucide-react";
 
 type SortDirection = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 5;
 
 const Games = () => {
-  const [localGames, setLocalGames] = useState<GameRecord[]>([]);
+  const { data: allGames = [], isLoading } = useGames();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [playerFilter, setPlayerFilter] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  // Combine initial games with locally added games
-  const allGames = useMemo(() => {
-    return [...initialGamesData, ...localGames];
-  }, [localGames]);
 
   // Get unique dates for filtering
   const uniqueDates = useMemo(() => 
@@ -107,22 +102,29 @@ const Games = () => {
     setSortDirection(prev => prev === "desc" ? "asc" : "desc");
   };
 
-  const handleGameAdded = (newGames: GameRecord[]) => {
-    setLocalGames(prev => [...prev, ...newGames]);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 pt-24 pb-20 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
-      <main className="container mx-auto px-4 pt-24 pb-20">
-        <div className="flex items-center justify-between mb-8">
+      <main className="container mx-auto px-4 pt-24 pb-20 max-w-full overflow-x-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="text-4xl font-display text-foreground mb-2">Games</h1>
             <p className="text-muted-foreground">All pickleball games and MMR changes</p>
           </div>
-          <div className="flex gap-3">
-            <DataExportPanel games={allGames} />
-            <GameEntryForm players={uniquePlayers} onGameAdded={handleGameAdded} />
+          <div className="flex gap-3 flex-shrink-0">
+            <DataExportPanel />
+            <GameEntryForm />
           </div>
         </div>
 
@@ -133,7 +135,7 @@ const Games = () => {
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Filter by player" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
+            <SelectContent className="bg-card border-border z-50">
               <SelectItem value="all">All Players</SelectItem>
               {uniquePlayers.map(player => (
                 <SelectItem key={player} value={player}>{player}</SelectItem>
@@ -192,21 +194,21 @@ const Games = () => {
                     const losers = players.filter(p => p.result === 'Loser');
                     
                     return (
-                      <Card key={gameNum} className="bg-card border-border">
+                      <Card key={gameNum} className="bg-card border-border overflow-hidden">
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg font-medium">
                             Game {gameNum}
                           </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow className="border-border">
-                                <TableHead className="text-muted-foreground">Result</TableHead>
-                                <TableHead className="text-muted-foreground">Player</TableHead>
-                                <TableHead className="text-muted-foreground text-right">MMR Before</TableHead>
-                                <TableHead className="text-muted-foreground text-right">MMR After</TableHead>
-                                <TableHead className="text-muted-foreground text-right">Change</TableHead>
+                                <TableHead className="text-muted-foreground whitespace-nowrap">Result</TableHead>
+                                <TableHead className="text-muted-foreground whitespace-nowrap">Player</TableHead>
+                                <TableHead className="text-muted-foreground text-right whitespace-nowrap">MMR Before</TableHead>
+                                <TableHead className="text-muted-foreground text-right whitespace-nowrap">MMR After</TableHead>
+                                <TableHead className="text-muted-foreground text-right whitespace-nowrap">Change</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -221,16 +223,16 @@ const Games = () => {
                                       {player.result === 'Winner' ? 'W' : 'L'}
                                     </span>
                                   </TableCell>
-                                  <TableCell className={`font-medium ${playerFilter === player.player ? 'text-primary' : 'text-foreground'}`}>
+                                  <TableCell className={`font-medium whitespace-nowrap ${playerFilter === player.player ? 'text-primary' : 'text-foreground'}`}>
                                     {player.player}
                                   </TableCell>
-                                  <TableCell className="text-right text-muted-foreground">
+                                  <TableCell className="text-right text-muted-foreground whitespace-nowrap">
                                     {player.mmrBefore.toLocaleString()}
                                   </TableCell>
-                                  <TableCell className="text-right text-foreground font-medium">
+                                  <TableCell className="text-right text-foreground font-medium whitespace-nowrap">
                                     {player.mmrAfter.toLocaleString()}
                                   </TableCell>
-                                  <TableCell className={`text-right font-medium ${
+                                  <TableCell className={`text-right font-medium whitespace-nowrap ${
                                     player.mmrChange > 0 ? 'text-primary' : 'text-destructive'
                                   }`}>
                                     {player.mmrChange > 0 ? '▲' : '▼'}{Math.abs(player.mmrChange)}
@@ -257,15 +259,6 @@ const Games = () => {
         {sortedDates.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             No games found matching your filters.
-          </div>
-        )}
-
-        {localGames.length > 0 && (
-          <div className="mt-8 p-4 bg-accent/10 border border-accent/20 rounded-lg">
-            <p className="text-accent text-sm">
-              {localGames.length} new game record{localGames.length > 1 ? 's' : ''} added this session. 
-              Use the Export Data button to save your data.
-            </p>
           </div>
         )}
       </main>
