@@ -81,7 +81,7 @@ const SwipeNavigator = ({ children }: SwipeNavigatorProps) => {
   const rightPage = currentIndex < PAGES.length - 1 ? PAGES[currentIndex + 1] : null;
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative w-full max-w-full overflow-hidden">
       {/* Left preview sliver */}
       {leftPage && (
         <div 
@@ -116,7 +116,7 @@ const SwipeNavigator = ({ children }: SwipeNavigatorProps) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="transition-transform duration-150"
+        className="transition-transform duration-150 w-full max-w-full overflow-x-hidden"
         style={{
           transform: `translateX(${swipeOffset}px)`,
         }}

@@ -4,14 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { GameRecord } from "@/data/games";
+import { useGames } from "@/hooks/useGames";
 
-interface DataExportPanelProps {
-  games: GameRecord[];
-}
-
-const DataExportPanel = ({ games }: DataExportPanelProps) => {
+const DataExportPanel = () => {
   const { toast } = useToast();
+  const { data: games = [], isLoading } = useGames();
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -78,6 +75,7 @@ const DataExportPanel = ({ games }: DataExportPanelProps) => {
         <div className="space-y-4 pt-4">
           <p className="text-muted-foreground text-sm">
             Copy this data and paste directly into Google Sheets. The data is tab-separated for easy import.
+            {isLoading && " Loading latest data..."}
           </p>
           
           <Textarea 
@@ -87,7 +85,7 @@ const DataExportPanel = ({ games }: DataExportPanelProps) => {
           />
 
           <div className="flex gap-3">
-            <Button onClick={handleCopy} variant="hero" className="flex-1">
+            <Button onClick={handleCopy} variant="hero" className="flex-1" disabled={isLoading}>
               {copied ? (
                 <>
                   <Check className="w-4 h-4 mr-2" />
@@ -100,14 +98,14 @@ const DataExportPanel = ({ games }: DataExportPanelProps) => {
                 </>
               )}
             </Button>
-            <Button onClick={handleDownload} variant="outline" className="border-border">
+            <Button onClick={handleDownload} variant="outline" className="border-border" disabled={isLoading}>
               <Download className="w-4 h-4 mr-2" />
               Download TSV
             </Button>
           </div>
 
           <p className="text-muted-foreground text-xs">
-            Showing {games.length} game records ready for export.
+            Showing {games.length} game records ready for export (includes all persisted data).
           </p>
         </div>
       </DialogContent>

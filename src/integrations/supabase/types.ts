@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      games: {
+        Row: {
+          created_at: string
+          date: string
+          game_number: number
+          id: string
+          mmr_after: number
+          mmr_before: number
+          mmr_change: number
+          player: string
+          result: string
+          score: string | null
+          team_mmr: number
+          team_mmr_diff: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          game_number: number
+          id?: string
+          mmr_after: number
+          mmr_before: number
+          mmr_change: number
+          player: string
+          result: string
+          score?: string | null
+          team_mmr?: number
+          team_mmr_diff?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          game_number?: number
+          id?: string
+          mmr_after?: number
+          mmr_before?: number
+          mmr_change?: number
+          player?: string
+          result?: string
+          score?: string | null
+          team_mmr?: number
+          team_mmr_diff?: number
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
