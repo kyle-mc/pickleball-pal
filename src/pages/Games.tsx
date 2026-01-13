@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGames } from "@/hooks/useGames";
+import { useRealtimeGames } from "@/hooks/useRealtime";
 import GameEntryForm from "@/components/GameEntryForm";
 import DataExportPanel from "@/components/DataExportPanel";
 import { format } from "date-fns";
@@ -15,6 +17,7 @@ const ITEMS_PER_PAGE = 5;
 
 const Games = () => {
   const { data: allGames = [], isLoading } = useGames();
+  useRealtimeGames();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [playerFilter, setPlayerFilter] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -261,6 +264,7 @@ const Games = () => {
             No games found matching your filters.
           </div>
         )}
+      <Footer />
       </main>
     </div>
   );
