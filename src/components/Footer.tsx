@@ -1,4 +1,6 @@
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const Footer = () => {
   return (
@@ -7,12 +9,10 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
-            <a href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-display text-xl">P</span>
-              </div>
+            <Link to="/" className="flex items-center gap-2 mb-4">
+              <img src={logo} alt="PicklePlay Logo" className="w-10 h-10 rounded-full object-cover" />
               <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
-            </a>
+            </Link>
             <p className="text-muted-foreground text-sm mb-6">
               Your ultimate companion for pickleball. Find courts, connect with players, and elevate your game.
             </p>
