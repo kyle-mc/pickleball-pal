@@ -5,105 +5,133 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Clock, Eye, Heart, Search, Filter, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Eye, Heart, Search, Filter, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useVideos, useUserLikes, useToggleLike, useAddVideo } from "@/hooks/useVideos";
+import { usePlayers } from "@/hooks/usePlayers";
 
-interface VideoHighlight {
-  id: number;
-  title: string;
-  description: string;
-  players: string[];
-  date: string;
-  youtubeUrl: string;
-  thumbnailUrl?: string;
-  views: number;
-  likes: number;
-  duration: string;
-}
+// Helper to extract YouTube video ID
+const getYouTubeVideoId = (url: string): string | null => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+};
 
-// Demo data - would be replaced by Google Sheets integration
-const highlightVideos: VideoHighlight[] = [
-  { id: 1, title: "Amazing ATP Winner!", description: "Kyle with an incredible around-the-post winner", players: ["Kyle", "Chris"], date: "2025-08-25", youtubeUrl: "https://youtube.com/watch?v=example1", views: 245, likes: 32, duration: "0:24" },
-  { id: 2, title: "Insane Dink Rally", description: "30-shot dink rally ending in spectacular fashion", players: ["Josiah", "Brandon", "Chris", "Kyle"], date: "2025-08-18", youtubeUrl: "https://youtube.com/watch?v=example2", views: 189, likes: 28, duration: "1:12" },
-  { id: 3, title: "Perfect Erne Execution", description: "Brandon with the textbook Erne", players: ["Brandon", "Corbin"], date: "2025-08-04", youtubeUrl: "https://youtube.com/watch?v=example3", views: 312, likes: 45, duration: "0:18" },
-  { id: 4, title: "Comeback Win Celebration", description: "Team rallies from 8-2 down to win 11-9", players: ["Kyle", "Josiah"], date: "2025-09-01", youtubeUrl: "https://youtube.com/watch?v=example4", views: 421, likes: 67, duration: "2:45" },
-  { id: 5, title: "Speed-up Battle", description: "Chris wins an intense hands battle at the kitchen", players: ["Chris", "Braden"], date: "2025-08-25", youtubeUrl: "https://youtube.com/watch?v=example5", views: 156, likes: 19, duration: "0:32" },
-];
-
-const tutorialVideos = [
-  { id: 101, title: "Pro Tips: The Perfect Dink", duration: "8:24", views: "2.4K", thumbnail: "🎾", youtubeUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ" },
-  { id: 102, title: "Third Shot Drop Mastery", duration: "12:15", views: "1.8K", thumbnail: "🏓", youtubeUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ" },
-  { id: 103, title: "Doubles Strategy Guide", duration: "15:30", views: "3.1K", thumbnail: "👥", youtubeUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ" },
-  { id: 104, title: "Serve Techniques That Win", duration: "10:45", views: "2.9K", thumbnail: "🎯", youtubeUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ" },
-  { id: 105, title: "Kitchen Line Domination", duration: "9:20", views: "1.5K", thumbnail: "🔥", youtubeUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ" },
-  { id: 106, title: "Match Analysis: Pro Finals", duration: "22:10", views: "4.2K", thumbnail: "🏆", youtubeUrl: "https://youtube.com/watch?v=dQw4w9WgXcQ" },
-];
+// Helper to get YouTube thumbnail
+const getYouTubeThumbnail = (url: string): string => {
+  const videoId = getYouTubeVideoId(url);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+};
 
 const Videos = () => {
   const { toast } = useToast();
+  const { data: videos = [], isLoading } = useVideos();
+  const { data: likedVideos = new Set<string>() } = useUserLikes();
+  const toggleLikeMutation = useToggleLike();
+  const addVideoMutation = useAddVideo();
+  const { data: playersList = [] } = usePlayers();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [playerFilter, setPlayerFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date");
-  const [likedVideos, setLikedVideos] = useState<Set<number>>(new Set());
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newVideo, setNewVideo] = useState({
+    title: "",
+    description: "",
+    youtube_url: "",
+    duration: "",
+    players: [] as string[],
+  });
 
-  // Get unique players from highlights
+  // Get unique players from videos and existing players
   const allPlayers = useMemo(() => {
-    const players = new Set<string>();
-    highlightVideos.forEach(v => v.players.forEach(p => players.add(p)));
-    return [...players].sort();
-  }, []);
+    const playerSet = new Set<string>();
+    videos.forEach(v => v.players?.forEach(p => playerSet.add(p)));
+    playersList.forEach(p => playerSet.add(p));
+    return [...playerSet].sort();
+  }, [videos, playersList]);
 
   // Filter and sort videos
   const filteredVideos = useMemo(() => {
-    let videos = [...highlightVideos];
+    let filtered = [...videos];
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      videos = videos.filter(v => 
+      filtered = filtered.filter(v => 
         v.title.toLowerCase().includes(query) ||
-        v.description.toLowerCase().includes(query) ||
-        v.players.some(p => p.toLowerCase().includes(query))
+        v.description?.toLowerCase().includes(query) ||
+        v.players?.some(p => p.toLowerCase().includes(query))
       );
     }
 
-    // Player filter
     if (playerFilter !== "all") {
-      videos = videos.filter(v => v.players.includes(playerFilter));
+      filtered = filtered.filter(v => v.players?.includes(playerFilter));
     }
 
-    // Sort
     switch (sortBy) {
       case "date":
-        videos.sort((a, b) => b.date.localeCompare(a.date));
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
       case "views":
-        videos.sort((a, b) => b.views - a.views);
+        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
         break;
       case "likes":
-        videos.sort((a, b) => (b.likes + (likedVideos.has(b.id) ? 1 : 0)) - (a.likes + (likedVideos.has(a.id) ? 1 : 0)));
+        filtered.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
         break;
     }
 
-    return videos;
-  }, [searchQuery, playerFilter, sortBy, likedVideos]);
+    return filtered;
+  }, [videos, searchQuery, playerFilter, sortBy]);
 
-  const handleLike = (videoId: number) => {
-    setLikedVideos(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(videoId)) {
-        newSet.delete(videoId);
-        toast({ title: "Like removed" });
-      } else {
-        newSet.add(videoId);
-        toast({ title: "Video liked!" });
-      }
-      return newSet;
-    });
+  const handleLike = async (videoId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isLiked = likedVideos.has(videoId);
+    toggleLikeMutation.mutate({ videoId, isLiked });
+    toast({ title: isLiked ? "Like removed" : "Video liked!" });
   };
 
-  const handlePlayVideo = (url: string) => {
-    window.open(url, "_blank");
+  const handleAddVideo = async () => {
+    if (!newVideo.title || !newVideo.youtube_url) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide a title and YouTube URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const videoId = getYouTubeVideoId(newVideo.youtube_url);
+    if (!videoId) {
+      toast({
+        title: "Invalid URL",
+        description: "Please provide a valid YouTube URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await addVideoMutation.mutateAsync({
+      title: newVideo.title,
+      description: newVideo.description || undefined,
+      youtube_url: newVideo.youtube_url,
+      players: newVideo.players.length > 0 ? newVideo.players : undefined,
+    });
+
+    setNewVideo({ title: "", description: "", youtube_url: "", duration: "", players: [] });
+    setIsAddOpen(false);
+    toast({ title: "Video Added!", description: "Your video has been added to the library." });
+  };
+
+  const togglePlayerSelection = (player: string) => {
+    setNewVideo(prev => ({
+      ...prev,
+      players: prev.players.includes(player) 
+        ? prev.players.filter(p => p !== player)
+        : [...prev.players, player]
+    }));
   };
 
   return (
@@ -111,14 +139,79 @@ const Videos = () => {
       <Navbar />
       <div className="pt-24 pb-20">
         <div className="container mx-auto px-4">
-          <h1 className="font-display text-4xl md:text-5xl text-foreground mb-8">Videos</h1>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="font-display text-4xl md:text-5xl text-foreground">Videos</h1>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button variant="hero">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Video
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground">Add Video</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div>
+                    <Label className="text-muted-foreground">YouTube URL *</Label>
+                    <Input
+                      value={newVideo.youtube_url}
+                      onChange={e => setNewVideo(prev => ({ ...prev, youtube_url: e.target.value }))}
+                      placeholder="https://youtu.be/yNuuk4doHlA"
+                      className="bg-muted border-border"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Title *</Label>
+                    <Input
+                      value={newVideo.title}
+                      onChange={e => setNewVideo(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Amazing Rally!"
+                      className="bg-muted border-border"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Description</Label>
+                    <Input
+                      value={newVideo.description}
+                      onChange={e => setNewVideo(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Incredible comeback in the finals..."
+                      className="bg-muted border-border"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Featured Players</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {allPlayers.map(player => (
+                        <button
+                          key={player}
+                          onClick={() => togglePlayerSelection(player)}
+                          className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                            newVideo.players.includes(player)
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {player}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={handleAddVideo} className="w-full" variant="hero" disabled={addVideoMutation.isPending}>
+                    {addVideoMutation.isPending ? "Adding..." : "Add Video"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           
           {/* Filters */}
           <div className="flex flex-wrap gap-4 mb-8">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
-                placeholder="Search highlights..."
+                placeholder="Search videos..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="pl-10 bg-card border-border"
@@ -148,115 +241,149 @@ const Videos = () => {
             </Select>
           </div>
 
-          {/* Recent Highlights */}
-          <section className="mb-12">
-            <h2 className="font-display text-2xl text-foreground mb-4">Recent Highlights</h2>
-            <p className="text-muted-foreground mb-6 text-sm">
-              Video data will be pulled from your Google Sheets spreadsheet once connected.
-            </p>
-            
+          {/* Video Grid */}
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading videos...</div>
+          ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVideos.map((video) => (
-                <Card 
-                  key={video.id} 
-                  className="bg-card/50 border-border overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => handlePlayVideo(video.youtubeUrl)}
-                >
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center relative">
-                    <span className="text-6xl">🎬</span>
-                    <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
-                        <Play className="w-8 h-8 text-primary-foreground ml-1" />
+              {filteredVideos.map((video) => {
+                const videoId = getYouTubeVideoId(video.youtube_url);
+                const isLiked = likedVideos.has(video.id);
+                
+                return (
+                  <Card 
+                    key={video.id} 
+                    className="bg-card/50 border-border overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => setSelectedVideo(video.id)}
+                  >
+                    <div className="aspect-video bg-muted relative overflow-hidden">
+                      {videoId ? (
+                        <img 
+                          src={video.thumbnail_url || getYouTubeThumbnail(video.youtube_url)}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-6xl">🎬</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+                          <svg className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
                       </div>
+                      {video.duration && (
+                        <div className="absolute bottom-2 right-2 bg-background/80 px-2 py-1 rounded text-xs text-foreground">
+                          {video.duration}
+                        </div>
+                      )}
                     </div>
-                    <div className="absolute bottom-2 right-2 bg-background/80 px-2 py-1 rounded text-xs text-foreground">
-                      {video.duration}
+                    <CardContent className="p-4">
+                      <h3 className="font-medium text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-1">
+                        {video.title}
+                      </h3>
+                      {video.description && (
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                          {video.description}
+                        </p>
+                      )}
+                      {video.players && video.players.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {video.players.map(player => (
+                            <span key={player} className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">
+                              {player}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            <span>{video.views || 0}</span>
+                          </div>
+                          <button 
+                            className={`flex items-center gap-1 transition-colors ${isLiked ? "text-destructive" : "hover:text-destructive"}`}
+                            onClick={e => handleLike(video.id, e)}
+                          >
+                            <Heart className="w-3 h-3" fill={isLiked ? "currentColor" : "none"} />
+                            <span>{video.likes_count || 0}</span>
+                          </button>
+                        </div>
+                        <span className="text-xs">
+                          {new Date(video.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {!isLoading && filteredVideos.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              No videos found. Add your first video!
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Video Player Modal */}
+      <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
+        <DialogContent className="bg-card border-border max-w-4xl p-0 overflow-hidden">
+          <button 
+            onClick={() => setSelectedVideo(null)}
+            className="absolute top-4 right-4 z-10 p-2 bg-background/80 rounded-full hover:bg-background transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          {selectedVideo && (() => {
+            const video = videos.find(v => v.id === selectedVideo);
+            if (!video) return null;
+            const videoId = getYouTubeVideoId(video.youtube_url);
+            
+            return (
+              <div>
+                <div className="aspect-video bg-black">
+                  {videoId ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      Invalid video URL
                     </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-foreground mb-1 group-hover:text-primary transition-colors">
-                      {video.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                      {video.description}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mb-3">
+                  )}
+                </div>
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold text-foreground mb-2">{video.title}</h2>
+                  {video.description && (
+                    <p className="text-muted-foreground mb-3">{video.description}</p>
+                  )}
+                  {video.players && video.players.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
                       {video.players.map(player => (
-                        <span key={player} className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">
+                        <span key={player} className="text-sm bg-muted px-3 py-1 rounded-full text-muted-foreground">
                           {player}
                         </span>
                       ))}
                     </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          <span>{video.views}</span>
-                        </div>
-                        <button 
-                          className={`flex items-center gap-1 transition-colors ${likedVideos.has(video.id) ? "text-destructive" : "hover:text-destructive"}`}
-                          onClick={e => { e.stopPropagation(); handleLike(video.id); }}
-                        >
-                          <Heart className="w-3 h-3" fill={likedVideos.has(video.id) ? "currentColor" : "none"} />
-                          <span>{video.likes + (likedVideos.has(video.id) ? 1 : 0)}</span>
-                        </button>
-                      </div>
-                      <span className="text-xs">{video.date}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filteredVideos.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                No videos found matching your filters.
+                  )}
+                </div>
               </div>
-            )}
-          </section>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
-          {/* Tutorials & Pro Content */}
-          <section>
-            <h2 className="font-display text-2xl text-foreground mb-4">Tutorials & Pro Matches</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tutorialVideos.map((video) => (
-                <Card 
-                  key={video.id} 
-                  className="bg-card/50 border-border overflow-hidden group cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => handlePlayVideo(video.youtubeUrl)}
-                >
-                  <div className="aspect-video bg-muted/30 flex items-center justify-center relative">
-                    <span className="text-6xl">{video.thumbnail}</span>
-                    <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
-                        <Play className="w-8 h-8 text-primary-foreground ml-1" />
-                      </div>
-                    </div>
-                    <div className="absolute top-2 right-2">
-                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-foreground mb-2 group-hover:text-primary transition-colors">
-                      {video.title}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{video.duration}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        <span>{video.views}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
       <Footer />
     </main>
   );

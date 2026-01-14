@@ -9,79 +9,36 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, MapPin, Users, Bell, Plus, Check, Repeat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface Event {
-  id: number;
-  title: string;
-  type: "open-play" | "tournament" | "practice" | "other";
-  date: string;
-  time: string;
-  location: string;
-  players: string[];
-  minPlayers: number;
-  maxPlayers: number | null;
-  description?: string;
-  reminder?: boolean;
-  recurrence?: RecurrenceRule | null;
-}
-
-interface RecurrenceRule {
-  type: "daily" | "weekly" | "biweekly" | "monthly" | "custom";
-  interval?: number;
-  daysOfWeek?: number[]; // 0 = Sunday, 1 = Monday, etc.
-  endDate?: string;
-}
+import { useEvents, useEventRsvps } from "@/hooks/useEvents";
 
 const ITEMS_PER_PAGE = 6;
 
 const Schedule = () => {
   const { toast } = useToast();
-  const [events, setEvents] = useState<Event[]>([
-    { id: 1, title: "Weekly Open Play", type: "open-play", date: "Jan 5", time: "6:00 PM", location: "Central Park Courts", players: ["Kyle", "Chris", "Brandon", "Josiah", "Braden", "Corbin"], minPlayers: 4, maxPlayers: 8, recurrence: { type: "weekly", daysOfWeek: [0] } },
-    { id: 2, title: "Morning Session", type: "open-play", date: "Jan 7", time: "10:00 AM", location: "Riverside Recreation", players: ["Kyle", "Josiah", "Brandon", "Chris"], minPlayers: 4, maxPlayers: 8 },
-    { id: 3, title: "Winter Tournament", type: "tournament", date: "Jan 8", time: "7:00 PM", location: "Downtown Athletic Club", players: ["Kyle", "Chris", "Brandon", "Josiah", "Braden", "Corbin", "Hayden", "Maxx"], minPlayers: 8, maxPlayers: 16 },
-    { id: 4, title: "Casual Practice", type: "practice", date: "Jan 10", time: "5:00 PM", location: "Community Center", players: ["Kyle", "Chris"], minPlayers: 2, maxPlayers: 4 },
-    { id: 5, title: "Friday Night Lights", type: "open-play", date: "Jan 12", time: "8:00 PM", location: "Central Park Courts", players: ["Brandon", "Josiah"], minPlayers: 4, maxPlayers: null, recurrence: { type: "weekly", daysOfWeek: [5] } },
-  ]);
+  const { events, loading, addEvent } = useEvents();
+  const { userRsvps, toggleRsvp, getRsvpCountForEvent } = useEventRsvps();
   
-  const [pastEvents] = useState([
-    { id: 100, date: "Jan 2", time: "6:00 PM", location: "Central Park Courts", gamesPlayed: 6, type: "open-play" as const },
-    { id: 101, date: "Dec 30", time: "10:00 AM", location: "Riverside Recreation", gamesPlayed: 8, type: "open-play" as const },
-    { id: 102, date: "Dec 28", time: "7:00 PM", location: "Downtown Athletic Club", gamesPlayed: 12, type: "tournament" as const },
-    { id: 103, date: "Dec 23", time: "6:00 PM", location: "Central Park Courts", gamesPlayed: 5, type: "open-play" as const },
-    { id: 104, date: "Dec 21", time: "10:00 AM", location: "Community Center", gamesPlayed: 4, type: "practice" as const },
-    { id: 105, date: "Dec 16", time: "6:00 PM", location: "Central Park Courts", gamesPlayed: 7, type: "open-play" as const },
-    { id: 106, date: "Dec 14", time: "8:00 PM", location: "Central Park Courts", gamesPlayed: 6, type: "open-play" as const },
-    { id: 107, date: "Dec 9", time: "6:00 PM", location: "Riverside Recreation", gamesPlayed: 9, type: "open-play" as const },
-  ]);
-  
-  const [rsvps, setRsvps] = useState<Record<number, boolean>>({});
-  const [reminders, setReminders] = useState<Record<number, boolean>>({});
+  const [reminders, setReminders] = useState<Record<string, boolean>>({});
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pastDisplayCount, setPastDisplayCount] = useState(ITEMS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
-  const [newEvent, setNewEvent] = useState<{
-    title: string;
-    type: Event["type"];
-    date: string;
-    time: string;
-    location: string;
-    minPlayers: string;
-    maxPlayers: string;
-    recurrenceType: "none" | "daily" | "weekly" | "biweekly" | "monthly" | "custom";
-    customInterval: string;
-  }>({
+  const [newEvent, setNewEvent] = useState({
     title: "",
-    type: "open-play",
+    type: "open-play" as "open-play" | "tournament" | "practice" | "other",
     date: "",
     time: "",
     location: "",
     minPlayers: "4",
     maxPlayers: "",
-    recurrenceType: "none",
+    recurrenceType: "none" as "none" | "daily" | "weekly" | "biweekly" | "monthly" | "custom",
     customInterval: "1",
   });
+
+  // Separate past and upcoming events based on date
+  const today = new Date().toISOString().split('T')[0];
+  const upcomingEvents = events.filter(e => e.date >= today);
+  const pastEvents = events.filter(e => e.date < today);
 
   // Infinite scroll for past events
   useEffect(() => {
@@ -103,18 +60,16 @@ const Schedule = () => {
 
   const displayedPastEvents = pastEvents.slice(0, pastDisplayCount);
 
-  const handleRSVP = (eventId: number) => {
-    setRsvps(prev => {
-      const newRsvps = { ...prev, [eventId]: !prev[eventId] };
-      toast({
-        title: newRsvps[eventId] ? "RSVP Confirmed!" : "RSVP Removed",
-        description: newRsvps[eventId] ? "You're signed up for this event." : "You've removed your RSVP.",
-      });
-      return newRsvps;
+  const handleRSVP = async (eventId: string) => {
+    const wasRsvped = userRsvps.has(eventId);
+    await toggleRsvp(eventId);
+    toast({
+      title: wasRsvped ? "RSVP Removed" : "RSVP Confirmed!",
+      description: wasRsvped ? "You've removed your RSVP." : "You're signed up for this event.",
     });
   };
 
-  const handleReminder = (eventId: number) => {
+  const handleReminder = (eventId: string) => {
     setReminders(prev => {
       const newReminders = { ...prev, [eventId]: !prev[eventId] };
       toast({
@@ -125,7 +80,7 @@ const Schedule = () => {
     });
   };
 
-  const handleCreateEvent = () => {
+  const handleCreateEvent = async () => {
     if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.location) {
       toast({
         title: "Missing Information",
@@ -135,28 +90,21 @@ const Schedule = () => {
       return;
     }
 
-    let recurrence: RecurrenceRule | null = null;
-    if (newEvent.recurrenceType !== "none") {
-      recurrence = { type: newEvent.recurrenceType === "custom" ? "weekly" : newEvent.recurrenceType };
-      if (newEvent.recurrenceType === "custom") {
-        recurrence.interval = parseInt(newEvent.customInterval) || 1;
-      }
-    }
+    const recurrenceType = newEvent.recurrenceType !== "none" ? newEvent.recurrenceType : null;
+    const recurrenceInterval = newEvent.recurrenceType === "custom" ? parseInt(newEvent.customInterval) || null : null;
 
-    const event: Event = {
-      id: Date.now(),
+    await addEvent({
       title: newEvent.title,
       type: newEvent.type,
       date: newEvent.date,
       time: newEvent.time,
       location: newEvent.location,
-      players: [],
-      minPlayers: parseInt(newEvent.minPlayers) || 4,
-      maxPlayers: newEvent.maxPlayers ? parseInt(newEvent.maxPlayers) : null,
-      recurrence,
-    };
+      min_players: parseInt(newEvent.minPlayers) || 4,
+      max_players: newEvent.maxPlayers ? parseInt(newEvent.maxPlayers) : null,
+      recurrence_type: recurrenceType,
+      recurrence_interval: recurrenceInterval,
+    });
 
-    setEvents(prev => [...prev, event]);
     setIsCreateOpen(false);
     setNewEvent({
       title: "",
@@ -172,21 +120,22 @@ const Schedule = () => {
 
     toast({
       title: "Event Created!",
-      description: `${event.title} has been added to the schedule.${recurrence ? " It will repeat " + getRecurrenceLabel(recurrence) + "." : ""}`,
+      description: `${newEvent.title} has been added to the schedule.`,
     });
   };
 
-  const getRecurrenceLabel = (recurrence: RecurrenceRule): string => {
-    switch (recurrence.type) {
+  const getRecurrenceLabel = (type: string | null, interval: number | null): string => {
+    if (!type) return "";
+    switch (type) {
       case "daily": return "daily";
       case "weekly": return "weekly";
       case "biweekly": return "every 2 weeks";
       case "monthly": return "monthly";
-      default: return recurrence.interval ? `every ${recurrence.interval} days` : "custom";
+      default: return interval ? `every ${interval} days` : "custom";
     }
   };
 
-  const getEventTypeLabel = (type: Event["type"]) => {
+  const getEventTypeLabel = (type: string) => {
     switch (type) {
       case "open-play": return "Open Play";
       case "tournament": return "Tournament";
@@ -195,7 +144,7 @@ const Schedule = () => {
     }
   };
 
-  const getEventTypeColor = (type: Event["type"]) => {
+  const getEventTypeColor = (type: string) => {
     switch (type) {
       case "tournament": return "bg-accent/20 text-accent";
       case "practice": return "bg-blue-500/20 text-blue-500";
@@ -203,16 +152,40 @@ const Schedule = () => {
     }
   };
 
-  const getRsvpRatio = (event: Event): string => {
-    const rsvpCount = event.players.length + (rsvps[event.id] ? 1 : 0);
-    return `${rsvpCount}/${event.minPlayers}`;
+  const getRsvpRatio = (eventId: string, minPlayers: number | null): string => {
+    const rsvpCount = getRsvpCountForEvent(eventId) + (userRsvps.has(eventId) ? 0 : 0);
+    return `${getRsvpCountForEvent(eventId)}/${minPlayers || 4}`;
   };
 
-  const isEventFull = (event: Event): boolean => {
-    if (event.maxPlayers === null) return false;
-    const rsvpCount = event.players.length + (rsvps[event.id] ? 1 : 0);
-    return rsvpCount >= event.maxPlayers;
+  const isEventFull = (eventId: string, maxPlayers: number | null): boolean => {
+    if (maxPlayers === null) return false;
+    return getRsvpCountForEvent(eventId) >= maxPlayers;
   };
+
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTime = (timeStr: string): string => {
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 pb-20 flex items-center justify-center">
+          <p className="text-muted-foreground">Loading events...</p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -245,7 +218,7 @@ const Schedule = () => {
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Event Type</Label>
-                    <Select value={newEvent.type} onValueChange={(v: Event["type"]) => setNewEvent(prev => ({ ...prev, type: v }))}>
+                    <Select value={newEvent.type} onValueChange={(v: typeof newEvent.type) => setNewEvent(prev => ({ ...prev, type: v }))}>
                       <SelectTrigger className="bg-muted border-border">
                         <SelectValue />
                       </SelectTrigger>
@@ -365,126 +338,128 @@ const Schedule = () => {
           <div className="space-y-8">
             <section>
               <h2 className="font-display text-2xl text-foreground mb-4">Upcoming Events</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {events.map((event) => (
-                  <Card key={event.id} className="bg-card/50 border-border">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getEventTypeColor(event.type)}`}>
-                            {getEventTypeLabel(event.type)}
-                          </span>
-                          {event.recurrence && (
-                            <span className="text-muted-foreground" title={`Repeats ${getRecurrenceLabel(event.recurrence)}`}>
-                              <Repeat className="w-3 h-3" />
+              {upcomingEvents.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No upcoming events. Create one to get started!
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {upcomingEvents.map((event) => (
+                    <Card key={event.id} className="bg-card/50 border-border">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getEventTypeColor(event.type)}`}>
+                              {getEventTypeLabel(event.type)}
                             </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleReminder(event.id)}
-                          className={`p-1 rounded transition-colors ${reminders[event.id] ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}
-                          title={reminders[event.id] ? "Remove reminder" : "Set reminder"}
-                        >
-                          <Bell className="w-4 h-4" fill={reminders[event.id] ? "currentColor" : "none"} />
-                        </button>
-                      </div>
-                      <CardTitle className="text-foreground text-lg mt-2">{event.title}</CardTitle>
-                      <div className="flex items-center gap-2 text-primary">
-                        <Calendar className="w-4 h-4" />
-                        <span className="font-medium">{event.date}</span>
-                        <Clock className="w-4 h-4 ml-2" />
-                        <span>{event.time}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="w-4 h-4" />
-                          <span>{event.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span className={`font-medium ${
-                            event.players.length + (rsvps[event.id] ? 1 : 0) >= event.minPlayers 
-                              ? "text-primary" 
-                              : "text-accent"
-                          }`}>
-                            {getRsvpRatio(event)}
-                          </span>
-                          <span className="text-muted-foreground text-sm">
-                            {event.maxPlayers ? `(max ${event.maxPlayers})` : "(no limit)"}
-                          </span>
-                        </div>
-                        {event.players.length > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            {event.players.slice(0, 4).join(", ")}
-                            {event.players.length > 4 && ` +${event.players.length - 4} more`}
+                            {event.recurrence_type && (
+                              <span className="text-muted-foreground" title={`Repeats ${getRecurrenceLabel(event.recurrence_type, event.recurrence_interval)}`}>
+                                <Repeat className="w-3 h-3" />
+                              </span>
+                            )}
                           </div>
-                        )}
-                        <Button 
-                          variant={rsvps[event.id] ? "heroOutline" : "hero"}
-                          size="sm" 
-                          className="w-full mt-2"
-                          onClick={() => handleRSVP(event.id)}
-                          disabled={isEventFull(event) && !rsvps[event.id]}
-                        >
-                          {rsvps[event.id] ? (
-                            <>
-                              <Check className="w-4 h-4 mr-2" />
-                              RSVP'd
-                            </>
-                          ) : isEventFull(event) ? (
-                            "Full"
-                          ) : (
-                            "RSVP"
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-            
-            <section>
-              <h2 className="font-display text-2xl text-foreground mb-4">Past Events</h2>
-              <div className="space-y-3">
-                {displayedPastEvents.map((event) => (
-                  <Card key={event.id} className="bg-card/50 border-border">
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getEventTypeColor(event.type)}`}>
-                            {getEventTypeLabel(event.type)}
-                          </span>
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>{event.date}</span>
-                          </div>
+                          <button
+                            onClick={() => handleReminder(event.id)}
+                            className={`p-1 rounded transition-colors ${reminders[event.id] ? "text-accent" : "text-muted-foreground hover:text-foreground"}`}
+                            title={reminders[event.id] ? "Remove reminder" : "Set reminder"}
+                          >
+                            <Bell className="w-4 h-4" fill={reminders[event.id] ? "currentColor" : "none"} />
+                          </button>
+                        </div>
+                        <CardTitle className="text-foreground text-lg mt-2">{event.title}</CardTitle>
+                        <div className="flex items-center gap-2 text-primary">
+                          <Calendar className="w-4 h-4" />
+                          <span className="font-medium">{formatDate(event.date)}</span>
+                          <Clock className="w-4 h-4 ml-2" />
+                          <span>{formatTime(event.time)}</span>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <MapPin className="w-4 h-4" />
                             <span>{event.location}</span>
                           </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className={`font-medium ${
+                              getRsvpCountForEvent(event.id) >= (event.min_players || 4)
+                                ? "text-primary" 
+                                : "text-accent"
+                            }`}>
+                              {getRsvpRatio(event.id, event.min_players)}
+                            </span>
+                            <span className="text-muted-foreground text-sm">
+                              {event.max_players ? `(max ${event.max_players})` : "(no limit)"}
+                            </span>
+                          </div>
+                          <Button 
+                            variant={userRsvps.has(event.id) ? "heroOutline" : "hero"}
+                            size="sm" 
+                            className="w-full mt-2"
+                            onClick={() => handleRSVP(event.id)}
+                            disabled={isEventFull(event.id, event.max_players) && !userRsvps.has(event.id)}
+                          >
+                            {userRsvps.has(event.id) ? (
+                              <>
+                                <Check className="w-4 h-4 mr-2" />
+                                RSVP'd
+                              </>
+                            ) : isEventFull(event.id, event.max_players) ? (
+                              "Full"
+                            ) : (
+                              "RSVP"
+                            )}
+                          </Button>
                         </div>
-                        <span className="text-foreground">{event.gamesPlayed} games played</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                {pastDisplayCount < pastEvents.length && (
-                  <div ref={loadMoreRef} className="py-4 text-center text-muted-foreground">
-                    Loading more events...
-                  </div>
-                )}
-                
-                {pastDisplayCount >= pastEvents.length && pastEvents.length > ITEMS_PER_PAGE && (
-                  <div className="py-2 text-center text-muted-foreground text-sm">
-                    Showing all {pastEvents.length} past events
-                  </div>
-                )}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </section>
+            
+            {pastEvents.length > 0 && (
+              <section>
+                <h2 className="font-display text-2xl text-foreground mb-4">Past Events</h2>
+                <div className="space-y-3">
+                  {displayedPastEvents.map((event) => (
+                    <Card key={event.id} className="bg-card/50 border-border">
+                      <CardContent className="py-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-6">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getEventTypeColor(event.type)}`}>
+                              {getEventTypeLabel(event.type)}
+                            </span>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              <span>{formatDate(event.date)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <MapPin className="w-4 h-4" />
+                              <span>{event.location}</span>
+                            </div>
+                          </div>
+                          <span className="text-foreground">{event.title}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {pastDisplayCount < pastEvents.length && (
+                    <div ref={loadMoreRef} className="py-4 text-center text-muted-foreground">
+                      Loading more events...
+                    </div>
+                  )}
+                  
+                  {pastDisplayCount >= pastEvents.length && pastEvents.length > ITEMS_PER_PAGE && (
+                    <div className="py-2 text-center text-muted-foreground text-sm">
+                      Showing all {pastEvents.length} past events
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </div>
