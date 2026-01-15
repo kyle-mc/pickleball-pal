@@ -51,9 +51,9 @@ const MyMMR = () => {
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
-  // Multi-player comparison
+  // Multi-player comparison - expanded by default
   const [comparisonPlayers, setComparisonPlayers] = useState<string[]>([]);
-  const [showComparison, setShowComparison] = useState(false);
+  const [showComparison, setShowComparison] = useState(true);
   
   // Head-to-head
   const [h2hPlayer1, setH2hPlayer1] = useState<string>("");
@@ -201,11 +201,7 @@ const MyMMR = () => {
                 ))}
               </SelectContent>
             </Select>
-            {selectedPlayer && selectedPlayer !== "all" && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Your selection is saved and will persist across sessions
-              </p>
-            )}
+            {/* Selection persists across sessions */}
           </div>
 
           {/* Head-to-Head Section */}

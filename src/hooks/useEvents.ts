@@ -54,10 +54,14 @@ export function useEvents() {
     };
   }, [fetchEvents]);
 
-  const addEvent = async (event: EventInsert) => {
+  const addEvent = async (event: EventInsert & { owner_id?: string | null; host_ids?: string[] }) => {
     const { error } = await supabase
       .from('events')
-      .insert(event);
+      .insert({
+        ...event,
+        owner_id: event.owner_id || null,
+        host_ids: event.host_ids || [],
+      } as any);
     
     if (error) {
       console.error('Error adding event:', error);

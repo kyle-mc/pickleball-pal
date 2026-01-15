@@ -11,6 +11,8 @@ import { Eye, Heart, Search, Filter, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVideos, useUserLikes, useToggleLike, useAddVideo } from "@/hooks/useVideos";
 import { usePlayers } from "@/hooks/usePlayers";
+import VideoBulkImport from "@/components/VideoBulkImport";
+import { usePlayers } from "@/hooks/usePlayers";
 
 // Helper to extract YouTube video ID
 const getYouTubeVideoId = (url: string): string | null => {
@@ -139,8 +141,9 @@ const Videos = () => {
       <Navbar />
       <div className="pt-24 pb-20">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="font-display text-4xl md:text-5xl text-foreground">Videos</h1>
+          <div className="flex items-center gap-2 mb-8">
+            <h1 className="font-display text-4xl md:text-5xl text-foreground flex-1">Videos</h1>
+            <VideoBulkImport />
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button variant="hero">
@@ -314,7 +317,7 @@ const Videos = () => {
                           </button>
                         </div>
                         <span className="text-xs">
-                          {new Date(video.created_at).toLocaleDateString()}
+                          {video.video_date || new Date(video.created_at).toLocaleDateString()}
                         </span>
                       </div>
                     </CardContent>

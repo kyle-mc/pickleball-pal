@@ -54,10 +54,12 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          host_ids: string[] | null
           id: string
           location: string
           max_players: number | null
           min_players: number | null
+          owner_id: string | null
           recurrence_interval: number | null
           recurrence_type: string | null
           time: string
@@ -68,10 +70,12 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          host_ids?: string[] | null
           id?: string
           location: string
           max_players?: number | null
           min_players?: number | null
+          owner_id?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
           time: string
@@ -82,10 +86,12 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          host_ids?: string[] | null
           id?: string
           location?: string
           max_players?: number | null
           min_players?: number | null
+          owner_id?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
           time?: string
@@ -98,6 +104,7 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          event_id: string | null
           game_number: number
           id: string
           mmr_after: number
@@ -112,6 +119,7 @@ export type Database = {
         Insert: {
           created_at?: string
           date: string
+          event_id?: string | null
           game_number: number
           id?: string
           mmr_after: number
@@ -126,6 +134,7 @@ export type Database = {
         Update: {
           created_at?: string
           date?: string
+          event_id?: string | null
           game_number?: number
           id?: string
           mmr_after?: number
@@ -137,7 +146,15 @@ export type Database = {
           team_mmr?: number
           team_mmr_diff?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       players: {
         Row: {
@@ -225,6 +242,7 @@ export type Database = {
           players: string[] | null
           thumbnail_url: string | null
           title: string
+          video_date: string | null
           views: number | null
           youtube_url: string
         }
@@ -236,6 +254,7 @@ export type Database = {
           players?: string[] | null
           thumbnail_url?: string | null
           title: string
+          video_date?: string | null
           views?: number | null
           youtube_url: string
         }
@@ -247,6 +266,7 @@ export type Database = {
           players?: string[] | null
           thumbnail_url?: string | null
           title?: string
+          video_date?: string | null
           views?: number | null
           youtube_url?: string
         }
