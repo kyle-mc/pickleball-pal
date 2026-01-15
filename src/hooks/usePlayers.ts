@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { gamesData as staticGamesData } from "@/data/games";
 
-// Fetch all players from database + static data
+// Fetch all players from database (Supabase is now the exclusive source)
 export const usePlayers = () => {
   return useQuery({
     queryKey: ["players"],
@@ -14,16 +13,7 @@ export const usePlayers = () => {
       
       if (error) throw error;
       
-      // Get players from static games data
-      const staticPlayers = [...new Set(staticGamesData.map(g => g.player))];
-      
-      // Get players from DB
-      const dbPlayers = (data || []).map(p => p.name);
-      
-      // Combine and deduplicate
-      const allPlayers = [...new Set([...staticPlayers, ...dbPlayers])].sort();
-      
-      return allPlayers;
+      return (data || []).map(p => p.name);
     },
   });
 };

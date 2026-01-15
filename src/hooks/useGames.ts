@@ -1,8 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { GameRecord, gamesData as staticGamesData } from "@/data/games";
 
-// Fetch all games from database
+export interface GameRecord {
+  game: number;
+  result: 'Winner' | 'Loser';
+  player: string;
+  score: string;
+  mmrBefore: number;
+  teamMmr: number;
+  teamMmrDiff: number;
+  mmrAfter: number;
+  mmrChange: number;
+  date: string;
+  eventId?: string;
+}
+
+// Fetch all games from database (Supabase is now the exclusive source)
 export const useGames = () => {
   return useQuery({
     queryKey: ["games"],
@@ -27,10 +40,10 @@ export const useGames = () => {
         mmrAfter: g.mmr_after,
         mmrChange: g.mmr_change,
         date: g.date,
+        eventId: g.event_id || undefined,
       }));
       
-      // Combine static data with DB data
-      return [...staticGamesData, ...dbGames];
+      return dbGames;
     },
   });
 };
@@ -59,6 +72,7 @@ export const useAddGames = () => {
         team_mmr_diff: g.teamMmrDiff,
         mmr_after: g.mmrAfter,
         mmr_change: g.mmrChange,
+        event_id: g.eventId || null,
       }));
       
       const { error } = await supabase.from("games").insert(dbGames);
