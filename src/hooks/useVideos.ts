@@ -12,6 +12,7 @@ export interface Video {
   players: string[];
   views: number;
   created_at: string;
+  video_date: string | null;
   likes_count?: number;
 }
 
