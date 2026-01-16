@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useVideos, useUserLikes, useToggleLike, useAddVideo } from "@/hooks/useVideos";
 import { usePlayers } from "@/hooks/usePlayers";
 import VideoBulkImport from "@/components/VideoBulkImport";
-import { usePlayers } from "@/hooks/usePlayers";
 
 // Helper to extract YouTube video ID
 const getYouTubeVideoId = (url: string): string | null => {
