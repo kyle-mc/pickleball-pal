@@ -106,6 +106,7 @@ export type Database = {
           date: string
           event_id: string | null
           game_number: number
+          group_id: string | null
           id: string
           mmr_after: number
           mmr_before: number
@@ -121,6 +122,7 @@ export type Database = {
           date: string
           event_id?: string | null
           game_number: number
+          group_id?: string | null
           id?: string
           mmr_after: number
           mmr_before: number
@@ -136,6 +138,7 @@ export type Database = {
           date?: string
           event_id?: string | null
           game_number?: number
+          group_id?: string | null
           id?: string
           mmr_after?: number
           mmr_before?: number
@@ -154,7 +157,83 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "games_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          player_id: string | null
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          player_id?: string | null
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          player_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          invite_code: string
+          name: string
+          owner_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invite_code?: string
+          name: string
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invite_code?: string
+          name?: string
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       players: {
         Row: {
@@ -177,26 +256,100 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          awards: string[] | null
+          bio: string | null
+          birth_year: number | null
+          city: string | null
           created_at: string
+          discord_username: string | null
           display_name: string | null
+          dupr_profile_url: string | null
+          dupr_rating: number | null
+          groupme_url: string | null
+          handedness: Database["public"]["Enums"]["handedness"] | null
           id: string
+          linked_player_id: string | null
+          paddles: string[] | null
+          profile_complete: boolean | null
+          state: string | null
+          typical_play_location: string | null
           updated_at: string
           user_id: string
+          years_experience: number | null
         }
         Insert: {
           avatar_url?: string | null
+          awards?: string[] | null
+          bio?: string | null
+          birth_year?: number | null
+          city?: string | null
           created_at?: string
+          discord_username?: string | null
           display_name?: string | null
+          dupr_profile_url?: string | null
+          dupr_rating?: number | null
+          groupme_url?: string | null
+          handedness?: Database["public"]["Enums"]["handedness"] | null
           id?: string
+          linked_player_id?: string | null
+          paddles?: string[] | null
+          profile_complete?: boolean | null
+          state?: string | null
+          typical_play_location?: string | null
           updated_at?: string
           user_id: string
+          years_experience?: number | null
         }
         Update: {
           avatar_url?: string | null
+          awards?: string[] | null
+          bio?: string | null
+          birth_year?: number | null
+          city?: string | null
           created_at?: string
+          discord_username?: string | null
           display_name?: string | null
+          dupr_profile_url?: string | null
+          dupr_rating?: number | null
+          groupme_url?: string | null
+          handedness?: Database["public"]["Enums"]["handedness"] | null
           id?: string
+          linked_player_id?: string | null
+          paddles?: string[] | null
+          profile_complete?: boolean | null
+          state?: string | null
+          typical_play_location?: string | null
           updated_at?: string
+          user_id?: string
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_linked_player_id_fkey"
+            columns: ["linked_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -277,10 +430,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_group_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      handedness: "left" | "right" | "ambidextrous"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -407,6 +572,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      handedness: ["left", "right", "ambidextrous"],
+    },
   },
 } as const
