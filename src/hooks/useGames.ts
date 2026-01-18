@@ -13,22 +13,31 @@ export interface GameRecord {
   mmrChange: number;
   date: string;
   eventId?: string;
+  season?: number;
+  rdAfter?: number;
+  volatilityAfter?: number;
+  victoryType?: string;
 }
 
-// Fetch all games from database (Supabase is now the exclusive source)
-export const useGames = () => {
+// Fetch all games from database with optional season filter
+export const useGames = (season?: number | "all") => {
   return useQuery({
-    queryKey: ["games"],
+    queryKey: ["games", season],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("games")
         .select("*")
         .order("date", { ascending: false })
         .order("game_number", { ascending: true });
       
+      if (season && season !== "all") {
+        query = query.eq("season", season);
+      }
+      
+      const { data, error } = await query;
+      
       if (error) throw error;
       
-      // Convert DB format to GameRecord format
       const dbGames: GameRecord[] = (data || []).map(g => ({
         game: g.game_number,
         result: g.result as 'Winner' | 'Loser',
@@ -41,6 +50,10 @@ export const useGames = () => {
         mmrChange: g.mmr_change,
         date: g.date,
         eventId: g.event_id || undefined,
+        season: g.season,
+        rdAfter: g.rd_after ? Number(g.rd_after) : undefined,
+        volatilityAfter: g.volatility_after ? Number(g.volatility_after) : undefined,
+        victoryType: g.victory_type || undefined,
       }));
       
       return dbGames;
@@ -55,7 +68,34 @@ export const useNextGameNumber = (date: string, allGames: GameRecord[]) => {
   return Math.max(...gamesOnDate.map(g => g.game)) + 1;
 };
 
-// Add new games mutation
+// Submit game via edge function (server-side MMR calculation)
+export const useSubmitGame = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (gameData: {
+      winningPlayers: string[];
+      losingPlayers: string[];
+      winningScore: number;
+      losingScore: number;
+      date: string;
+      groupId?: string;
+      eventId?: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('calculate-mmr', {
+        body: gameData,
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["games"] });
+    },
+  });
+};
+
+// Legacy: Add games directly (for migrations)
 export const useAddGames = () => {
   const queryClient = useQueryClient();
   
@@ -73,6 +113,7 @@ export const useAddGames = () => {
         mmr_after: g.mmrAfter,
         mmr_change: g.mmrChange,
         event_id: g.eventId || null,
+        season: g.season || 1,
       }));
       
       const { error } = await supabase.from("games").insert(dbGames);
@@ -94,4 +135,9 @@ export const getPlayerMMR = (player: string, allGames: GameRecord[]): number => 
       return b.game - a.game;
     });
   return playerGames[0]?.mmrAfter || 2000;
+};
+
+// Get player's games count for current season
+export const getPlayerSeasonGamesCount = (player: string, allGames: GameRecord[], season: number): number => {
+  return allGames.filter(g => g.player === player && g.season === season).length;
 };

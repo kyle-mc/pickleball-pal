@@ -112,10 +112,14 @@ export type Database = {
           mmr_before: number
           mmr_change: number
           player: string
+          rd_after: number | null
           result: string
           score: string | null
+          season: number
           team_mmr: number
           team_mmr_diff: number
+          victory_type: string | null
+          volatility_after: number | null
         }
         Insert: {
           created_at?: string
@@ -128,10 +132,14 @@ export type Database = {
           mmr_before: number
           mmr_change: number
           player: string
+          rd_after?: number | null
           result: string
           score?: string | null
+          season?: number
           team_mmr?: number
           team_mmr_diff?: number
+          victory_type?: string | null
+          volatility_after?: number | null
         }
         Update: {
           created_at?: string
@@ -144,10 +152,14 @@ export type Database = {
           mmr_before?: number
           mmr_change?: number
           player?: string
+          rd_after?: number | null
           result?: string
           score?: string | null
+          season?: number
           team_mmr?: number
           team_mmr_diff?: number
+          victory_type?: string | null
+          volatility_after?: number | null
         }
         Relationships: [
           {
@@ -234,6 +246,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      player_season_stats: {
+        Row: {
+          created_at: string
+          ending_mmr: number | null
+          ending_rd: number | null
+          games_played: number
+          group_id: string | null
+          id: string
+          losses: number
+          player: string
+          season: number
+          starting_mmr: number
+          starting_rd: number
+          starting_volatility: number
+          updated_at: string
+          wins: number
+        }
+        Insert: {
+          created_at?: string
+          ending_mmr?: number | null
+          ending_rd?: number | null
+          games_played?: number
+          group_id?: string | null
+          id?: string
+          losses?: number
+          player: string
+          season: number
+          starting_mmr?: number
+          starting_rd?: number
+          starting_volatility?: number
+          updated_at?: string
+          wins?: number
+        }
+        Update: {
+          created_at?: string
+          ending_mmr?: number | null
+          ending_rd?: number | null
+          games_played?: number
+          group_id?: string | null
+          id?: string
+          losses?: number
+          player?: string
+          season?: number
+          starting_mmr?: number
+          starting_rd?: number
+          starting_volatility?: number
+          updated_at?: string
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_season_stats_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       players: {
         Row: {
@@ -441,6 +512,17 @@ export type Database = {
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      update_player_season_stats: {
+        Args: {
+          p_ending_mmr: number
+          p_ending_rd: number
+          p_group_id: string
+          p_is_win: boolean
+          p_player: string
+          p_season: number
+        }
+        Returns: undefined
       }
     }
     Enums: {
