@@ -1,19 +1,24 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { useRealtimeGames } from "@/hooks/useRealtime";
+import { useGameVideos } from "@/hooks/useVideos";
 import GameEntryForm from "@/components/GameEntryForm";
 import DataExportPanel from "@/components/DataExportPanel";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { MmrChangeTooltip } from "@/components/MmrChangeTooltip";
+import { AddVideoDialog } from "@/components/AddVideoDialog";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2 } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 
 type SortDirection = "asc" | "desc";
@@ -21,16 +26,23 @@ type SortDirection = "asc" | "desc";
 const ITEMS_PER_PAGE = 5;
 
 const Games = () => {
+  const navigate = useNavigate();
   const currentSeason = getCurrentSeason();
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
   const { data: allGames = [], isLoading } = useGames(selectedSeason);
   useRealtimeGames();
+  const { hasVideoForGame, getVideoForGame } = useGameVideos();
+  
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [playerFilter, setPlayerFilter] = useState<string>("all");
   const [victoryTypeFilter, setVictoryTypeFilter] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // State for add video dialog
+  const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
+  const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
 
   // Get unique dates for filtering - fix timezone issue by parsing as local date
   const uniqueDates = useMemo(() => 
@@ -125,6 +137,15 @@ const Games = () => {
 
   const toggleSort = () => {
     setSortDirection(prev => prev === "desc" ? "asc" : "desc");
+  };
+
+  const handleAddVideo = (gameId: string) => {
+    setSelectedGameForVideo(gameId);
+    setIsAddVideoOpen(true);
+  };
+
+  const handleWatchVideo = (videoId: string) => {
+    navigate(`/videos?play=${videoId}`);
   };
 
   if (isLoading) {
@@ -241,14 +262,60 @@ const Games = () => {
                     const losers = players.filter(p => p.result === 'Loser');
                     const score = players[0]?.score;
                     const victoryType = players[0]?.victoryType;
+                    const gameKey = `${date}-${gameNum}`;
+                    const video = getVideoForGame(gameKey);
+                    const hasVideo = hasVideoForGame(gameKey);
                     
                     return (
                       <Card key={gameNum} className="bg-card border-border overflow-hidden">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg font-medium flex items-center gap-3">
+                          <CardTitle className="text-lg font-medium flex items-center gap-3 flex-wrap">
                             <span>Game {gameNum}</span>
                             {score && <span className="text-muted-foreground text-sm font-normal">({score})</span>}
                             {victoryType && <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />}
+                            
+                            {/* Video actions */}
+                            <div className="ml-auto flex items-center gap-2">
+                              {hasVideo && video ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-primary hover:text-primary hover:bg-primary/10"
+                                        onClick={() => handleWatchVideo(video.id)}
+                                      >
+                                        <Video className="w-4 h-4 mr-1" />
+                                        Watch
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Watch video highlight</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-muted-foreground hover:text-foreground"
+                                        onClick={() => handleAddVideo(gameKey)}
+                                      >
+                                        <Plus className="w-4 h-4 mr-1" />
+                                        <Video className="w-4 h-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Add video for this game</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="overflow-x-auto">
@@ -330,6 +397,17 @@ const Games = () => {
             No games found matching your filters.
           </div>
         )}
+
+        {/* Add Video Dialog */}
+        <AddVideoDialog
+          open={isAddVideoOpen}
+          onOpenChange={(open) => {
+            setIsAddVideoOpen(open);
+            if (!open) setSelectedGameForVideo(undefined);
+          }}
+          defaultGameId={selectedGameForVideo}
+          defaultVideoType="highlight"
+        />
       <Footer />
       </main>
     </div>
