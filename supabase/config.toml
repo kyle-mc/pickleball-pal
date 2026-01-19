@@ -4,4 +4,4 @@ project_id = "gvcqffobldghuvexmrij"
 verify_jwt = false
 
 [functions.calculate-mmr]
-verify_jwt = true
+verify_jwt = false
