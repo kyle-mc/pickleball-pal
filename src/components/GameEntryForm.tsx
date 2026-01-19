@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { GameRecord } from "@/data/games";
-import { useGames, useNextGameNumber, getPlayerMMR, useAddGames } from "@/hooks/useGames";
+import { useSubmitGame } from "@/hooks/useGames";
 import { usePlayers, useAddPlayer } from "@/hooks/usePlayers";
+import { useCurrentGroup } from "@/hooks/useGroups";
+import { getCurrentSeason } from "@/lib/seasons";
+import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
+import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
 
 interface GameEntryFormProps {
   onGameAdded?: () => void;
@@ -16,10 +19,10 @@ interface GameEntryFormProps {
 
 const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const { toast } = useToast();
-  const { data: allGames = [] } = useGames();
   const { data: players = [] } = usePlayers();
-  const addGamesMutation = useAddGames();
+  const submitGameMutation = useSubmitGame();
   const addPlayerMutation = useAddPlayer();
+  const { currentGroup } = useCurrentGroup();
 
   const [isOpen, setIsOpen] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -33,7 +36,12 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const [newPlayerName, setNewPlayerName] = useState("");
   const [showNewPlayerInput, setShowNewPlayerInput] = useState(false);
 
-  const nextGameNumber = useNextGameNumber(date, allGames);
+  const currentSeason = getCurrentSeason();
+
+  // Calculate preview of victory type based on scores
+  const previewVictoryType = winningScore && losingScore 
+    ? getVictoryTypeFromScore(parseInt(winningScore), parseInt(losingScore))
+    : null;
 
   const handleAddNewPlayer = async () => {
     const name = newPlayerName.trim();
@@ -71,38 +79,55 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       return;
     }
 
+    // Validate winning score is at least 11 and margin is 2 if score > 11
+    if (wScore < 11) {
+      toast({ title: "Invalid Scores", description: "Winning score must be at least 11.", variant: "destructive" });
+      return;
+    }
+    if (wScore > 11 && wScore - lScore !== 2) {
+      toast({ title: "Invalid Scores", description: "For scores above 11, margin must be exactly 2.", variant: "destructive" });
+      return;
+    }
+
     const winningPlayers = [winningPlayer1, winningPlayer2];
     const losingPlayers = [losingPlayer1, losingPlayer2];
-    const winningTeamMMR = getPlayerMMR(winningPlayer1, allGames) + getPlayerMMR(winningPlayer2, allGames);
-    const losingTeamMMR = getPlayerMMR(losingPlayer1, allGames) + getPlayerMMR(losingPlayer2, allGames);
-    const mmrDiff = winningTeamMMR - losingTeamMMR;
-    const baseChange = 50;
-    const adjustedChange = Math.round(baseChange - (mmrDiff / 20));
-    const mmrChange = Math.max(25, Math.min(75, adjustedChange));
-    const newGames: GameRecord[] = [];
-    const scoreString = `${wScore}-${lScore}`;
-
-    winningPlayers.forEach(player => {
-      const mmrBefore = getPlayerMMR(player, allGames);
-      newGames.push({ game: nextGameNumber, result: 'Winner', player, score: scoreString, mmrBefore, teamMmr: winningTeamMMR, teamMmrDiff: mmrDiff, mmrAfter: mmrBefore + mmrChange, mmrChange, date });
-    });
-    losingPlayers.forEach(player => {
-      const mmrBefore = getPlayerMMR(player, allGames);
-      newGames.push({ game: nextGameNumber, result: 'Loser', player, score: scoreString, mmrBefore, teamMmr: losingTeamMMR, teamMmrDiff: -mmrDiff, mmrAfter: mmrBefore - mmrChange, mmrChange: -mmrChange, date });
-    });
 
     try {
+      // Add any new players first
       const allPlayersInGame = [...winningPlayers, ...losingPlayers];
       for (const player of allPlayersInGame) {
-        if (!players.includes(player)) await addPlayerMutation.mutateAsync(player);
+        if (!players.includes(player)) {
+          await addPlayerMutation.mutateAsync(player);
+        }
       }
-      await addGamesMutation.mutateAsync(newGames);
-      toast({ title: "Game Added!", description: `Game ${nextGameNumber} has been recorded.` });
-      setWinningPlayer1(""); setWinningPlayer2(""); setLosingPlayer1(""); setLosingPlayer2("");
-      setWinningScore("11"); setLosingScore(""); setIsOpen(false);
+
+      // Submit game to edge function for server-side MMR calculation
+      await submitGameMutation.mutateAsync({
+        winningPlayers,
+        losingPlayers,
+        winningScore: wScore,
+        losingScore: lScore,
+        date,
+        groupId: currentGroup?.id,
+      });
+
+      toast({ 
+        title: "Game Recorded!", 
+        description: `Season ${currentSeason.id} game has been recorded with MMR calculations.` 
+      });
+      
+      // Reset form
+      setWinningPlayer1(""); 
+      setWinningPlayer2(""); 
+      setLosingPlayer1(""); 
+      setLosingPlayer2("");
+      setWinningScore("11"); 
+      setLosingScore(""); 
+      setIsOpen(false);
       onGameAdded?.();
-    } catch {
-      toast({ title: "Error", description: "Failed to save game.", variant: "destructive" });
+    } catch (error) {
+      console.error("Failed to save game:", error);
+      toast({ title: "Error", description: "Failed to save game. Please try again.", variant: "destructive" });
     }
   };
 
@@ -115,7 +140,14 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
         <Button variant="hero"><Plus className="w-4 h-4 mr-2" />Add Game</Button>
       </DialogTrigger>
       <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle className="text-foreground">Record New Game</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="text-foreground flex items-center gap-2">
+            Record New Game
+            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
+              Season {currentSeason.id}
+            </span>
+          </DialogTitle>
+        </DialogHeader>
         <div className="space-y-4 pt-4">
           <div>
             <Label className="text-muted-foreground">Date</Label>
@@ -169,8 +201,23 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
               <Input type="number" placeholder="9" value={losingScore} onChange={e => setLosingScore(e.target.value)} className="bg-muted border-border w-24" />
             </div>
           </div>
-          <Button onClick={handleSubmit} className="w-full" variant="hero" disabled={addGamesMutation.isPending}>
-            {addGamesMutation.isPending ? "Saving..." : "Record Game"}
+
+          {previewVictoryType && (
+            <div className="p-3 rounded-lg bg-muted/30 border border-border flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Victory Type:</span>
+              <VictoryTypeBadge victoryTypeId={previewVictoryType.id} showLabel />
+            </div>
+          )}
+
+          <Button onClick={handleSubmit} className="w-full" variant="hero" disabled={submitGameMutation.isPending}>
+            {submitGameMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Calculating MMR...
+              </>
+            ) : (
+              "Record Game"
+            )}
           </Button>
         </div>
       </DialogContent>

@@ -8,15 +8,20 @@ import { useGames } from "@/hooks/useGames";
 import { useRealtimeGames } from "@/hooks/useRealtime";
 import GameEntryForm from "@/components/GameEntryForm";
 import DataExportPanel from "@/components/DataExportPanel";
+import { SeasonSelector } from "@/components/SeasonSelector";
+import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { format } from "date-fns";
 import { Filter, ArrowUpDown, Loader2 } from "lucide-react";
+import { getCurrentSeason } from "@/lib/seasons";
 
 type SortDirection = "asc" | "desc";
 
 const ITEMS_PER_PAGE = 5;
 
 const Games = () => {
-  const { data: allGames = [], isLoading } = useGames();
+  const currentSeason = getCurrentSeason();
+  const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
+  const { data: allGames = [], isLoading } = useGames(selectedSeason);
   useRealtimeGames();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [playerFilter, setPlayerFilter] = useState<string>("all");
@@ -133,6 +138,11 @@ const Games = () => {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
+          <SeasonSelector 
+            selectedSeason={selectedSeason} 
+            onSeasonChange={setSelectedSeason} 
+          />
+
           <Select value={playerFilter} onValueChange={setPlayerFilter}>
             <SelectTrigger className="w-[180px] bg-card border-border">
               <Filter className="w-4 h-4 mr-2" />
@@ -195,12 +205,16 @@ const Games = () => {
                   .map(([gameNum, players]) => {
                     const winners = players.filter(p => p.result === 'Winner');
                     const losers = players.filter(p => p.result === 'Loser');
+                    const score = players[0]?.score;
+                    const victoryType = players[0]?.victoryType;
                     
                     return (
                       <Card key={gameNum} className="bg-card border-border overflow-hidden">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg font-medium">
-                            Game {gameNum}
+                          <CardTitle className="text-lg font-medium flex items-center gap-3">
+                            <span>Game {gameNum}</span>
+                            {score && <span className="text-muted-foreground text-sm font-normal">({score})</span>}
+                            {victoryType && <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="overflow-x-auto">

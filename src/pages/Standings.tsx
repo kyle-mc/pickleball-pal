@@ -1,13 +1,18 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGames } from "@/hooks/useGames";
 import { useSelectedPlayer } from "@/hooks/useSelectedPlayer";
 import { Loader2 } from "lucide-react";
+import { SeasonSelector } from "@/components/SeasonSelector";
+import { RankBadge } from "@/components/RankBadge";
+import { getCurrentSeason } from "@/lib/seasons";
 
 const Standings = () => {
-  const { data: allGames = [], isLoading } = useGames();
+  const currentSeason = getCurrentSeason();
+  const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
+  const { data: allGames = [], isLoading } = useGames(selectedSeason);
   const { selectedPlayer } = useSelectedPlayer();
 
   const players = useMemo(() => {
@@ -25,12 +30,14 @@ const Standings = () => {
       const currentMMR = games[0]?.mmrAfter || 2000;
       const wins = games.filter(g => g.result === 'Winner').length;
       const losses = games.filter(g => g.result === 'Loser').length;
+      const gamesPlayed = games.length;
       
       return {
         name: player,
         mmr: currentMMR,
         wins,
         losses,
+        gamesPlayed,
       };
     });
     
@@ -56,7 +63,13 @@ const Standings = () => {
       <Navbar />
       <div className="pt-24 pb-20">
         <div className="container mx-auto px-4 max-w-full overflow-x-hidden">
-          <h1 className="font-display text-4xl md:text-5xl text-foreground mb-8">Standings</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <h1 className="font-display text-4xl md:text-5xl text-foreground">Standings</h1>
+            <SeasonSelector 
+              selectedSeason={selectedSeason} 
+              onSeasonChange={setSelectedSeason} 
+            />
+          </div>
           
           <Card className="bg-card/50 border-border overflow-hidden">
             <CardHeader>
@@ -64,12 +77,12 @@ const Standings = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[400px]">
+                <table className="w-full min-w-[500px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
                       <th className="text-left py-4 px-4 sm:px-6 text-muted-foreground font-medium whitespace-nowrap">Rank</th>
                       <th className="text-left py-4 px-4 sm:px-6 text-muted-foreground font-medium whitespace-nowrap">Player</th>
-                      <th className="text-left py-4 px-4 sm:px-6 text-muted-foreground font-medium whitespace-nowrap">MMR</th>
+                      <th className="text-left py-4 px-4 sm:px-6 text-muted-foreground font-medium whitespace-nowrap">Rating</th>
                       <th className="text-left py-4 px-4 sm:px-6 text-muted-foreground font-medium whitespace-nowrap">W</th>
                       <th className="text-left py-4 px-4 sm:px-6 text-muted-foreground font-medium whitespace-nowrap">L</th>
                       <th className="text-left py-4 px-4 sm:px-6 text-muted-foreground font-medium whitespace-nowrap">Win %</th>
@@ -106,8 +119,13 @@ const Standings = () => {
                               <span className="ml-2 text-xs text-primary/70">(You)</span>
                             )}
                           </td>
-                          <td className="py-4 px-4 sm:px-6 text-primary font-display text-lg whitespace-nowrap">
-                            {player.mmr.toLocaleString()}
+                          <td className="py-4 px-4 sm:px-6 whitespace-nowrap">
+                            <RankBadge 
+                              mmr={player.mmr} 
+                              gamesPlayed={player.gamesPlayed}
+                              showMmr={true}
+                              size="sm"
+                            />
                           </td>
                           <td className="py-4 px-4 sm:px-6 text-muted-foreground whitespace-nowrap">{player.wins}</td>
                           <td className="py-4 px-4 sm:px-6 text-muted-foreground whitespace-nowrap">{player.losses}</td>
