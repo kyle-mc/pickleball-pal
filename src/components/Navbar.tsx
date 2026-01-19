@@ -5,6 +5,7 @@ import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import AuthDialog from "@/components/AuthDialog";
+import { GroupSelector } from "@/components/GroupSelector";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +59,9 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
+              
+              {/* Group Selector */}
+              {user && <GroupSelector />}
               
               {/* Auth Button */}
               {user ? (

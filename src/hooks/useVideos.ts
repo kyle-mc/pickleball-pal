@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { useGroupContext } from "@/contexts/GroupContext";
 
 export interface Video {
   id: string;
@@ -14,6 +15,9 @@ export interface Video {
   created_at: string;
   video_date: string | null;
   likes_count?: number;
+  game_id: string | null;
+  video_type: 'highlight' | 'other';
+  group_id: string | null;
 }
 
 // Generate or get session ID for anonymous likes
@@ -28,14 +32,22 @@ const getSessionId = () => {
 
 export const useVideos = () => {
   const queryClient = useQueryClient();
+  const { currentGroup } = useGroupContext();
 
   const query = useQuery({
-    queryKey: ['videos'],
+    queryKey: ['videos', currentGroup?.id],
     queryFn: async () => {
-      const { data: videos, error } = await supabase
+      let query = supabase
         .from('videos')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Filter by group if one is selected
+      if (currentGroup) {
+        query = query.or(`group_id.eq.${currentGroup.id},group_id.is.null`);
+      }
+
+      const { data: videos, error } = await query;
 
       if (error) throw error;
 
@@ -53,6 +65,7 @@ export const useVideos = () => {
         ...v,
         players: v.players || [],
         likes_count: likesCount[v.id] || 0,
+        video_type: v.video_type || 'other',
       })) as Video[];
     },
   });
@@ -138,16 +151,30 @@ export const useToggleLike = () => {
   });
 };
 
+export interface AddVideoParams {
+  title: string;
+  description?: string;
+  youtube_url: string;
+  players?: string[];
+  game_id?: string;
+  video_type: 'highlight' | 'other';
+  group_id?: string;
+}
+
 export const useAddVideo = () => {
   const queryClient = useQueryClient();
+  const { currentGroup } = useGroupContext();
 
   return useMutation({
-    mutationFn: async (video: { title: string; description?: string; youtube_url: string; players?: string[] }) => {
+    mutationFn: async (video: AddVideoParams) => {
       const { error } = await supabase.from('videos').insert({
         title: video.title,
         description: video.description || null,
         youtube_url: video.youtube_url,
         players: video.players || [],
+        game_id: video.game_id || null,
+        video_type: video.video_type,
+        group_id: video.group_id || currentGroup?.id || null,
       });
       if (error) throw error;
     },
@@ -155,4 +182,22 @@ export const useAddVideo = () => {
       queryClient.invalidateQueries({ queryKey: ['videos'] });
     },
   });
+};
+
+// Hook to check if a game has a video linked to it
+export const useGameVideos = () => {
+  const { data: videos = [] } = useVideos();
+  
+  const gameVideoMap = new Map<string, Video>();
+  videos.forEach(v => {
+    if (v.game_id) {
+      gameVideoMap.set(v.game_id, v);
+    }
+  });
+  
+  return {
+    hasVideoForGame: (gameId: string) => gameVideoMap.has(gameId),
+    getVideoForGame: (gameId: string) => gameVideoMap.get(gameId),
+    gameVideoMap,
+  };
 };
