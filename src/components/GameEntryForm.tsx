@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, UserPlus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSubmitGame } from "@/hooks/useGames";
+import { useSubmitGame, useGames } from "@/hooks/useGames";
 import { usePlayers, useAddPlayer } from "@/hooks/usePlayers";
 import { useCurrentGroup } from "@/hooks/useGroups";
-import { getCurrentSeason } from "@/lib/seasons";
+import { getCurrentSeason, getSeasonFromDate } from "@/lib/seasons";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
+import { SeasonConfirmDialog } from "@/components/SeasonConfirmDialog";
+import { MatchPreview } from "@/components/MatchPreview";
 import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
 
 interface GameEntryFormProps {
@@ -35,13 +37,22 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   
   const [newPlayerName, setNewPlayerName] = useState("");
   const [showNewPlayerInput, setShowNewPlayerInput] = useState(false);
+  const [showSeasonConfirm, setShowSeasonConfirm] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   const currentSeason = getCurrentSeason();
+  const dateSeason = getSeasonFromDate(date);
+  const isCurrentSeason = dateSeason.id === currentSeason.id;
 
   // Calculate preview of victory type based on scores
   const previewVictoryType = winningScore && losingScore 
     ? getVictoryTypeFromScore(parseInt(winningScore), parseInt(losingScore))
     : null;
+
+  // Check if all 4 players are selected for match preview
+  const allPlayersSelected = winningPlayer1 && winningPlayer2 && losingPlayer1 && losingPlayer2;
+  const team1 = useMemo(() => [winningPlayer1, winningPlayer2].filter(Boolean), [winningPlayer1, winningPlayer2]);
+  const team2 = useMemo(() => [losingPlayer1, losingPlayer2].filter(Boolean), [losingPlayer1, losingPlayer2]);
 
   const handleAddNewPlayer = async () => {
     const name = newPlayerName.trim();
@@ -60,6 +71,51 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       setShowNewPlayerInput(false);
     } catch {
       toast({ title: "Error", description: "Failed to add player.", variant: "destructive" });
+    }
+  };
+
+  const doSubmit = async () => {
+    const wScore = parseInt(winningScore);
+    const lScore = parseInt(losingScore);
+    const winningPlayers = [winningPlayer1, winningPlayer2];
+    const losingPlayers = [losingPlayer1, losingPlayer2];
+
+    try {
+      // Add any new players first
+      const allPlayersInGame = [...winningPlayers, ...losingPlayers];
+      for (const player of allPlayersInGame) {
+        if (!players.includes(player)) {
+          await addPlayerMutation.mutateAsync(player);
+        }
+      }
+
+      // Submit game to edge function for server-side MMR calculation
+      await submitGameMutation.mutateAsync({
+        winningPlayers,
+        losingPlayers,
+        winningScore: wScore,
+        losingScore: lScore,
+        date,
+        groupId: currentGroup?.id,
+      });
+
+      toast({ 
+        title: "Game Recorded!", 
+        description: `Season ${dateSeason.id} game has been recorded with MMR calculations.` 
+      });
+      
+      // Reset form
+      setWinningPlayer1(""); 
+      setWinningPlayer2(""); 
+      setLosingPlayer1(""); 
+      setLosingPlayer2("");
+      setWinningScore("11"); 
+      setLosingScore(""); 
+      setIsOpen(false);
+      onGameAdded?.();
+    } catch (error) {
+      console.error("Failed to save game:", error);
+      toast({ title: "Error", description: "Failed to save game. Please try again.", variant: "destructive" });
     }
   };
 
@@ -89,45 +145,21 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       return;
     }
 
-    const winningPlayers = [winningPlayer1, winningPlayer2];
-    const losingPlayers = [losingPlayer1, losingPlayer2];
+    // Check if adding to a different season
+    if (!isCurrentSeason) {
+      setPendingSubmit(true);
+      setShowSeasonConfirm(true);
+      return;
+    }
 
-    try {
-      // Add any new players first
-      const allPlayersInGame = [...winningPlayers, ...losingPlayers];
-      for (const player of allPlayersInGame) {
-        if (!players.includes(player)) {
-          await addPlayerMutation.mutateAsync(player);
-        }
-      }
+    await doSubmit();
+  };
 
-      // Submit game to edge function for server-side MMR calculation
-      await submitGameMutation.mutateAsync({
-        winningPlayers,
-        losingPlayers,
-        winningScore: wScore,
-        losingScore: lScore,
-        date,
-        groupId: currentGroup?.id,
-      });
-
-      toast({ 
-        title: "Game Recorded!", 
-        description: `Season ${currentSeason.id} game has been recorded with MMR calculations.` 
-      });
-      
-      // Reset form
-      setWinningPlayer1(""); 
-      setWinningPlayer2(""); 
-      setLosingPlayer1(""); 
-      setLosingPlayer2("");
-      setWinningScore("11"); 
-      setLosingScore(""); 
-      setIsOpen(false);
-      onGameAdded?.();
-    } catch (error) {
-      console.error("Failed to save game:", error);
-      toast({ title: "Error", description: "Failed to save game. Please try again.", variant: "destructive" });
+  const handleSeasonConfirm = async () => {
+    setShowSeasonConfirm(false);
+    if (pendingSubmit) {
+      setPendingSubmit(false);
+      await doSubmit();
     }
   };
 
@@ -135,93 +167,118 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const getAvailablePlayers = (currentValue: string) => players.filter(p => !selectedPlayers.includes(p) || p === currentValue);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="hero"><Plus className="w-4 h-4 mr-2" />Add Game</Button>
-      </DialogTrigger>
-      <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-foreground flex items-center gap-2">
-            Record New Game
-            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
-              Season {currentSeason.id}
-            </span>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-4">
-          <div>
-            <Label className="text-muted-foreground">Date</Label>
-            <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
-          </div>
-          <div className="p-3 rounded-lg bg-muted/50 border border-border">
-            {showNewPlayerInput ? (
-              <div className="flex gap-2">
-                <Input placeholder="New player name" value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} className="bg-background border-border flex-1" onKeyDown={e => e.key === 'Enter' && handleAddNewPlayer()} />
-                <Button size="sm" onClick={handleAddNewPlayer} disabled={addPlayerMutation.isPending}>Add</Button>
-                <Button size="sm" variant="ghost" onClick={() => { setShowNewPlayerInput(false); setNewPlayerName(""); }}>Cancel</Button>
+    <>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button variant="hero"><Plus className="w-4 h-4 mr-2" />Add Game</Button>
+        </DialogTrigger>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              Record New Game
+              <span className={`text-xs px-2 py-0.5 rounded ${
+                isCurrentSeason 
+                  ? 'bg-primary/20 text-primary' 
+                  : 'bg-yellow-500/20 text-yellow-500'
+              }`}>
+                Season {dateSeason.id}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label className="text-muted-foreground">Date</Label>
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
+              {!isCurrentSeason && (
+                <p className="text-xs text-yellow-500 mt-1">
+                  ⚠️ This date is in Season {dateSeason.id}, not the current season
+                </p>
+              )}
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              {showNewPlayerInput ? (
+                <div className="flex gap-2">
+                  <Input placeholder="New player name" value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} className="bg-background border-border flex-1" onKeyDown={e => e.key === 'Enter' && handleAddNewPlayer()} />
+                  <Button size="sm" onClick={handleAddNewPlayer} disabled={addPlayerMutation.isPending}>Add</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setShowNewPlayerInput(false); setNewPlayerName(""); }}>Cancel</Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => setShowNewPlayerInput(true)} className="w-full text-muted-foreground">
+                  <UserPlus className="w-4 h-4 mr-2" />Add New Player
+                </Button>
+              )}
+            </div>
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+              <Label className="text-primary font-medium mb-3 block">🏆 Winning Team</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Select value={winningPlayer1} onValueChange={setWinningPlayer1}>
+                  <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 1" /></SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(winningPlayer1).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={winningPlayer2} onValueChange={setWinningPlayer2}>
+                  <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 2" /></SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(winningPlayer2).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
-            ) : (
-              <Button variant="ghost" size="sm" onClick={() => setShowNewPlayerInput(true)} className="w-full text-muted-foreground">
-                <UserPlus className="w-4 h-4 mr-2" />Add New Player
-              </Button>
-            )}
-          </div>
-          <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-            <Label className="text-primary font-medium mb-3 block">🏆 Winning Team</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Select value={winningPlayer1} onValueChange={setWinningPlayer1}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 1" /></SelectTrigger>
-                <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(winningPlayer1).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={winningPlayer2} onValueChange={setWinningPlayer2}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 2" /></SelectTrigger>
-                <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(winningPlayer2).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
+              <div className="mt-3">
+                <Label className="text-muted-foreground text-sm">Score</Label>
+                <Input type="number" placeholder="11" value={winningScore} onChange={e => setWinningScore(e.target.value)} className="bg-muted border-border w-24" />
+              </div>
             </div>
-            <div className="mt-3">
-              <Label className="text-muted-foreground text-sm">Score</Label>
-              <Input type="number" placeholder="11" value={winningScore} onChange={e => setWinningScore(e.target.value)} className="bg-muted border-border w-24" />
+            <div className="text-center text-muted-foreground font-medium">VS</div>
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+              <Label className="text-destructive font-medium mb-3 block">Losing Team</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Select value={losingPlayer1} onValueChange={setLosingPlayer1}>
+                  <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 1" /></SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(losingPlayer1).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={losingPlayer2} onValueChange={setLosingPlayer2}>
+                  <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 2" /></SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(losingPlayer2).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="mt-3">
+                <Label className="text-muted-foreground text-sm">Score</Label>
+                <Input type="number" placeholder="9" value={losingScore} onChange={e => setLosingScore(e.target.value)} className="bg-muted border-border w-24" />
+              </div>
             </div>
-          </div>
-          <div className="text-center text-muted-foreground font-medium">VS</div>
-          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-            <Label className="text-destructive font-medium mb-3 block">Losing Team</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Select value={losingPlayer1} onValueChange={setLosingPlayer1}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 1" /></SelectTrigger>
-                <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(losingPlayer1).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={losingPlayer2} onValueChange={setLosingPlayer2}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Player 2" /></SelectTrigger>
-                <SelectContent className="bg-card border-border z-50">{getAvailablePlayers(losingPlayer2).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="mt-3">
-              <Label className="text-muted-foreground text-sm">Score</Label>
-              <Input type="number" placeholder="9" value={losingScore} onChange={e => setLosingScore(e.target.value)} className="bg-muted border-border w-24" />
-            </div>
-          </div>
 
-          {previewVictoryType && (
-            <div className="p-3 rounded-lg bg-muted/30 border border-border flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Victory Type:</span>
-              <VictoryTypeBadge victoryTypeId={previewVictoryType.id} showLabel />
-            </div>
-          )}
-
-          <Button onClick={handleSubmit} className="w-full" variant="hero" disabled={submitGameMutation.isPending}>
-            {submitGameMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Calculating MMR...
-              </>
-            ) : (
-              "Record Game"
+            {previewVictoryType && (
+              <div className="p-3 rounded-lg bg-muted/30 border border-border flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Victory Type:</span>
+                <VictoryTypeBadge victoryTypeId={previewVictoryType.id} showLabel />
+              </div>
             )}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+
+            {allPlayersSelected && (
+              <MatchPreview team1={team1} team2={team2} />
+            )}
+
+            <Button onClick={handleSubmit} className="w-full" variant="hero" disabled={submitGameMutation.isPending}>
+              {submitGameMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Calculating MMR...
+                </>
+              ) : (
+                "Record Game"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <SeasonConfirmDialog
+        open={showSeasonConfirm}
+        onOpenChange={(open) => {
+          setShowSeasonConfirm(open);
+          if (!open) setPendingSubmit(false);
+        }}
+        date={date}
+        onConfirm={handleSeasonConfirm}
+      />
+    </>
   );
 };
 
