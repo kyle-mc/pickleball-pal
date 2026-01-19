@@ -185,12 +185,12 @@ export const AddVideoDialog = ({
           {videoType === 'highlight' && (
             <div>
               <Label className="text-muted-foreground">Link to Game (Optional)</Label>
-              <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+              <Select value={selectedGameId || "none"} onValueChange={(val) => setSelectedGameId(val === "none" ? "" : val)}>
                 <SelectTrigger className="bg-muted border-border">
                   <SelectValue placeholder="Select a game..." />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border max-h-60">
-                  <SelectItem value="">No game linked</SelectItem>
+                  <SelectItem value="none">No game linked</SelectItem>
                   {gameOptions.map(game => (
                     <SelectItem key={game.id} value={game.id}>
                       {format(parseISO(game.date), 'MMM d')} - Game {game.gameNum} ({game.players.slice(0, 4).join(', ')})
