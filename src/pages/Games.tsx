@@ -4,13 +4,15 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useGames } from "@/hooks/useGames";
+import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { useRealtimeGames } from "@/hooks/useRealtime";
 import GameEntryForm from "@/components/GameEntryForm";
 import DataExportPanel from "@/components/DataExportPanel";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
-import { format } from "date-fns";
+import { MmrChangeTooltip } from "@/components/MmrChangeTooltip";
+import { VICTORY_TYPES } from "@/lib/victoryTypes";
+import { format, parseISO } from "date-fns";
 import { Filter, ArrowUpDown, Loader2 } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 
@@ -25,21 +27,32 @@ const Games = () => {
   useRealtimeGames();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [playerFilter, setPlayerFilter] = useState<string>("all");
+  const [victoryTypeFilter, setVictoryTypeFilter] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Get unique dates for filtering
+  // Get unique dates for filtering - fix timezone issue by parsing as local date
   const uniqueDates = useMemo(() => 
     [...new Set(allGames.map(g => g.date))].sort((a, b) => 
-      new Date(b).getTime() - new Date(a).getTime()
+      new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime()
     ), [allGames]);
 
   // Get unique players for filtering
   const uniquePlayers = useMemo(() => 
     [...new Set(allGames.map(g => g.player))].sort(), [allGames]);
 
-  // Filter games by date and player
+  // Get player games count cache for unranked check
+  const playerGamesCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const season = selectedSeason === "all" ? currentSeason.id : selectedSeason;
+    uniquePlayers.forEach(player => {
+      counts[player] = getPlayerSeasonGamesCount(player, allGames, season);
+    });
+    return counts;
+  }, [allGames, uniquePlayers, selectedSeason, currentSeason.id]);
+
+  // Filter games by date, player, and victory type
   const filteredGames = useMemo(() => {
     let games = [...allGames];
     
@@ -55,9 +68,13 @@ const Games = () => {
       );
       games = games.filter(g => playerGameKeys.has(`${g.date}-${g.game}`));
     }
+
+    if (victoryTypeFilter !== "all") {
+      games = games.filter(g => g.victoryType === victoryTypeFilter);
+    }
     
     return games;
-  }, [selectedDate, playerFilter, allGames]);
+  }, [selectedDate, playerFilter, victoryTypeFilter, allGames]);
 
   // Group by date, then by game number
   const groupedByDate = useMemo(() => {
@@ -75,9 +92,9 @@ const Games = () => {
     const dates = Object.keys(groupedByDate);
     return dates.sort((a, b) => {
       if (sortDirection === "desc") {
-        return new Date(b).getTime() - new Date(a).getTime();
+        return new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime();
       }
-      return new Date(a).getTime() - new Date(b).getTime();
+      return new Date(a + 'T00:00:00').getTime() - new Date(b + 'T00:00:00').getTime();
     });
   }, [groupedByDate, sortDirection]);
 
@@ -104,7 +121,7 @@ const Games = () => {
   // Reset display count when filters change
   useEffect(() => {
     setDisplayCount(ITEMS_PER_PAGE);
-  }, [selectedDate, playerFilter, sortDirection]);
+  }, [selectedDate, playerFilter, victoryTypeFilter, sortDirection]);
 
   const toggleSort = () => {
     setSortDirection(prev => prev === "desc" ? "asc" : "desc");
@@ -156,6 +173,23 @@ const Games = () => {
             </SelectContent>
           </Select>
 
+          <Select value={victoryTypeFilter} onValueChange={setVictoryTypeFilter}>
+            <SelectTrigger className="w-[200px] bg-card border-border">
+              <SelectValue placeholder="Victory Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50">
+              <SelectItem value="all">All Victory Types</SelectItem>
+              {Object.values(VICTORY_TYPES).map(vt => (
+                <SelectItem key={vt.id} value={vt.id}>
+                  <span className="flex items-center gap-2">
+                    <span>{vt.emoji}</span>
+                    <span>{vt.name}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <button
             onClick={toggleSort}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
@@ -187,7 +221,7 @@ const Games = () => {
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
-              {format(new Date(date), 'MMM d, yyyy')}
+              {format(parseISO(date), 'MMM d, yyyy')}
             </button>
           ))}
         </div>
@@ -197,7 +231,7 @@ const Games = () => {
           {displayedDates.map(date => (
             <div key={date}>
               <h2 className="text-2xl font-display text-foreground mb-4">
-                {format(new Date(date), 'EEEE, MMMM d, yyyy')}
+                {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
               </h2>
               <div className="grid gap-4">
                 {Object.entries(groupedByDate[date])
@@ -229,33 +263,51 @@ const Games = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {[...winners, ...losers].map((player, idx) => (
-                                <TableRow key={idx} className="border-border">
-                                  <TableCell>
-                                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                                      player.result === 'Winner' 
-                                        ? 'bg-primary/20 text-primary' 
-                                        : 'bg-destructive/20 text-destructive'
-                                    }`}>
-                                      {player.result === 'Winner' ? 'W' : 'L'}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className={`font-medium whitespace-nowrap ${playerFilter === player.player ? 'text-primary' : 'text-foreground'}`}>
-                                    {player.player}
-                                  </TableCell>
-                                  <TableCell className="text-right text-muted-foreground whitespace-nowrap">
-                                    {player.mmrBefore.toLocaleString()}
-                                  </TableCell>
-                                  <TableCell className="text-right text-foreground font-medium whitespace-nowrap">
-                                    {player.mmrAfter.toLocaleString()}
-                                  </TableCell>
-                                  <TableCell className={`text-right font-medium whitespace-nowrap ${
-                                    player.mmrChange > 0 ? 'text-primary' : 'text-destructive'
-                                  }`}>
-                                    {player.mmrChange > 0 ? '▲' : '▼'}{Math.abs(player.mmrChange)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              {[...winners, ...losers].map((player, idx) => {
+                                const isUnranked = playerGamesCount[player.player] < 10;
+                                
+                                return (
+                                  <TableRow key={idx} className="border-border">
+                                    <TableCell>
+                                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                                        player.result === 'Winner' 
+                                          ? 'bg-primary/20 text-primary' 
+                                          : 'bg-destructive/20 text-destructive'
+                                      }`}>
+                                        {player.result === 'Winner' ? 'W' : 'L'}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell className={`font-medium whitespace-nowrap ${playerFilter === player.player ? 'text-primary' : 'text-foreground'}`}>
+                                      {player.player}
+                                      {isUnranked && (
+                                        <span className="ml-2 text-xs text-muted-foreground">(Placing)</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right text-muted-foreground whitespace-nowrap">
+                                      {isUnranked ? '—' : player.mmrBefore.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="text-right text-foreground font-medium whitespace-nowrap">
+                                      {isUnranked ? '—' : player.mmrAfter.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="text-right whitespace-nowrap">
+                                      <MmrChangeTooltip
+                                        mmrChange={player.mmrChange}
+                                        victoryType={player.victoryType}
+                                        isWinner={player.result === 'Winner'}
+                                        gamesPlayed={playerGamesCount[player.player]}
+                                      >
+                                        <span className={`font-medium cursor-help ${
+                                          player.mmrChange > 0 ? 'text-primary' : 'text-destructive'
+                                        }`}>
+                                          {isUnranked ? '—' : (
+                                            <>{player.mmrChange > 0 ? '▲' : '▼'}{Math.abs(player.mmrChange)}</>
+                                          )}
+                                        </span>
+                                      </MmrChangeTooltip>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
                             </TableBody>
                           </Table>
                         </CardContent>
