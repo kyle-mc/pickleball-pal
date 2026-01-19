@@ -326,6 +326,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_group_id: string | null
           avatar_url: string | null
           awards: string[] | null
           bio: string | null
@@ -349,6 +350,7 @@ export type Database = {
           years_experience: number | null
         }
         Insert: {
+          active_group_id?: string | null
           avatar_url?: string | null
           awards?: string[] | null
           bio?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           years_experience?: number | null
         }
         Update: {
+          active_group_id?: string | null
           avatar_url?: string | null
           awards?: string[] | null
           bio?: string | null
@@ -395,6 +398,13 @@ export type Database = {
           years_experience?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_active_group_id_fkey"
+            columns: ["active_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_linked_player_id_fkey"
             columns: ["linked_player_id"]
@@ -462,11 +472,14 @@ export type Database = {
           created_at: string
           description: string | null
           duration: string | null
+          game_id: string | null
+          group_id: string | null
           id: string
           players: string[] | null
           thumbnail_url: string | null
           title: string
           video_date: string | null
+          video_type: string | null
           views: number | null
           youtube_url: string
         }
@@ -474,11 +487,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration?: string | null
+          game_id?: string | null
+          group_id?: string | null
           id?: string
           players?: string[] | null
           thumbnail_url?: string | null
           title: string
           video_date?: string | null
+          video_type?: string | null
           views?: number | null
           youtube_url: string
         }
@@ -486,15 +502,33 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration?: string | null
+          game_id?: string | null
+          group_id?: string | null
           id?: string
           players?: string[] | null
           thumbnail_url?: string | null
           title?: string
           video_date?: string | null
+          video_type?: string | null
           views?: number | null
           youtube_url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "videos_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -16,6 +16,7 @@ import {
   Loader2, User, MapPin, Award, Link as LinkIcon, 
   Plus, X, Trophy, Calendar, Users
 } from "lucide-react";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 interface ProfileData {
   display_name: string | null;
@@ -228,20 +229,30 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Display Name</Label>
-                    <Input
-                      value={profile.display_name || ""}
-                      onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
-                      className="bg-muted/50 border-border"
+                    <Label>Profile Picture</Label>
+                    <AvatarUpload
+                      avatarUrl={profile.avatar_url}
+                      displayName={profile.display_name}
+                      onUploadComplete={(url) => setProfile({ ...profile, avatar_url: url })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input
-                      value={user?.email || ""}
-                      disabled
-                      className="bg-muted/30 border-border text-muted-foreground"
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Display Name</Label>
+                      <Input
+                        value={profile.display_name || ""}
+                        onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
+                        className="bg-muted/50 border-border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        value={user?.email || ""}
+                        disabled
+                        className="bg-muted/30 border-border text-muted-foreground"
+                      />
+                    </div>
                   </div>
                 </div>
                 
