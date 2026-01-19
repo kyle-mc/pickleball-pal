@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -117,6 +117,7 @@ const VideoCard = ({ video, isLiked, onLike, onClick }: VideoCardProps) => {
 const Videos = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: videos = [], isLoading } = useVideos();
   const { data: likedVideos = new Set<string>() } = useUserLikes();
   const toggleLikeMutation = useToggleLike();
@@ -128,6 +129,19 @@ const Videos = () => {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [isAddHighlightOpen, setIsAddHighlightOpen] = useState(false);
   const [isAddOtherOpen, setIsAddOtherOpen] = useState(false);
+
+  // Handle auto-play from URL query param
+  useEffect(() => {
+    const playId = searchParams.get('play');
+    if (playId && videos.length > 0) {
+      const videoExists = videos.some(v => v.id === playId);
+      if (videoExists) {
+        setSelectedVideo(playId);
+        // Clear the query param after setting
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, videos, setSearchParams]);
 
   // Separate videos by type
   const { highlights, otherVideos } = useMemo(() => {
