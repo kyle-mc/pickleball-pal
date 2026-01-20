@@ -10,12 +10,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { useRealtimeGames } from "@/hooks/useRealtime";
 import { useGameVideos } from "@/hooks/useVideos";
+import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import GameEntryForm from "@/components/GameEntryForm";
 import DataExportPanel from "@/components/DataExportPanel";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { MmrChangeTooltip } from "@/components/MmrChangeTooltip";
 import { AddVideoDialog } from "@/components/AddVideoDialog";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
 import { Filter, ArrowUpDown, Loader2, Video, Plus } from "lucide-react";
@@ -32,7 +34,7 @@ const Games = () => {
   const { data: allGames = [], isLoading } = useGames(selectedSeason);
   useRealtimeGames();
   const { hasVideoForGame, getVideoForGame } = useGameVideos();
-  
+  const { data: avatarMap } = usePlayerAvatars();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [playerFilter, setPlayerFilter] = useState<string>("all");
   const [victoryTypeFilter, setVictoryTypeFilter] = useState<string>("all");
@@ -345,10 +347,19 @@ const Games = () => {
                                       </span>
                                     </TableCell>
                                     <TableCell className={`font-medium whitespace-nowrap ${playerFilter === player.player ? 'text-primary' : 'text-foreground'}`}>
-                                      {player.player}
-                                      {isUnranked && (
-                                        <span className="ml-2 text-xs text-muted-foreground">(Placing)</span>
-                                      )}
+                                      <div className="flex items-center gap-2">
+                                        <PlayerAvatar 
+                                          name={player.player} 
+                                          avatarUrl={getPlayerAvatar(player.player, avatarMap)}
+                                          size="xs"
+                                        />
+                                        <span>
+                                          {player.player}
+                                          {isUnranked && (
+                                            <span className="ml-2 text-xs text-muted-foreground">(Placing)</span>
+                                          )}
+                                        </span>
+                                      </div>
                                     </TableCell>
                                     <TableCell className="text-right text-muted-foreground whitespace-nowrap">
                                       {isUnranked ? '—' : player.mmrBefore.toLocaleString()}
