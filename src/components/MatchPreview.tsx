@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGames, getPlayerMMR, getPlayerSeasonGamesCount } from "@/hooks/useGames";
+import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import { getCurrentSeason } from "@/lib/seasons";
 import { VICTORY_TYPES, VictoryType } from "@/lib/victoryTypes";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { TrendingUp, TrendingDown, Percent } from "lucide-react";
 
 interface MatchPreviewProps {
@@ -14,7 +16,7 @@ interface MatchPreviewProps {
 export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
   const currentSeason = getCurrentSeason();
   const { data: allGames = [] } = useGames("all");
-  
+  const { data: avatarMap } = usePlayerAvatars();
   const preview = useMemo(() => {
     if (team1.length !== 2 || team2.length !== 2) return null;
     
@@ -80,8 +82,24 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
         {/* Win Probability */}
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{t1.players.join(" & ")}</span>
-            <span>{t2.players.join(" & ")}</span>
+            <div className="flex items-center gap-1">
+              {t1.players.map((p, i) => (
+                <div key={p} className="flex items-center gap-1">
+                  <PlayerAvatar name={p} avatarUrl={getPlayerAvatar(p, avatarMap)} size="xs" />
+                  <span>{p}</span>
+                  {i === 0 && <span className="mx-1">&</span>}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              {t2.players.map((p, i) => (
+                <div key={p} className="flex items-center gap-1">
+                  {i === 1 && <span className="mx-1">&</span>}
+                  <span>{p}</span>
+                  <PlayerAvatar name={p} avatarUrl={getPlayerAvatar(p, avatarMap)} size="xs" />
+                </div>
+              ))}
+            </div>
           </div>
           <div className="relative h-6 rounded-full overflow-hidden bg-muted">
             <div 
