@@ -13,6 +13,7 @@ import { useVideos, useUserLikes, useToggleLike } from "@/hooks/useVideos";
 import { usePlayers } from "@/hooks/usePlayers";
 import { AddVideoDialog } from "@/components/AddVideoDialog";
 import VideoBulkImport from "@/components/VideoBulkImport";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 // Helper to extract YouTube video ID
 const getYouTubeVideoId = (url: string): string | null => {
@@ -206,7 +207,7 @@ const Videos = () => {
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-20">
+      <div className="pt-24 pb-24 md:pb-20">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 mb-8">
             <h1 className="font-display text-4xl md:text-5xl text-foreground flex-1">Videos</h1>
@@ -386,6 +387,7 @@ const Videos = () => {
       />
 
       <Footer />
+      <MobileBottomNav />
     </main>
   );
 };

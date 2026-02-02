@@ -1,0 +1,147 @@
+import { RANKS, getRankFromMmr, TIER_COLORS, TIER_BG_COLORS } from "@/lib/ranks";
+import { cn } from "@/lib/utils";
+
+interface RankProgressBarProps {
+  mmr: number;
+  gamesPlayed: number;
+}
+
+const TIER_ICONS: Record<string, string> = {
+  bronze: "🥉",
+  silver: "🥈",
+  gold: "🥇",
+  platinum: "💎",
+  diamond: "💠",
+  champion: "🏆",
+  grand_champion: "👑",
+  supersonic_legend: "⚡",
+};
+
+// Get unique tiers in order with their boundaries
+const TIERS = [
+  { tier: "bronze", label: "Bronze", minMmr: 0, maxMmr: 499 },
+  { tier: "silver", label: "Silver", minMmr: 500, maxMmr: 999 },
+  { tier: "gold", label: "Gold", minMmr: 1000, maxMmr: 1499 },
+  { tier: "platinum", label: "Platinum", minMmr: 1500, maxMmr: 1799 },
+  { tier: "diamond", label: "Diamond", minMmr: 1800, maxMmr: 2099 },
+  { tier: "champion", label: "Champion", minMmr: 2100, maxMmr: 2399 },
+  { tier: "grand_champion", label: "GC", minMmr: 2400, maxMmr: 2699 },
+  { tier: "supersonic_legend", label: "SSL", minMmr: 2700, maxMmr: 3500 },
+];
+
+const MAX_MMR = 3500;
+
+export function RankProgressBar({ mmr, gamesPlayed }: RankProgressBarProps) {
+  const isUnranked = gamesPlayed < 10;
+  const currentRank = getRankFromMmr(mmr);
+  const displayMmr = isUnranked ? mmr : mmr;
+  
+  // Calculate position as percentage (clamp between 0 and 100)
+  const positionPercent = Math.min(100, Math.max(0, (displayMmr / MAX_MMR) * 100));
+
+  return (
+    <div className="w-full space-y-3">
+      {/* Main progress bar container */}
+      <div className="relative">
+        {/* Tier segments */}
+        <div className="flex h-4 rounded-full overflow-hidden bg-muted/30 border border-border">
+          {TIERS.map((tier, index) => {
+            const width = ((tier.maxMmr - tier.minMmr + 1) / MAX_MMR) * 100;
+            const isCurrentTier = !isUnranked && currentRank.tier === tier.tier;
+            
+            return (
+              <div
+                key={tier.tier}
+                className={cn(
+                  "relative transition-all",
+                  isCurrentTier ? "opacity-100" : "opacity-50",
+                  index > 0 && "border-l border-border/50"
+                )}
+                style={{ width: `${width}%` }}
+              >
+                <div
+                  className={cn(
+                    "h-full",
+                    tier.tier === "bronze" && "bg-gradient-to-r from-amber-700 to-amber-800",
+                    tier.tier === "silver" && "bg-gradient-to-r from-gray-400 to-gray-500",
+                    tier.tier === "gold" && "bg-gradient-to-r from-yellow-500 to-yellow-600",
+                    tier.tier === "platinum" && "bg-gradient-to-r from-cyan-400 to-cyan-500",
+                    tier.tier === "diamond" && "bg-gradient-to-r from-blue-400 to-blue-500",
+                    tier.tier === "champion" && "bg-gradient-to-r from-purple-500 to-purple-600",
+                    tier.tier === "grand_champion" && "bg-gradient-to-r from-red-500 to-red-600",
+                    tier.tier === "supersonic_legend" && "bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500"
+                  )}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Player position marker */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 transform transition-all duration-500"
+          style={{ left: `${positionPercent}%`, transform: `translateX(-50%) translateY(-50%)` }}
+        >
+          <div className={cn(
+            "relative flex flex-col items-center",
+          )}>
+            {/* Marker icon */}
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-lg border-2",
+              isUnranked 
+                ? "bg-muted border-border" 
+                : cn(TIER_BG_COLORS[currentRank.tier], "border-current"),
+              !isUnranked && TIER_COLORS[currentRank.tier]
+            )}>
+              {isUnranked ? "❓" : TIER_ICONS[currentRank.tier]}
+            </div>
+            {/* MMR label below */}
+            <div className={cn(
+              "absolute -bottom-6 text-xs font-bold whitespace-nowrap px-1.5 py-0.5 rounded",
+              isUnranked ? "text-muted-foreground" : TIER_COLORS[currentRank.tier],
+              isUnranked ? "bg-muted" : TIER_BG_COLORS[currentRank.tier]
+            )}>
+              {displayMmr}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tier labels below */}
+      <div className="flex text-[9px] sm:text-[10px] text-muted-foreground mt-6">
+        {TIERS.map((tier) => {
+          const width = ((tier.maxMmr - tier.minMmr + 1) / MAX_MMR) * 100;
+          const isCurrentTier = !isUnranked && currentRank.tier === tier.tier;
+          
+          return (
+            <div
+              key={tier.tier}
+              className={cn(
+                "text-center truncate",
+                isCurrentTier && TIER_COLORS[tier.tier]
+              )}
+              style={{ width: `${width}%` }}
+            >
+              <span className="hidden sm:inline">{TIER_ICONS[tier.tier]} </span>
+              {tier.label}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Rank name display */}
+      <div className="text-center mt-2">
+        {isUnranked ? (
+          <div className="text-muted-foreground">
+            <span className="font-medium">Unranked</span>
+            <span className="text-sm ml-2">({gamesPlayed}/10 placement games)</span>
+          </div>
+        ) : (
+          <div className={cn("font-medium", TIER_COLORS[currentRank.tier])}>
+            {TIER_ICONS[currentRank.tier]} {currentRank.name}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

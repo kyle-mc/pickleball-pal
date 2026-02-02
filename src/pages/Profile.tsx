@@ -17,6 +17,7 @@ import {
   Plus, X, Trophy, Calendar, Users
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 interface ProfileData {
   display_name: string | null;
@@ -201,7 +202,7 @@ const Profile = () => {
   return (
     <main className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
-      <div className="pt-24 pb-20">
+      <div className="pt-24 pb-24 md:pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="flex items-center justify-between mb-8">
             <h1 className="font-display text-4xl md:text-5xl text-foreground">My Profile</h1>
@@ -526,6 +527,7 @@ const Profile = () => {
         </div>
       </div>
       <Footer />
+      <MobileBottomNav />
     </main>
   );
 };
