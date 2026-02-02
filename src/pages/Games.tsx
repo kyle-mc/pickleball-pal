@@ -18,6 +18,7 @@ import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { MmrChangeTooltip } from "@/components/MmrChangeTooltip";
 import { AddVideoDialog } from "@/components/AddVideoDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
 import { Filter, ArrowUpDown, Loader2, Video, Plus } from "lucide-react";
@@ -154,9 +155,10 @@ const Games = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="container mx-auto px-4 pt-24 pb-20 flex items-center justify-center">
+        <main className="container mx-auto px-4 pt-24 pb-24 md:pb-20 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </main>
+        <MobileBottomNav />
       </div>
     );
   }
@@ -164,7 +166,7 @@ const Games = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
-      <main className="container mx-auto px-4 pt-24 pb-20 max-w-full overflow-x-hidden">
+      <main className="container mx-auto px-4 pt-24 pb-24 md:pb-20 max-w-full overflow-x-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="text-4xl font-display text-foreground mb-2">Games</h1>
@@ -420,6 +422,7 @@ const Games = () => {
           defaultVideoType="highlight"
         />
       <Footer />
+      <MobileBottomNav />
       </main>
     </div>
   );

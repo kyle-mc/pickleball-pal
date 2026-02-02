@@ -5,7 +5,7 @@ import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import AuthDialog from "@/components/AuthDialog";
-import { GroupSelector } from "@/components/GroupSelector";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +18,11 @@ const Navbar = () => {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
 
   const navLinks = [
     { href: "/", label: "My MMR" },
-    { href: "/standings", label: "Standings" },
+    { href: "/standings", label: "Stats" },
     { href: "/schedule", label: "Schedule" },
     { href: "/videos", label: "Videos" },
     { href: "/games", label: "Games" },
@@ -44,7 +45,7 @@ const Navbar = () => {
               <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
             </Link>
 
-            {/* Desktop Nav */}
+            {/* Desktop Nav - hide nav links on mobile since we have bottom nav */}
             <div className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
                 <Link
@@ -59,9 +60,6 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
-              
-              {/* Group Selector */}
-              {user && <GroupSelector />}
               
               {/* Auth Button */}
               {user ? (
@@ -95,49 +93,35 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden text-foreground"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-
-          {/* Mobile Nav */}
-          {isOpen && (
-            <div className="md:hidden py-4 border-t border-border">
-              <div className="flex flex-col gap-4">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    to={link.href}
-                    onClick={() => setIsOpen(false)}
-                    className={`py-2 transition-colors ${
-                      isActive(link.href) 
-                        ? "text-primary font-medium" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-                
-                {/* Mobile Auth Button */}
-                {user ? (
-                  <Button variant="outline" onClick={handleSignOut} className="justify-start">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={() => { setIsOpen(false); setAuthDialogOpen(true); }} className="justify-start">
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Login
-                  </Button>
-                )}
-              </div>
+            {/* Mobile - only show user menu button, not hamburger for nav */}
+            <div className="md:hidden flex items-center gap-2">
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <User className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-card border-border">
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link to="/profile">
+                        <User className="w-4 h-4 mr-2" />
+                        My Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setAuthDialogOpen(true)}>
+                  <LogIn className="w-4 h-4" />
+                </Button>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </nav>
       

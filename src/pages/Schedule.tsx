@@ -17,6 +17,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import CalendarView from "@/components/CalendarView";
 import HostAssignmentSearch from "@/components/HostAssignmentSearch";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -381,10 +382,11 @@ const Schedule = () => {
     return (
       <main className="min-h-screen bg-background">
         <Navbar />
-        <div className="pt-24 pb-20 flex items-center justify-center">
+        <div className="pt-24 pb-24 md:pb-20 flex items-center justify-center">
           <p className="text-muted-foreground">Loading events...</p>
         </div>
         <Footer />
+        <MobileBottomNav />
       </main>
     );
   }
@@ -392,7 +394,7 @@ const Schedule = () => {
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-20">
+      <div className="pt-24 pb-24 md:pb-20">
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <h1 className="font-display text-4xl md:text-5xl text-foreground">Schedule</h1>
@@ -754,6 +756,7 @@ const Schedule = () => {
       </Dialog>
 
       <Footer />
+      <MobileBottomNav />
     </main>
   );
 };

@@ -6,13 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { GroupProvider } from "@/contexts/GroupContext";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import SwipeNavigator from "@/components/SwipeNavigator";
 import { Loader2 } from "lucide-react";
 
 // Pages
 import Landing from "./pages/Landing";
 import ProfileSetup from "./pages/ProfileSetup";
-import GroupOnboarding from "./pages/GroupOnboarding";
 import Profile from "./pages/Profile";
 import MyMMR from "./pages/MyMMR";
 import Standings from "./pages/Standings";
@@ -33,7 +31,7 @@ const LoadingScreen = () => (
 // Protected route wrapper that handles onboarding flow
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
-  const { loading: onboardingLoading, needsProfileSetup, needsGroupOnboarding } = useOnboardingStatus();
+  const { loading: onboardingLoading, needsProfileSetup } = useOnboardingStatus();
   const location = useLocation();
 
   if (authLoading || onboardingLoading) {
@@ -50,15 +48,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/onboarding/profile" replace />;
   }
 
-  // Needs group onboarding (but profile is complete)
-  if (needsGroupOnboarding && !needsProfileSetup && location.pathname !== '/onboarding/group') {
-    return <Navigate to="/onboarding/group" replace />;
-  }
+  // No group onboarding check - everyone is auto-joined to KC Pickleballers
 
   return <>{children}</>;
 };
 
-// Onboarding route - requires auth but allows incomplete profile/group
+// Onboarding route - requires auth but allows incomplete profile
 const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
 
@@ -76,24 +71,20 @@ const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
 // Public route - redirects to app if already authenticated and onboarded
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
-  const { loading: onboardingLoading, needsProfileSetup, needsGroupOnboarding } = useOnboardingStatus();
+  const { loading: onboardingLoading, needsProfileSetup } = useOnboardingStatus();
 
   if (authLoading || onboardingLoading) {
     return <LoadingScreen />;
   }
 
-  // If user is authenticated and fully onboarded, redirect to main app
-  if (user && !needsProfileSetup && !needsGroupOnboarding) {
+  // If user is authenticated and profile is set up, redirect to main app
+  if (user && !needsProfileSetup) {
     return <Navigate to="/" replace />;
   }
 
-  // If user is authenticated but needs onboarding
+  // If user is authenticated but needs profile setup
   if (user && needsProfileSetup) {
     return <Navigate to="/onboarding/profile" replace />;
-  }
-
-  if (user && needsGroupOnboarding) {
-    return <Navigate to="/onboarding/group" replace />;
   }
 
   return <>{children}</>;
@@ -115,46 +106,31 @@ const AppRoutes = () => {
           <ProfileSetup />
         </OnboardingRoute>
       } />
-      <Route path="/onboarding/group" element={
-        <OnboardingRoute>
-          <GroupOnboarding />
-        </OnboardingRoute>
-      } />
 
-      {/* Protected app routes */}
+      {/* Protected app routes - no SwipeNavigator wrapper */}
       <Route path="/" element={
         <ProtectedRoute>
-          <SwipeNavigator>
-            <MyMMR />
-          </SwipeNavigator>
+          <MyMMR />
         </ProtectedRoute>
       } />
       <Route path="/standings" element={
         <ProtectedRoute>
-          <SwipeNavigator>
-            <Standings />
-          </SwipeNavigator>
+          <Standings />
         </ProtectedRoute>
       } />
       <Route path="/schedule" element={
         <ProtectedRoute>
-          <SwipeNavigator>
-            <Schedule />
-          </SwipeNavigator>
+          <Schedule />
         </ProtectedRoute>
       } />
       <Route path="/videos" element={
         <ProtectedRoute>
-          <SwipeNavigator>
-            <Videos />
-          </SwipeNavigator>
+          <Videos />
         </ProtectedRoute>
       } />
       <Route path="/games" element={
         <ProtectedRoute>
-          <SwipeNavigator>
-            <Games />
-          </SwipeNavigator>
+          <Games />
         </ProtectedRoute>
       } />
       <Route path="/profile" element={

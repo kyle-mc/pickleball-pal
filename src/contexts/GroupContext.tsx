@@ -2,6 +2,10 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
+// Default group that everyone is auto-joined to
+const DEFAULT_GROUP_ID = "9fcbad15-4d0a-4882-9ee0-062585475a82";
+const DEFAULT_GROUP_NAME = "KC Pickleballers";
+
 export interface Group {
   id: string;
   name: string;
@@ -45,8 +49,15 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchGroups = async () => {
     if (!user) {
+      // Even without user, set the default group for viewing content
+      setCurrentGroupState({
+        id: DEFAULT_GROUP_ID,
+        name: DEFAULT_GROUP_NAME,
+        description: null,
+        invite_code: "",
+        owner_id: null,
+      });
       setGroups([]);
-      setCurrentGroupState(null);
       setIsLoading(false);
       return;
     }
@@ -67,29 +78,70 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
 
       if (groupsError) throw groupsError;
 
-      const memberships = (groupsData || []).map(item => ({
+      let memberships = (groupsData || []).map(item => ({
         ...item,
         group: item.group as unknown as Group
       })) as GroupMembership[];
 
+      // Check if user is a member of the default group
+      const isInDefaultGroup = memberships.some(m => m.group.id === DEFAULT_GROUP_ID);
+      
+      // Auto-join to default group if not already a member
+      if (!isInDefaultGroup) {
+        // Get user's linked player id
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('linked_player_id')
+          .eq('user_id', user.id)
+          .single();
+
+        // Join the default group
+        const { data: newMembership, error: joinError } = await supabase
+          .from('group_members')
+          .insert({
+            group_id: DEFAULT_GROUP_ID,
+            user_id: user.id,
+            player_id: profile?.linked_player_id || null,
+          })
+          .select(`
+            id,
+            group_id,
+            user_id,
+            player_id,
+            joined_at,
+            group:groups(id, name, description, invite_code, owner_id)
+          `)
+          .single();
+
+        if (!joinError && newMembership) {
+          memberships = [...memberships, {
+            ...newMembership,
+            group: newMembership.group as unknown as Group
+          }];
+        }
+      }
+
       setGroups(memberships);
 
-      // Fetch user's active group preference
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('active_group_id')
-        .eq('user_id', user.id)
-        .single();
-
-      // Set current group based on preference or default to first
-      if (profile?.active_group_id) {
-        const activeGroup = memberships.find(m => m.group.id === profile.active_group_id)?.group;
-        setCurrentGroupState(activeGroup || memberships[0]?.group || null);
-      } else {
-        setCurrentGroupState(memberships[0]?.group || null);
-      }
+      // Always set current group to default
+      const defaultGroup = memberships.find(m => m.group.id === DEFAULT_GROUP_ID)?.group;
+      setCurrentGroupState(defaultGroup || memberships[0]?.group || {
+        id: DEFAULT_GROUP_ID,
+        name: DEFAULT_GROUP_NAME,
+        description: null,
+        invite_code: "",
+        owner_id: null,
+      });
     } catch (error) {
       console.error("Error fetching groups:", error);
+      // On error, still set default group
+      setCurrentGroupState({
+        id: DEFAULT_GROUP_ID,
+        name: DEFAULT_GROUP_NAME,
+        description: null,
+        invite_code: "",
+        owner_id: null,
+      });
     } finally {
       setIsLoading(false);
     }
