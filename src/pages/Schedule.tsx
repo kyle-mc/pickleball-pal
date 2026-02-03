@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -18,6 +18,7 @@ import CalendarView from "@/components/CalendarView";
 import HostAssignmentSearch from "@/components/HostAssignmentSearch";
 import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { addDays, addWeeks, addMonths, parseISO, format, isBefore, isAfter, startOfDay } from "date-fns";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -53,19 +54,127 @@ const Schedule = () => {
     hostIds: [] as string[],
   });
 
-  // Separate past and upcoming events based on date
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Filter and sort events
-  const filteredUpcoming = events
-    .filter(e => e.date >= today)
-    .filter(e => filterType === "all" || e.type === filterType)
-    .sort((a, b) => sortBy === "date" ? a.date.localeCompare(b.date) : a.title.localeCompare(b.title));
-  
-  const filteredPast = events
-    .filter(e => e.date < today)
-    .filter(e => filterType === "all" || e.type === filterType)
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const today = startOfDay(new Date());
+  const todayStr = format(today, 'yyyy-MM-dd');
+
+  // Generate future occurrences for recurring events
+  const generateRecurringInstances = (event: any): any[] => {
+    if (!event.recurrence_type) return [];
+    
+    const baseDate = parseISO(event.date);
+    const instances: any[] = [];
+    let currentDate = baseDate;
+    
+    // Generate up to 10 future instances
+    for (let i = 0; i < 10; i++) {
+      switch (event.recurrence_type) {
+        case 'daily':
+          currentDate = addDays(baseDate, i + 1);
+          break;
+        case 'weekly':
+          currentDate = addWeeks(baseDate, i + 1);
+          break;
+        case 'biweekly':
+          currentDate = addWeeks(baseDate, (i + 1) * 2);
+          break;
+        case 'monthly':
+          currentDate = addMonths(baseDate, i + 1);
+          break;
+        case 'custom':
+          const interval = event.recurrence_interval || 7;
+          currentDate = addDays(baseDate, (i + 1) * interval);
+          break;
+        default:
+          return instances;
+      }
+      
+      const instanceDate = format(currentDate, 'yyyy-MM-dd');
+      
+      // Only include future dates
+      if (instanceDate >= todayStr) {
+        instances.push({
+          ...event,
+          date: instanceDate,
+          isRecurringInstance: true,
+          originalEventId: event.id,
+          instanceKey: `${event.id}-${instanceDate}`,
+        });
+      }
+    }
+    
+    return instances;
+  };
+
+  // Process events to handle recurring events properly
+  const processedEvents = useMemo(() => {
+    const allEvents: any[] = [];
+    const seenDates = new Map<string, Set<string>>(); // eventId -> Set of dates shown
+    
+    events.forEach(event => {
+      const eventDate = event.date;
+      
+      // Always include the original event
+      allEvents.push(event);
+      
+      // For recurring events, generate future instances
+      if (event.recurrence_type) {
+        const instances = generateRecurringInstances(event);
+        instances.forEach(instance => {
+          // Avoid duplicates
+          if (!seenDates.has(event.id)) {
+            seenDates.set(event.id, new Set());
+          }
+          if (!seenDates.get(event.id)!.has(instance.date)) {
+            seenDates.get(event.id)!.add(instance.date);
+            allEvents.push(instance);
+          }
+        });
+      }
+    });
+    
+    return allEvents;
+  }, [events, todayStr]);
+
+  // Separate past and upcoming events
+  const { filteredUpcoming, filteredPast } = useMemo(() => {
+    // For upcoming, find the nearest future instance of each recurring event
+    const upcomingMap = new Map<string, any>();
+    const past: any[] = [];
+    
+    processedEvents.forEach(event => {
+      const eventDate = event.date;
+      const originalId = event.originalEventId || event.id;
+      
+      if (eventDate >= todayStr) {
+        // For recurring events, keep only the nearest future instance
+        if (event.recurrence_type || event.isRecurringInstance) {
+          const existing = upcomingMap.get(originalId);
+          if (!existing || eventDate < existing.date) {
+            upcomingMap.set(originalId, event);
+          }
+        } else {
+          // Non-recurring events - always show
+          upcomingMap.set(event.id, event);
+        }
+      } else {
+        // Past events - include all
+        past.push(event);
+      }
+    });
+    
+    let upcoming = Array.from(upcomingMap.values());
+    
+    // Apply filters
+    upcoming = upcoming
+      .filter(e => filterType === "all" || e.type === filterType)
+      .sort((a, b) => sortBy === "date" ? a.date.localeCompare(b.date) : a.title.localeCompare(b.title));
+    
+    const filteredPastEvents = past
+      .filter(e => filterType === "all" || e.type === filterType)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    
+    return { filteredUpcoming: upcoming, filteredPast: filteredPastEvents };
+  }, [processedEvents, filterType, sortBy, todayStr]);
 
   // Infinite scroll for past events
   useEffect(() => {
@@ -89,7 +198,8 @@ const Schedule = () => {
 
   const canEditEvent = (event: any): boolean => {
     if (!user) return false;
-    if (event.date < today) return false; // Past events are locked
+    if (event.isRecurringInstance) return false; // Can't edit instances, only the original
+    if (event.date < todayStr) return false; // Past events are locked
     if (!event.owner_id) return true; // No owner = anyone can edit
     if (event.owner_id === user.id) return true;
     if (event.host_ids?.includes(user.id)) return true;
@@ -210,8 +320,15 @@ const Schedule = () => {
   };
 
   const openEditDialog = (event: any) => {
-    setEditingEvent({ ...event });
-    setIsEditOpen(true);
+    // If it's a recurring instance, edit the original event
+    const eventToEdit = event.isRecurringInstance 
+      ? events.find(e => e.id === event.originalEventId) 
+      : event;
+    
+    if (eventToEdit) {
+      setEditingEvent({ ...eventToEdit });
+      setIsEditOpen(true);
+    }
   };
 
   const handlePastEventClick = (event: any) => {
@@ -247,7 +364,6 @@ const Schedule = () => {
     }
   };
 
-  // FIXED: RSVP logic - properly calculate available spots
   const getRsvpRatio = (eventId: string, minPlayers: number | null): string => {
     const count = getRsvpCountForEvent(eventId);
     return `${count}/${minPlayers || 4}`;
@@ -279,7 +395,7 @@ const Schedule = () => {
 
     return (
       <Card 
-        key={event.id} 
+        key={event.instanceKey || event.id} 
         className={`bg-card/50 border-border ${isPast ? "opacity-75 cursor-pointer hover:opacity-100" : ""}`}
         onClick={isPast ? () => handlePastEventClick(event) : undefined}
       >
@@ -397,7 +513,7 @@ const Schedule = () => {
       <div className="pt-24 pb-24 md:pb-20">
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-            <h1 className="font-display text-4xl md:text-5xl text-foreground">Schedule</h1>
+            <h1 className="font-display text-4xl md:text-5xl text-foreground">Events</h1>
             <div className="flex flex-wrap items-center gap-2">
               {/* View Mode Toggle */}
               <div className="flex items-center border border-border rounded-md overflow-hidden">
@@ -593,10 +709,10 @@ const Schedule = () => {
           
           {viewMode === "calendar" ? (
             <CalendarView 
-              events={events.map(e => ({ id: e.id, title: e.title, date: e.date, time: e.time, type: e.type }))}
+              events={processedEvents.map(e => ({ id: e.id, title: e.title, date: e.date, time: e.time, type: e.type }))}
               onEventClick={(id) => {
                 const event = events.find(e => e.id === id);
-                if (event && event.date >= today) {
+                if (event && event.date >= todayStr) {
                   openEditDialog(event);
                 } else if (event) {
                   handlePastEventClick(event);

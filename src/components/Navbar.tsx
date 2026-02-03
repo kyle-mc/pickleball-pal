@@ -1,4 +1,4 @@
-import { Menu, X, LogIn, LogOut, User } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -23,9 +24,9 @@ const Navbar = () => {
   const navLinks = [
     { href: "/", label: "My MMR" },
     { href: "/standings", label: "Stats" },
-    { href: "/schedule", label: "Schedule" },
-    { href: "/videos", label: "Videos" },
     { href: "/games", label: "Games" },
+    { href: "/videos", label: "Videos" },
+    { href: "/schedule", label: "Events" },
   ];
 
   const isActive = (href: string) => location.pathname === href;
@@ -102,13 +103,40 @@ const Navbar = () => {
                       <User className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-card border-border">
+                  <DropdownMenuContent align="end" className="bg-card border-border w-56">
                     <DropdownMenuItem asChild className="cursor-pointer">
                       <Link to="/profile">
                         <User className="w-4 h-4 mr-2" />
                         My Profile
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {/* Footer links moved here for mobile */}
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <a href="#">
+                        <HelpCircle className="w-4 h-4 mr-2" />
+                        Help Center
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <a href="#">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Contact Us
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <a href="#">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Privacy Policy
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <a href="#">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Terms of Service
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out

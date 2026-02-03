@@ -9,6 +9,7 @@ import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart } from "lucide-reac
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { RankBadge } from "@/components/RankBadge";
 import { MmrDistributionChart } from "@/components/MmrDistributionChart";
+import { AllPlayersRankChart } from "@/components/AllPlayersRankChart";
 import { getCurrentSeason } from "@/lib/seasons";
 import HeadToHead from "@/components/HeadToHead";
 import PlayerComparisonView from "@/components/PlayerComparisonView";
@@ -45,9 +46,8 @@ const Standings = () => {
   const [h2hPlayer1, setH2hPlayer1] = useState<string>("");
   const [h2hPlayer2, setH2hPlayer2] = useState<string>("");
 
-  // Multi-player comparison
+  // Multi-player comparison - always visible
   const [comparisonPlayers, setComparisonPlayers] = useState<string[]>([]);
-  const [showComparison, setShowComparison] = useState(false);
 
   const toggleComparisonPlayer = (player: string) => {
     setComparisonPlayers(prev => 
@@ -181,7 +181,7 @@ const Standings = () => {
             />
           </div>
 
-          {/* Leaderboard Table - moved to top */}
+          {/* 1. Leaderboard Table */}
           <Card className="bg-card/50 border-border overflow-hidden mb-8">
             <CardHeader className="pb-2">
               <CardTitle className="text-foreground">Leaderboard</CardTitle>
@@ -190,9 +190,9 @@ const Standings = () => {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[500px]">
                   <thead>
-                    <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left py-3 px-2 sm:px-4 text-muted-foreground font-medium whitespace-nowrap text-xs sm:text-sm sticky left-0 bg-muted/30 z-10">#</th>
-                      <th className="text-left py-3 px-2 sm:px-4 text-muted-foreground font-medium whitespace-nowrap text-xs sm:text-sm sticky left-8 sm:left-12 bg-muted/30 z-10">Player</th>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-2 sm:px-4 text-muted-foreground font-medium whitespace-nowrap text-xs sm:text-sm sticky left-0 bg-card z-10">#</th>
+                      <th className="text-left py-3 px-2 sm:px-4 text-muted-foreground font-medium whitespace-nowrap text-xs sm:text-sm sticky left-8 sm:left-12 bg-card z-10">Player</th>
                       <SortableHeader field="mmr" className="w-16">MMR</SortableHeader>
                       <SortableHeader field="wins">W</SortableHeader>
                       <SortableHeader field="losses">L</SortableHeader>
@@ -213,7 +213,7 @@ const Standings = () => {
                               : 'hover:bg-muted/20'
                           }`}
                         >
-                          <td className="py-3 px-2 sm:px-4 sticky left-0 bg-card/50 z-10">
+                          <td className="py-3 px-2 sm:px-4 sticky left-0 bg-card z-10">
                             <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs ${
                               player.rank === 1 ? "bg-yellow-500/20 text-yellow-500" :
                               player.rank === 2 ? "bg-gray-400/20 text-gray-400" :
@@ -223,7 +223,7 @@ const Standings = () => {
                               {player.rank}
                             </span>
                           </td>
-                          <td className={`py-3 px-2 sm:px-4 font-medium whitespace-nowrap text-sm sticky left-8 sm:left-12 bg-card/50 z-10 ${
+                          <td className={`py-3 px-2 sm:px-4 font-medium whitespace-nowrap text-sm sticky left-8 sm:left-12 bg-card z-10 ${
                             isHighlighted ? 'text-primary' : 'text-foreground'
                           }`}>
                             {player.name}
@@ -256,13 +256,43 @@ const Standings = () => {
             </CardContent>
           </Card>
 
-          {/* MMR Distribution Chart */}
-          <MmrDistributionChart 
-            players={players} 
-            highlightedPlayer={selectedPlayer} 
-          />
+          {/* 2. Compare Multiple Players - Always visible */}
+          <Card className="bg-card/50 border-border mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <LineChart className="w-5 h-5 text-primary" />
+                <CardTitle className="text-foreground">Compare Multiple Players</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3 mb-4">
+                {allPlayers.map(player => (
+                  <label key={player} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox 
+                      checked={comparisonPlayers.includes(player)}
+                      onCheckedChange={() => toggleComparisonPlayer(player)}
+                    />
+                    <span 
+                      className="text-sm"
+                      style={{ color: PLAYER_COLORS[player] || '#888' }}
+                    >
+                      {player}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              
+              {comparisonPlayers.length >= 2 ? (
+                <PlayerComparisonView selectedPlayers={comparisonPlayers} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Select at least 2 players to compare their MMR over time
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* Head-to-Head Section */}
+          {/* 3. Head-to-Head Section */}
           <div className="mb-8">
             <HeadToHead 
               player1={h2hPlayer1}
@@ -272,52 +302,17 @@ const Standings = () => {
             />
           </div>
 
-          {/* Multi-Player Comparison */}
-          <div className="p-4 rounded-lg bg-card/50 border border-border">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <LineChart className="w-5 h-5 text-primary" />
-                <Label className="text-foreground font-medium">Compare Multiple Players</Label>
-              </div>
-              <button 
-                onClick={() => setShowComparison(!showComparison)}
-                className="text-sm text-primary hover:underline"
-              >
-                {showComparison ? "Hide" : "Show"} Comparison
-              </button>
-            </div>
-            
-            {showComparison && (
-              <>
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {allPlayers.map(player => (
-                    <label key={player} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox 
-                        checked={comparisonPlayers.includes(player)}
-                        onCheckedChange={() => toggleComparisonPlayer(player)}
-                      />
-                      <span 
-                        className="text-sm"
-                        style={{ color: PLAYER_COLORS[player] || '#888' }}
-                      >
-                        {player}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                
-                {comparisonPlayers.length >= 2 && (
-                  <PlayerComparisonView selectedPlayers={comparisonPlayers} />
-                )}
-                
-                {comparisonPlayers.length < 2 && (
-                  <p className="text-sm text-muted-foreground">
-                    Select at least 2 players to compare their MMR over time
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+          {/* 4. All Players Rank Chart */}
+          <AllPlayersRankChart 
+            players={players}
+            highlightedPlayer={selectedPlayer}
+          />
+
+          {/* 5. MMR Distribution Chart */}
+          <MmrDistributionChart 
+            players={players} 
+            highlightedPlayer={selectedPlayer} 
+          />
         </div>
       </div>
       <Footer />

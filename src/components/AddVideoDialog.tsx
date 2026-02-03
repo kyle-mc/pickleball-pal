@@ -10,7 +10,7 @@ import { usePlayers } from "@/hooks/usePlayers";
 import { useGames } from "@/hooks/useGames";
 import { useGroupContext } from "@/contexts/GroupContext";
 import { format, parseISO } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 
 interface AddVideoDialogProps {
   open: boolean;
@@ -26,6 +26,20 @@ const getYouTubeVideoId = (url: string): string | null => {
   return match && match[2].length === 11 ? match[2] : null;
 };
 
+// Get video duration from browser
+const getVideoDuration = (file: File): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(video.duration);
+    };
+    video.onerror = () => reject(new Error('Failed to load video metadata'));
+    video.src = URL.createObjectURL(file);
+  });
+};
+
 export const AddVideoDialog = ({ 
   open, 
   onOpenChange, 
@@ -39,30 +53,40 @@ export const AddVideoDialog = ({
   const { currentGroup } = useGroupContext();
 
   const [videoType, setVideoType] = useState<'highlight' | 'other'>(defaultVideoType);
+  const [uploadType, setUploadType] = useState<'youtube' | 'file'>('youtube');
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedGameId, setSelectedGameId] = useState<string>(defaultGameId || "");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Reset when dialog opens with defaults
   useEffect(() => {
     if (open) {
       setVideoType(defaultVideoType);
       setSelectedGameId(defaultGameId || "");
+      // If we have a defaultGameId, auto-populate the players
+      if (defaultGameId) {
+        const gamePlayers = getGamePlayers(defaultGameId);
+        setSelectedPlayers(gamePlayers);
+      }
     }
   }, [open, defaultGameId, defaultVideoType]);
 
-  // Group games by date and game number for selection
+  // Group games by date and game number for selection - include ALL games (increased limit)
   const gameOptions = useMemo(() => {
-    const gameMap = new Map<string, { date: string; gameNum: number; players: string[] }>();
+    const gameMap = new Map<string, { date: string; gameNum: number; players: string[]; results: { player: string; result: string }[] }>();
     
     allGames.forEach(g => {
       const key = `${g.date}-${g.game}`;
       if (!gameMap.has(key)) {
-        gameMap.set(key, { date: g.date, gameNum: g.game, players: [] });
+        gameMap.set(key, { date: g.date, gameNum: g.game, players: [], results: [] });
       }
-      gameMap.get(key)!.players.push(g.player);
+      const game = gameMap.get(key)!;
+      game.players.push(g.player);
+      game.results.push({ player: g.player, result: g.result });
     });
     
     return Array.from(gameMap.entries())
@@ -71,9 +95,33 @@ export const AddVideoDialog = ({
         const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
         if (dateCompare !== 0) return dateCompare;
         return b.gameNum - a.gameNum;
-      })
-      .slice(0, 50); // Show last 50 games
+      }); // No limit - show all games
   }, [allGames]);
+
+  // Get players for a specific game
+  const getGamePlayers = (gameId: string): string[] => {
+    const game = gameOptions.find(g => g.id === gameId);
+    return game?.players || [];
+  };
+
+  // Format game display as teams (winners vs losers)
+  const formatGameAsTeams = (game: typeof gameOptions[0]): string => {
+    const winners = game.results.filter(r => r.result === 'Winner').map(r => r.player);
+    const losers = game.results.filter(r => r.result === 'Loser').map(r => r.player);
+    
+    if (winners.length === 2 && losers.length === 2) {
+      return `${winners.join(' & ')} vs ${losers.join(' & ')}`;
+    }
+    return game.players.join(', ');
+  };
+
+  // When game is selected, auto-populate players
+  useEffect(() => {
+    if (selectedGameId && selectedGameId !== "") {
+      const gamePlayers = getGamePlayers(selectedGameId);
+      setSelectedPlayers(gamePlayers);
+    }
+  }, [selectedGameId]);
 
   // Auto-generate title when game is selected
   const autoTitle = useMemo(() => {
@@ -83,8 +131,52 @@ export const AddVideoDialog = ({
     return `${format(parseISO(game.date), 'MMM d, yyyy')} - Game ${game.gameNum}`;
   }, [selectedGameId, gameOptions]);
 
+  // Auto-generate description from game teams
+  const autoDescription = useMemo(() => {
+    if (!selectedGameId) return "";
+    const game = gameOptions.find(g => g.id === selectedGameId);
+    if (!game) return "";
+    return formatGameAsTeams(game);
+  }, [selectedGameId, gameOptions]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (50MB max)
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+    if (file.size > maxSize) {
+      toast({
+        title: "File Too Large",
+        description: "Maximum file size is 50MB. Please compress or trim your video.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check duration (60 seconds max)
+    try {
+      const duration = await getVideoDuration(file);
+      if (duration > 60) {
+        toast({
+          title: "Video Too Long",
+          description: `Video is ${Math.round(duration)} seconds. Maximum length is 60 seconds. Please trim your clip first.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      setVideoFile(file);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not read video metadata. Please try a different file.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!youtubeUrl) {
+    if (uploadType === 'youtube' && !youtubeUrl) {
       toast({
         title: "Missing URL",
         description: "Please provide a YouTube URL.",
@@ -93,23 +185,49 @@ export const AddVideoDialog = ({
       return;
     }
 
-    const videoId = getYouTubeVideoId(youtubeUrl);
-    if (!videoId) {
+    if (uploadType === 'file' && !videoFile) {
       toast({
-        title: "Invalid URL",
-        description: "Please provide a valid YouTube URL.",
+        title: "Missing Video",
+        description: "Please select a video file to upload.",
         variant: "destructive",
       });
       return;
     }
 
-    // Use auto-generated title for highlights if not provided
+    if (uploadType === 'youtube') {
+      const videoId = getYouTubeVideoId(youtubeUrl);
+      if (!videoId) {
+        toast({
+          title: "Invalid URL",
+          description: "Please provide a valid YouTube URL.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Use auto-generated title/description for highlights if not provided
     const finalTitle = title.trim() || autoTitle || "Untitled Video";
+    const finalDescription = description.trim() || autoDescription || undefined;
+
+    setIsUploading(true);
 
     try {
+      if (uploadType === 'file' && videoFile) {
+        // TODO: Implement file upload to storage
+        // For now, show a message that file upload requires backend setup
+        toast({
+          title: "Coming Soon",
+          description: "Direct video uploads will be available soon. For now, please upload to YouTube and share the link.",
+          variant: "destructive",
+        });
+        setIsUploading(false);
+        return;
+      }
+
       await addVideoMutation.mutateAsync({
         title: finalTitle,
-        description: description || undefined,
+        description: finalDescription,
         youtube_url: youtubeUrl,
         players: selectedPlayers.length > 0 ? selectedPlayers : undefined,
         game_id: selectedGameId || undefined,
@@ -121,6 +239,7 @@ export const AddVideoDialog = ({
       
       // Reset form
       setYoutubeUrl("");
+      setVideoFile(null);
       setTitle("");
       setDescription("");
       setSelectedGameId("");
@@ -134,6 +253,8 @@ export const AddVideoDialog = ({
         variant: "destructive",
       });
     }
+
+    setIsUploading(false);
   };
 
   const togglePlayer = (player: string) => {
@@ -172,15 +293,55 @@ export const AddVideoDialog = ({
             </Button>
           </div>
 
-          <div>
-            <Label className="text-muted-foreground">YouTube URL *</Label>
-            <Input
-              value={youtubeUrl}
-              onChange={e => setYoutubeUrl(e.target.value)}
-              placeholder="https://youtu.be/..."
-              className="bg-muted border-border"
-            />
+          {/* Upload Type Selection */}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={uploadType === 'youtube' ? 'default' : 'outline'}
+              onClick={() => setUploadType('youtube')}
+              className="flex-1"
+              size="sm"
+            >
+              YouTube Link
+            </Button>
+            <Button
+              type="button"
+              variant={uploadType === 'file' ? 'default' : 'outline'}
+              onClick={() => setUploadType('file')}
+              className="flex-1"
+              size="sm"
+            >
+              <Upload className="w-3 h-3 mr-1" />
+              Upload File
+            </Button>
           </div>
+
+          {uploadType === 'youtube' ? (
+            <div>
+              <Label className="text-muted-foreground">YouTube URL *</Label>
+              <Input
+                value={youtubeUrl}
+                onChange={e => setYoutubeUrl(e.target.value)}
+                placeholder="https://youtu.be/..."
+                className="bg-muted border-border"
+              />
+            </div>
+          ) : (
+            <div>
+              <Label className="text-muted-foreground">Video File (max 50MB, 60 sec)</Label>
+              <Input
+                type="file"
+                accept="video/*"
+                onChange={handleFileChange}
+                className="bg-muted border-border"
+              />
+              {videoFile && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Selected: {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(1)}MB)
+                </p>
+              )}
+            </div>
+          )}
 
           {videoType === 'highlight' && (
             <div>
@@ -193,7 +354,7 @@ export const AddVideoDialog = ({
                   <SelectItem value="none">No game linked</SelectItem>
                   {gameOptions.map(game => (
                     <SelectItem key={game.id} value={game.id}>
-                      {format(parseISO(game.date), 'MMM d')} - Game {game.gameNum} ({game.players.slice(0, 4).join(', ')})
+                      {format(parseISO(game.date), 'MMM d')} - Game {game.gameNum}: {formatGameAsTeams(game)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,7 +384,7 @@ export const AddVideoDialog = ({
             <Input
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Describe the video..."
+              placeholder={autoDescription || "Describe the video..."}
               className="bg-muted border-border"
             />
           </div>
@@ -252,9 +413,9 @@ export const AddVideoDialog = ({
             onClick={handleSubmit} 
             className="w-full" 
             variant="hero" 
-            disabled={addVideoMutation.isPending}
+            disabled={isUploading}
           >
-            {addVideoMutation.isPending ? (
+            {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Adding...

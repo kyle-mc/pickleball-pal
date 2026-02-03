@@ -1,8 +1,14 @@
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Footer = () => {
+  const isMobile = useIsMobile();
+
+  // Hide footer on mobile - content moved to profile dropdown
+  if (isMobile) return null;
+
   return (
     <footer className="bg-card border-t border-border py-16">
       <div className="container mx-auto px-4">
