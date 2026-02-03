@@ -1,13 +1,33 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Trophy, Calendar, Video, Gamepad2 } from "lucide-react";
+import { Home, Trophy, Calendar, Video, CircleDot } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Custom pickleball icon component
+const PickleballIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="8" cy="9" r="1.5" fill="currentColor" />
+    <circle cx="16" cy="9" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="15" r="1.5" fill="currentColor" />
+    <circle cx="8" cy="15" r="1.5" fill="currentColor" />
+    <circle cx="16" cy="15" r="1.5" fill="currentColor" />
+  </svg>
+);
 
 const NAV_ITEMS = [
   { path: "/", label: "My MMR", icon: Home },
   { path: "/standings", label: "Stats", icon: Trophy },
-  { path: "/schedule", label: "Schedule", icon: Calendar },
+  { path: "/games", label: "Games", icon: "pickleball" as const },
   { path: "/videos", label: "Videos", icon: Video },
-  { path: "/games", label: "Games", icon: Gamepad2 },
+  { path: "/schedule", label: "Events", icon: Calendar },
 ];
 
 export const MobileBottomNav = () => {
@@ -21,7 +41,6 @@ export const MobileBottomNav = () => {
       <div className="flex items-center justify-around h-16 px-2">
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path;
-          const Icon = item.icon;
           
           return (
             <Link
@@ -33,7 +52,11 @@ export const MobileBottomNav = () => {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
+              {item.icon === "pickleball" ? (
+                <PickleballIcon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
+              ) : (
+                <item.icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
+              )}
               <span className={`text-[10px] mt-1 font-medium ${isActive ? "text-primary" : ""}`}>
                 {item.label}
               </span>

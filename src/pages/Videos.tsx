@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Eye, Heart, Search, Filter, Plus, X, Video } from "lucide-react";
+import { Eye, Heart, Search, Filter, Plus, X, Video, Edit, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVideos, useUserLikes, useToggleLike } from "@/hooks/useVideos";
 import { usePlayers } from "@/hooks/usePlayers";
 import { AddVideoDialog } from "@/components/AddVideoDialog";
+import { EditVideoDialog } from "@/components/EditVideoDialog";
+import { VideoComments } from "@/components/VideoComments";
 import VideoBulkImport from "@/components/VideoBulkImport";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
@@ -28,15 +30,25 @@ const getYouTubeThumbnail = (url: string): string => {
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
 };
 
+// Format duration from ISO 8601 or display stored duration
+const formatDuration = (duration: string | null): string | null => {
+  if (!duration) return null;
+  // If it's already formatted (e.g., "3:45"), return as-is
+  if (/^\d+:\d{2}$/.test(duration)) return duration;
+  return duration;
+};
+
 interface VideoCardProps {
   video: ReturnType<typeof useVideos>['data'] extends (infer U)[] ? U : never;
   isLiked: boolean;
   onLike: (e: React.MouseEvent) => void;
   onClick: () => void;
+  onEdit: (e: React.MouseEvent) => void;
 }
 
-const VideoCard = ({ video, isLiked, onLike, onClick }: VideoCardProps) => {
+const VideoCard = ({ video, isLiked, onLike, onClick, onEdit }: VideoCardProps) => {
   const videoId = getYouTubeVideoId(video.youtube_url);
+  const displayDuration = formatDuration(video.duration);
   
   return (
     <Card 
@@ -68,9 +80,16 @@ const VideoCard = ({ video, isLiked, onLike, onClick }: VideoCardProps) => {
             Game Clip
           </div>
         )}
-        {video.duration && (
+        {/* Edit button */}
+        <button
+          onClick={onEdit}
+          className="absolute top-2 right-2 p-1.5 bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+        >
+          <Edit className="w-3 h-3 text-foreground" />
+        </button>
+        {displayDuration && (
           <div className="absolute bottom-2 right-2 bg-background/80 px-2 py-1 rounded text-xs text-foreground">
-            {video.duration}
+            {displayDuration}
           </div>
         )}
       </div>
@@ -105,6 +124,10 @@ const VideoCard = ({ video, isLiked, onLike, onClick }: VideoCardProps) => {
               <Heart className="w-3 h-3" fill={isLiked ? "currentColor" : "none"} />
               <span>{video.likes_count || 0}</span>
             </button>
+            <div className="flex items-center gap-1">
+              <MessageCircle className="w-3 h-3" />
+              <span>{video.comments_count || 0}</span>
+            </div>
           </div>
           <span className="text-xs">
             {video.video_date || new Date(video.created_at).toLocaleDateString()}
@@ -130,6 +153,7 @@ const Videos = () => {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [isAddHighlightOpen, setIsAddHighlightOpen] = useState(false);
   const [isAddOtherOpen, setIsAddOtherOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<typeof videos[0] | null>(null);
 
   // Handle auto-play from URL query param
   useEffect(() => {
@@ -186,6 +210,9 @@ const Videos = () => {
       case "likes":
         filtered.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
         break;
+      case "comments":
+        filtered.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
+        break;
     }
 
     return filtered;
@@ -199,6 +226,11 @@ const Videos = () => {
     const isLiked = likedVideos.has(videoId);
     toggleLikeMutation.mutate({ videoId, isLiked });
     toast({ title: isLiked ? "Like removed" : "Video liked!" });
+  };
+
+  const handleEdit = (video: typeof videos[0], e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingVideo(video);
   };
 
   const selectedVideoData = videos.find(v => v.id === selectedVideo);
@@ -245,6 +277,7 @@ const Videos = () => {
                 <SelectItem value="date">Most Recent</SelectItem>
                 <SelectItem value="views">Most Viewed</SelectItem>
                 <SelectItem value="likes">Most Liked</SelectItem>
+                <SelectItem value="comments">Most Comments</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -273,6 +306,7 @@ const Videos = () => {
                     isLiked={likedVideos.has(video.id)}
                     onLike={(e) => handleLike(video.id, e)}
                     onClick={() => setSelectedVideo(video.id)}
+                    onEdit={(e) => handleEdit(video, e)}
                   />
                 ))}
               </div>
@@ -312,6 +346,7 @@ const Videos = () => {
                     isLiked={likedVideos.has(video.id)}
                     onLike={(e) => handleLike(video.id, e)}
                     onClick={() => setSelectedVideo(video.id)}
+                    onEdit={(e) => handleEdit(video, e)}
                   />
                 ))}
               </div>
@@ -330,7 +365,7 @@ const Videos = () => {
 
       {/* Video Player Modal */}
       <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
-        <DialogContent className="bg-card border-border max-w-4xl p-0 overflow-hidden">
+        <DialogContent className="bg-card border-border max-w-4xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
           <button 
             onClick={() => setSelectedVideo(null)}
             className="absolute top-4 right-4 z-10 p-2 bg-background/80 rounded-full hover:bg-background transition-colors"
@@ -354,20 +389,40 @@ const Videos = () => {
                   </div>
                 )}
               </div>
-              <div className="p-4">
-                <h2 className="text-xl font-semibold text-foreground mb-2">{selectedVideoData.title}</h2>
-                {selectedVideoData.description && (
-                  <p className="text-muted-foreground mb-3">{selectedVideoData.description}</p>
-                )}
-                {selectedVideoData.players && selectedVideoData.players.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedVideoData.players.map(player => (
-                      <span key={player} className="text-sm bg-muted px-3 py-1 rounded-full text-muted-foreground">
-                        {player}
-                      </span>
-                    ))}
+              <div className="p-4 space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground mb-2">{selectedVideoData.title}</h2>
+                  {selectedVideoData.description && (
+                    <p className="text-muted-foreground mb-3">{selectedVideoData.description}</p>
+                  )}
+                  {selectedVideoData.players && selectedVideoData.players.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {selectedVideoData.players.map(player => (
+                        <span key={player} className="text-sm bg-muted px-3 py-1 rounded-full text-muted-foreground">
+                          {player}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      <span>{selectedVideoData.views || 0} views</span>
+                    </div>
+                    <button 
+                      className={`flex items-center gap-1 transition-colors ${likedVideos.has(selectedVideoData.id) ? "text-destructive" : "hover:text-destructive"}`}
+                      onClick={(e) => handleLike(selectedVideoData.id, e)}
+                    >
+                      <Heart className="w-4 h-4" fill={likedVideos.has(selectedVideoData.id) ? "currentColor" : "none"} />
+                      <span>{selectedVideoData.likes_count || 0} likes</span>
+                    </button>
                   </div>
-                )}
+                </div>
+                
+                {/* Comments Section */}
+                <div className="border-t border-border pt-4">
+                  <VideoComments videoId={selectedVideoData.id} />
+                </div>
               </div>
             </div>
           )}
@@ -384,6 +439,13 @@ const Videos = () => {
         open={isAddOtherOpen} 
         onOpenChange={setIsAddOtherOpen}
         defaultVideoType="other"
+      />
+
+      {/* Edit Video Dialog */}
+      <EditVideoDialog
+        open={!!editingVideo}
+        onOpenChange={(open) => !open && setEditingVideo(null)}
+        video={editingVideo}
       />
 
       <Footer />

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 
 type SortDirection = "asc" | "desc";
@@ -30,6 +30,7 @@ const ITEMS_PER_PAGE = 5;
 
 const Games = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const currentSeason = getCurrentSeason();
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
   const { data: allGames = [], isLoading } = useGames(selectedSeason);
@@ -46,6 +47,14 @@ const Games = () => {
   // State for add video dialog
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
+
+  // Handle date filter from URL params (from Events page)
+  useEffect(() => {
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      setSelectedDate(dateParam);
+    }
+  }, [searchParams]);
 
   // Get unique dates for filtering - fix timezone issue by parsing as local date
   const uniqueDates = useMemo(() => 
@@ -178,12 +187,28 @@ const Games = () => {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters - All in dropdown/select format */}
         <div className="flex flex-wrap gap-4 mb-6">
           <SeasonSelector 
             selectedSeason={selectedSeason} 
             onSeasonChange={setSelectedSeason} 
           />
+
+          {/* Date Filter - now as a dropdown */}
+          <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>
+            <SelectTrigger className="w-[180px] bg-card border-border">
+              <Calendar className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50 max-h-60">
+              <SelectItem value="all">All Dates</SelectItem>
+              {uniqueDates.map(date => (
+                <SelectItem key={date} value={date}>
+                  {format(parseISO(date), 'MMM d, yyyy')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Select value={playerFilter} onValueChange={setPlayerFilter}>
             <SelectTrigger className="w-[180px] bg-card border-border">
@@ -222,33 +247,6 @@ const Games = () => {
             <ArrowUpDown className="w-4 h-4" />
             {sortDirection === "desc" ? "Newest First" : "Oldest First"}
           </button>
-        </div>
-
-        {/* Date Filter */}
-        <div className="flex gap-2 flex-wrap mb-6">
-          <button
-            onClick={() => setSelectedDate(null)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              selectedDate === null 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            All Dates
-          </button>
-          {uniqueDates.map(date => (
-            <button
-              key={date}
-              onClick={() => setSelectedDate(date)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedDate === date 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {format(parseISO(date), 'MMM d, yyyy')}
-            </button>
-          ))}
         </div>
 
         {/* Games by Date */}

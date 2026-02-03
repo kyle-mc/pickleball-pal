@@ -15,6 +15,7 @@ export interface Video {
   created_at: string;
   video_date: string | null;
   likes_count?: number;
+  comments_count?: number;
   game_id: string | null;
   video_type: 'highlight' | 'other';
   group_id: string | null;
@@ -28,6 +29,20 @@ const getSessionId = () => {
     localStorage.setItem('pickle_session_id', sessionId);
   }
   return sessionId;
+};
+
+// Helper to extract YouTube video ID
+const getYouTubeVideoId = (url: string): string | null => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+};
+
+// Fetch video duration from YouTube oEmbed API
+const fetchYouTubeDuration = async (url: string): Promise<string | null> => {
+  // YouTube oEmbed doesn't provide duration, so we'll use a placeholder
+  // The actual duration would require YouTube Data API with API key
+  return null;
 };
 
 export const useVideos = () => {
@@ -61,10 +76,21 @@ export const useVideos = () => {
         return acc;
       }, {} as Record<string, number>);
 
+      // Get comments count for each video
+      const { data: comments } = await supabase
+        .from('video_comments')
+        .select('video_id');
+
+      const commentsCount = (comments || []).reduce((acc, comment) => {
+        acc[comment.video_id] = (acc[comment.video_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
       return (videos || []).map(v => ({
         ...v,
         players: v.players || [],
         likes_count: likesCount[v.id] || 0,
+        comments_count: commentsCount[v.id] || 0,
         video_type: v.video_type || 'other',
       })) as Video[];
     },
@@ -82,6 +108,11 @@ export const useVideos = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'video_likes' },
+        () => queryClient.invalidateQueries({ queryKey: ['videos'] })
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'video_comments' },
         () => queryClient.invalidateQueries({ queryKey: ['videos'] })
       )
       .subscribe();
@@ -176,6 +207,23 @@ export const useAddVideo = () => {
         video_type: video.video_type,
         group_id: video.group_id || currentGroup?.id || null,
       });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['videos'] });
+    },
+  });
+};
+
+export const useUpdateVideo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Video> & { id: string }) => {
+      const { error } = await supabase
+        .from('videos')
+        .update(updates)
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
