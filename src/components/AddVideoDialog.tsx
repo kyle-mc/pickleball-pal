@@ -9,7 +9,10 @@ import { useAddVideo } from "@/hooks/useVideos";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useGames } from "@/hooks/useGames";
 import { useGroupContext } from "@/contexts/GroupContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { format, parseISO } from "date-fns";
+import { getSeasonFromDate } from "@/lib/seasons";
 import { Loader2, Upload } from "lucide-react";
 
 interface AddVideoDialogProps {
@@ -19,11 +22,34 @@ interface AddVideoDialogProps {
   defaultVideoType?: 'highlight' | 'other';
 }
 
-// Helper to extract YouTube video ID
+// Helper to extract YouTube video ID - supports regular videos and Shorts
 const getYouTubeVideoId = (url: string): string | null => {
+  // Handle YouTube Shorts format: youtube.com/shorts/VIDEO_ID
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+  
+  // Handle standard YouTube URLs
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
+};
+
+// Fetch YouTube video title using oEmbed API
+const fetchYouTubeTitle = async (url: string): Promise<string | null> => {
+  try {
+    const videoId = getYouTubeVideoId(url);
+    if (!videoId) return null;
+    
+    const response = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+    );
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    return data.title || null;
+  } catch {
+    return null;
+  }
 };
 
 // Get video duration from browser
@@ -40,6 +66,13 @@ const getVideoDuration = (file: File): Promise<number> => {
   });
 };
 
+// Format duration as MM:SS
+const formatDuration = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 export const AddVideoDialog = ({ 
   open, 
   onOpenChange, 
@@ -47,6 +80,7 @@ export const AddVideoDialog = ({
   defaultVideoType = 'other' 
 }: AddVideoDialogProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const addVideoMutation = useAddVideo();
   const { data: playersList = [] } = usePlayers();
   const { data: allGames = [] } = useGames("all");
@@ -56,11 +90,13 @@ export const AddVideoDialog = ({
   const [uploadType, setUploadType] = useState<'youtube' | 'file'>('youtube');
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedGameId, setSelectedGameId] = useState<string>(defaultGameId || "");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isFetchingTitle, setIsFetchingTitle] = useState(false);
 
   // Reset when dialog opens with defaults
   useEffect(() => {
@@ -75,14 +111,35 @@ export const AddVideoDialog = ({
     }
   }, [open, defaultGameId, defaultVideoType]);
 
-  // Group games by date and game number for selection - include ALL games (increased limit)
+  // Auto-fetch YouTube title when URL changes
+  useEffect(() => {
+    const fetchTitle = async () => {
+      if (!youtubeUrl || title) return;
+      
+      const videoId = getYouTubeVideoId(youtubeUrl);
+      if (!videoId) return;
+      
+      setIsFetchingTitle(true);
+      const fetchedTitle = await fetchYouTubeTitle(youtubeUrl);
+      if (fetchedTitle && !title) {
+        setTitle(fetchedTitle);
+      }
+      setIsFetchingTitle(false);
+    };
+    
+    const debounce = setTimeout(fetchTitle, 500);
+    return () => clearTimeout(debounce);
+  }, [youtubeUrl]);
+
+  // Group games by date and game number for selection - include ALL games
   const gameOptions = useMemo(() => {
-    const gameMap = new Map<string, { date: string; gameNum: number; players: string[]; results: { player: string; result: string }[] }>();
+    const gameMap = new Map<string, { date: string; gameNum: number; players: string[]; results: { player: string; result: string }[]; season: number }>();
     
     allGames.forEach(g => {
       const key = `${g.date}-${g.game}`;
       if (!gameMap.has(key)) {
-        gameMap.set(key, { date: g.date, gameNum: g.game, players: [], results: [] });
+        const season = getSeasonFromDate(g.date);
+        gameMap.set(key, { date: g.date, gameNum: g.game, players: [], results: [], season: season.id });
       }
       const game = gameMap.get(key)!;
       game.players.push(g.player);
@@ -95,7 +152,7 @@ export const AddVideoDialog = ({
         const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
         if (dateCompare !== 0) return dateCompare;
         return b.gameNum - a.gameNum;
-      }); // No limit - show all games
+      });
   }, [allGames]);
 
   // Get players for a specific game
@@ -166,6 +223,13 @@ export const AddVideoDialog = ({
         return;
       }
       setVideoFile(file);
+      setVideoDuration(duration);
+      
+      // Auto-set title from filename if empty
+      if (!title) {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+        setTitle(nameWithoutExt);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -199,7 +263,7 @@ export const AddVideoDialog = ({
       if (!videoId) {
         toast({
           title: "Invalid URL",
-          description: "Please provide a valid YouTube URL.",
+          description: "Please provide a valid YouTube URL (including Shorts).",
           variant: "destructive",
         });
         return;
@@ -213,33 +277,65 @@ export const AddVideoDialog = ({
     setIsUploading(true);
 
     try {
-      if (uploadType === 'file' && videoFile) {
-        // TODO: Implement file upload to storage
-        // For now, show a message that file upload requires backend setup
-        toast({
-          title: "Coming Soon",
-          description: "Direct video uploads will be available soon. For now, please upload to YouTube and share the link.",
-          variant: "destructive",
+      if (uploadType === 'file' && videoFile && user) {
+        // Upload video to Supabase storage
+        const fileExt = videoFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('videos')
+          .upload(fileName, videoFile);
+        
+        if (uploadError) {
+          // Check if bucket doesn't exist
+          if (uploadError.message?.includes('Bucket not found')) {
+            toast({
+              title: "Storage Not Set Up",
+              description: "Video storage needs to be configured. Please upload to YouTube and share the link for now.",
+              variant: "destructive",
+            });
+            setIsUploading(false);
+            return;
+          }
+          throw uploadError;
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('videos')
+          .getPublicUrl(fileName);
+        
+        // Create video record with file URL
+        await addVideoMutation.mutateAsync({
+          title: finalTitle,
+          description: finalDescription,
+          youtube_url: publicUrl,
+          players: videoType === 'highlight' ? selectedPlayers : [],
+          game_id: videoType === 'highlight' ? selectedGameId || undefined : undefined,
+          video_type: videoType,
+          group_id: currentGroup?.id,
         });
-        setIsUploading(false);
-        return;
+
+        toast({ title: "Video Uploaded!", description: "Your video has been added." });
+      } else {
+        // YouTube video
+        await addVideoMutation.mutateAsync({
+          title: finalTitle,
+          description: finalDescription,
+          youtube_url: youtubeUrl,
+          players: videoType === 'highlight' ? selectedPlayers : [],
+          game_id: videoType === 'highlight' ? selectedGameId || undefined : undefined,
+          video_type: videoType,
+          group_id: currentGroup?.id,
+        });
+
+        toast({ title: "Video Added!", description: "Your video has been added." });
       }
-
-      await addVideoMutation.mutateAsync({
-        title: finalTitle,
-        description: finalDescription,
-        youtube_url: youtubeUrl,
-        players: selectedPlayers.length > 0 ? selectedPlayers : undefined,
-        game_id: selectedGameId || undefined,
-        video_type: videoType,
-        group_id: currentGroup?.id,
-      });
-
-      toast({ title: "Video Added!", description: "Your video has been added." });
       
       // Reset form
       setYoutubeUrl("");
       setVideoFile(null);
+      setVideoDuration(null);
       setTitle("");
       setDescription("");
       setSelectedGameId("");
@@ -281,7 +377,7 @@ export const AddVideoDialog = ({
               onClick={() => setVideoType('highlight')}
               className="flex-1"
             >
-              🎬 Highlight
+              🎬 Game Highlight
             </Button>
             <Button
               type="button"
@@ -289,7 +385,7 @@ export const AddVideoDialog = ({
               onClick={() => setVideoType('other')}
               className="flex-1"
             >
-              📺 Tutorial/Pro
+              📺 Other Video
             </Button>
           </div>
 
@@ -322,9 +418,12 @@ export const AddVideoDialog = ({
               <Input
                 value={youtubeUrl}
                 onChange={e => setYoutubeUrl(e.target.value)}
-                placeholder="https://youtu.be/..."
+                placeholder="https://youtu.be/... or youtube.com/shorts/..."
                 className="bg-muted border-border"
               />
+              {isFetchingTitle && (
+                <p className="text-xs text-muted-foreground mt-1">Fetching video title...</p>
+              )}
             </div>
           ) : (
             <div>
@@ -338,6 +437,7 @@ export const AddVideoDialog = ({
               {videoFile && (
                 <p className="text-xs text-muted-foreground mt-1">
                   Selected: {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(1)}MB)
+                  {videoDuration && ` • ${formatDuration(videoDuration)}`}
                 </p>
               )}
             </div>
@@ -389,25 +489,28 @@ export const AddVideoDialog = ({
             />
           </div>
 
-          <div>
-            <Label className="text-muted-foreground">Featured Players</Label>
-            <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto">
-              {playersList.map(player => (
-                <button
-                  key={player}
-                  type="button"
-                  onClick={() => togglePlayer(player)}
-                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                    selectedPlayers.includes(player)
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {player}
-                </button>
-              ))}
+          {/* Only show Featured Players for Game Highlights */}
+          {videoType === 'highlight' && (
+            <div>
+              <Label className="text-muted-foreground">Featured Players</Label>
+              <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto">
+                {playersList.map(player => (
+                  <button
+                    key={player}
+                    type="button"
+                    onClick={() => togglePlayer(player)}
+                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                      selectedPlayers.includes(player)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {player}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <Button 
             onClick={handleSubmit} 
@@ -418,7 +521,7 @@ export const AddVideoDialog = ({
             {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Adding...
+                {uploadType === 'file' ? 'Uploading...' : 'Adding...'}
               </>
             ) : (
               "Add Video"

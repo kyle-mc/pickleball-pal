@@ -108,6 +108,7 @@ const Profile = () => {
         .from('profiles')
         .update({
           display_name: profile.display_name,
+          avatar_url: profile.avatar_url,
           city: profile.city,
           state: profile.state,
           typical_play_location: profile.typical_play_location,
