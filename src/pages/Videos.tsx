@@ -155,19 +155,6 @@ const Videos = () => {
   const [isAddOtherOpen, setIsAddOtherOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<typeof videos[0] | null>(null);
 
-  // Handle auto-play from URL query param
-  useEffect(() => {
-    const playId = searchParams.get('play');
-    if (playId && videos.length > 0) {
-      const videoExists = videos.some(v => v.id === playId);
-      if (videoExists) {
-        setSelectedVideo(playId);
-        // Clear the query param after setting
-        setSearchParams({}, { replace: true });
-      }
-    }
-  }, [searchParams, videos, setSearchParams]);
-
   // Separate videos by type
   const { highlights, otherVideos } = useMemo(() => {
     const highlights = videos.filter(v => v.video_type === 'highlight' || v.game_id);
@@ -182,6 +169,27 @@ const Videos = () => {
     playersList.forEach(p => playerSet.add(p));
     return [...playerSet].sort();
   }, [videos, playersList]);
+
+  // Handle auto-play from URL query param and player filter
+  useEffect(() => {
+    const playId = searchParams.get('play');
+    if (playId && videos.length > 0) {
+      const videoExists = videos.some(v => v.id === playId);
+      if (videoExists) {
+        setSelectedVideo(playId);
+        // Clear the query param after setting
+        setSearchParams({}, { replace: true });
+      }
+    }
+    
+    // Handle player filter from URL (e.g., from My MMR page "Your Videos" link)
+    const playerParam = searchParams.get('player');
+    if (playerParam && allPlayers.includes(playerParam)) {
+      setPlayerFilter(playerParam);
+      // Clear the query param after setting
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, videos, setSearchParams, allPlayers]);
 
   // Filter and sort function
   const filterAndSort = (videoList: typeof videos) => {
@@ -291,7 +299,7 @@ const Videos = () => {
               </div>
               <Button variant="hero" onClick={() => setIsAddHighlightOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Highlight
+                Add Game Highlight
               </Button>
             </div>
 
@@ -322,12 +330,12 @@ const Videos = () => {
             )}
           </section>
 
-          {/* Tutorials & Pro Videos Section */}
+          {/* Other Videos Section */}
           <section>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-display text-foreground">📺 Tutorials & Pro Videos</h2>
-                <p className="text-sm text-muted-foreground">Learn from the best</p>
+                <h2 className="text-2xl font-display text-foreground">📺 Other Videos</h2>
+                <p className="text-sm text-muted-foreground">Tutorials, pro highlights, and more</p>
               </div>
               <Button variant="outline" onClick={() => setIsAddOtherOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -352,7 +360,7 @@ const Videos = () => {
               </div>
             ) : (
               <div className="text-center py-12 bg-card/30 rounded-lg border border-border">
-                <p className="text-muted-foreground mb-4">No tutorials or pro videos yet.</p>
+                <p className="text-muted-foreground mb-4">No other videos yet.</p>
                 <Button variant="outline" onClick={() => setIsAddOtherOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Video

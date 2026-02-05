@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGames, getPlayerMMR, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
@@ -6,6 +6,17 @@ import { getCurrentSeason } from "@/lib/seasons";
 import { VICTORY_TYPES, VictoryType } from "@/lib/victoryTypes";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { TrendingUp, TrendingDown, Percent } from "lucide-react";
 
 interface MatchPreviewProps {
@@ -17,6 +28,8 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
   const currentSeason = getCurrentSeason();
   const { data: allGames = [] } = useGames("all");
   const { data: avatarMap } = usePlayerAvatars();
+  const [activeVictoryTooltip, setActiveVictoryTooltip] = useState<string | null>(null);
+  
   const preview = useMemo(() => {
     if (team1.length !== 2 || team2.length !== 2) return null;
     
@@ -35,10 +48,11 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
     // Estimate MMR changes for different victory types
     const baseK = 32; // Base K-factor for estimation
     const expectedScore1 = team1WinProb;
+    const expectedScore2 = team2WinProb;
     
-    const getEstimatedChange = (victoryType: VictoryType, isWinner: boolean) => {
+    const getEstimatedChange = (victoryType: VictoryType, isWinner: boolean, isTeam1: boolean) => {
       const actualScore = isWinner ? 1 : 0;
-      const expected = isWinner ? expectedScore1 : (1 - expectedScore1);
+      const expected = isTeam1 ? (isWinner ? expectedScore1 : expectedScore2) : (isWinner ? expectedScore2 : expectedScore1);
       let change = baseK * (actualScore - expected);
       change = change * victoryType.multiplier;
       if (victoryType.bonus) change += victoryType.bonus * (isWinner ? 1 : -1);
@@ -57,10 +71,12 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
       team2: { players: team2, mmrs: team2Mmrs, avgMmr: team2AvgMmr, winProb: team2WinProb },
       victoryPreviews: Object.values(VICTORY_TYPES).map(vt => ({
         type: vt,
-        team1Win: getEstimatedChange(vt, true),
-        team1Lose: getEstimatedChange(vt, false),
-        team2Win: getEstimatedChange(vt, true) * -1, // Inverse for display
-        team2Lose: getEstimatedChange(vt, false) * -1,
+        // Team 1 wins scenarios
+        team1Win: getEstimatedChange(vt, true, true),
+        team1Lose: getEstimatedChange(vt, false, true),
+        // Team 2 wins scenarios  
+        team2Win: getEstimatedChange(vt, true, false),
+        team2Lose: getEstimatedChange(vt, false, false),
       })),
       placementStatus,
     };
@@ -69,6 +85,18 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
   if (!preview) return null;
   
   const { team1: t1, team2: t2, victoryPreviews, placementStatus } = preview;
+
+  // Victory type tooltip content
+  const renderVictoryTypeInfo = (vt: VictoryType) => (
+    <div className="text-xs space-y-1">
+      <div className="font-medium">{vt.name}</div>
+      <div className="text-muted-foreground">{vt.description}</div>
+      <div className="text-primary">
+        {vt.multiplier !== 1 && <span>{vt.multiplier}x multiplier</span>}
+        {vt.bonus > 0 && <span className="ml-1">+{vt.bonus}pt bonus</span>}
+      </div>
+    </div>
+  );
   
   return (
     <Card className="bg-muted/30 border-border">
@@ -131,21 +159,84 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
           </div>
         )}
         
-        {/* Potential MMR Changes */}
-        <div className="space-y-2">
+        {/* Potential MMR Changes - ALL victory types, both teams */}
+        <div className="space-y-3">
           <div className="text-xs font-medium text-muted-foreground">
-            Potential MMR Changes (if Team 1 wins):
+            Potential MMR Changes:
           </div>
-          <div className="grid gap-1.5">
-            {victoryPreviews.slice(0, 3).map(({ type, team1Win }) => (
-              <div key={type.id} className="flex items-center justify-between text-xs">
-                <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
-                <span className="flex items-center gap-1 text-primary">
-                  <TrendingUp className="w-3 h-3" />
-                  +{team1Win}
-                </span>
-              </div>
-            ))}
+          
+          {/* If Team 1 Wins */}
+          <div className="space-y-1.5">
+            <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-primary" />
+              If {t1.players.join(' & ')} win:
+            </div>
+            <div className="grid gap-1">
+              {victoryPreviews.map(({ type, team1Win, team2Lose }) => (
+                <div key={type.id} className="flex items-center justify-between text-xs">
+                  {/* Desktop: Tooltip, Mobile: Popover */}
+                  <div className="hidden sm:block">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
+                        </TooltipTrigger>
+                        <TooltipContent>{renderVictoryTypeInfo(type)}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="sm:hidden">
+                    <Popover open={activeVictoryTooltip === `t1-${type.id}`} onOpenChange={(open) => setActiveVictoryTooltip(open ? `t1-${type.id}` : null)}>
+                      <PopoverTrigger>
+                        <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2">{renderVictoryTypeInfo(type)}</PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-primary">+{team1Win}</span>
+                    <span className="text-destructive">{team2Lose}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* If Team 2 Wins */}
+          <div className="space-y-1.5">
+            <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <TrendingDown className="w-3 h-3 text-destructive" />
+              If {t2.players.join(' & ')} win:
+            </div>
+            <div className="grid gap-1">
+              {victoryPreviews.map(({ type, team2Win, team1Lose }) => (
+                <div key={type.id} className="flex items-center justify-between text-xs">
+                  {/* Desktop: Tooltip, Mobile: Popover */}
+                  <div className="hidden sm:block">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
+                        </TooltipTrigger>
+                        <TooltipContent>{renderVictoryTypeInfo(type)}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="sm:hidden">
+                    <Popover open={activeVictoryTooltip === `t2-${type.id}`} onOpenChange={(open) => setActiveVictoryTooltip(open ? `t2-${type.id}` : null)}>
+                      <PopoverTrigger>
+                        <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2">{renderVictoryTypeInfo(type)}</PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-destructive">{team1Lose}</span>
+                    <span className="text-primary">+{team2Win}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </CardContent>

@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Trophy, Calendar, Video, CircleDot } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Custom pickleball icon component
+// Custom pickleball icon component - designed to look like an actual pickleball
 const PickleballIcon = ({ className }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
@@ -14,11 +14,17 @@ const PickleballIcon = ({ className }: { className?: string }) => (
     className={className}
   >
     <circle cx="12" cy="12" r="10" />
-    <circle cx="8" cy="9" r="1.5" fill="currentColor" />
-    <circle cx="16" cy="9" r="1.5" fill="currentColor" />
-    <circle cx="12" cy="15" r="1.5" fill="currentColor" />
-    <circle cx="8" cy="15" r="1.5" fill="currentColor" />
-    <circle cx="16" cy="15" r="1.5" fill="currentColor" />
+    {/* Pickleball hole pattern - arranged like a real pickleball */}
+    <circle cx="7" cy="8" r="1" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="7" r="1" fill="currentColor" stroke="none" />
+    <circle cx="17" cy="8" r="1" fill="currentColor" stroke="none" />
+    <circle cx="6" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="10" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="14" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="18" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="7" cy="16" r="1" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none" />
+    <circle cx="17" cy="16" r="1" fill="currentColor" stroke="none" />
   </svg>
 );
 

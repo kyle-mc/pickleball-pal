@@ -18,11 +18,11 @@ const TIER_HEX_COLORS: Record<string, string> = {
   bronze: "#CD7F32",
   silver: "#C0C0C0",
   gold: "#FFD700",
-  platinum: "#E5E4E2",
+  platinum: "#4DD0E1",
   diamond: "#B9F2FF",
-  champion: "#9B59B6",
-  grand_champion: "#E74C3C",
-  supersonic_legend: "#F39C12",
+  champion: "#C77DFF",
+  grand_champion: "#FF5252",
+  supersonic_legend: "#FFE082",
 };
 
 export function MmrDistributionChart({ players, highlightedPlayer }: MmrDistributionChartProps) {
@@ -128,12 +128,14 @@ export function MmrDistributionChart({ players, highlightedPlayer }: MmrDistribu
           </ResponsiveContainer>
         </div>
         
-        {/* Legend */}
+        {/* Legend - show all tiers including SSL */}
         <div className="flex flex-wrap gap-2 mt-4 justify-center">
-          {Object.entries(TIER_HEX_COLORS).slice(0, 6).map(([tier, color]) => (
+          {Object.entries(TIER_HEX_COLORS).map(([tier, color]) => (
             <div key={tier} className="flex items-center gap-1 text-xs">
               <div className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
-              <span className="text-muted-foreground capitalize">{tier.replace('_', ' ')}</span>
+              <span className="text-muted-foreground capitalize">
+                {tier === 'supersonic_legend' ? 'SSL' : tier.replace('_', ' ')}
+              </span>
             </div>
           ))}
         </div>

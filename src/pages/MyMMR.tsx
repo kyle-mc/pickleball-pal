@@ -3,14 +3,14 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, Video, User, ChevronRight, Trophy, Target, Gamepad2 } from "lucide-react";
+import { Loader2, Calendar, Video, User, ChevronRight, Trophy, Target, Gamepad2, Plus } from "lucide-react";
 import { useGames } from "@/hooks/useGames";
 import { useCurrentUserPlayer } from "@/hooks/useCurrentUserPlayer";
 import { useEvents, useEventRsvps } from "@/hooks/useEvents";
 import { useVideos } from "@/hooks/useVideos";
 import { useRealtimeGames } from "@/hooks/useRealtime";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO, isAfter } from "date-fns";
 import { RankProgressBar } from "@/components/RankProgressBar";
 import { SeasonSelector } from "@/components/SeasonSelector";
@@ -18,11 +18,14 @@ import { getCurrentSeason } from "@/lib/seasons";
 import GameEntryForm from "@/components/GameEntryForm";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { AddVideoDialog } from "@/components/AddVideoDialog";
 
 const MyMMR = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const currentSeason = getCurrentSeason();
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
+  const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const { data: allGames = [], isLoading: gamesLoading } = useGames(selectedSeason);
   const { data: userPlayer, isLoading: playerLoading } = useCurrentUserPlayer();
   const { events, loading: eventsLoading } = useEvents();
@@ -163,9 +166,20 @@ const MyMMR = () => {
             </CardContent>
           </Card>
 
-          {/* Add Game and Match Preview */}
-          <div className="mb-6">
-            <GameEntryForm />
+          {/* Add Game and Add Video */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <GameEntryForm />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddVideoOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <Video className="w-4 h-4" />
+              Add Video
+            </Button>
           </div>
 
           {/* Season selector and Stats */}
@@ -281,7 +295,7 @@ const MyMMR = () => {
               {/* New videos featuring player */}
               {playerVideos.length > 0 && (
                 <Link 
-                  to="/videos" 
+                  to={`/videos?player=${encodeURIComponent(playerName)}`}
                   className="flex items-center justify-between p-3 rounded bg-muted/30 hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -330,6 +344,12 @@ const MyMMR = () => {
       </div>
       <Footer />
       <MobileBottomNav />
+      
+      {/* Add Video Dialog */}
+      <AddVideoDialog 
+        open={isAddVideoOpen} 
+        onOpenChange={setIsAddVideoOpen}
+      />
     </main>
   );
 };
