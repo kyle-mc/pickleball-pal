@@ -17,8 +17,13 @@ import { VideoComments } from "@/components/VideoComments";
 import VideoBulkImport from "@/components/VideoBulkImport";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
-// Helper to extract YouTube video ID
+// Helper to extract YouTube video ID - supports regular videos and Shorts
 const getYouTubeVideoId = (url: string): string | null => {
+  // Handle YouTube Shorts format: youtube.com/shorts/VIDEO_ID
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+  
+  // Handle standard YouTube URLs
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;

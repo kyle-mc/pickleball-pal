@@ -217,14 +217,22 @@ const Schedule = () => {
 
   const handleReminder = async (event: any) => {
     if (!isSupported) {
-      toast({ title: "Not Supported", description: "Push notifications are not supported in this browser.", variant: "destructive" });
+      toast({ 
+        title: "Not Supported", 
+        description: "Push notifications are not supported in this browser. Try Chrome or Firefox on desktop.", 
+        variant: "destructive" 
+      });
       return;
     }
 
     if (permission !== "granted") {
       const granted = await requestPermission();
       if (!granted) {
-        toast({ title: "Permission Denied", description: "Please allow notifications in your browser settings.", variant: "destructive" });
+        toast({ 
+          title: "Permission Needed", 
+          description: "To enable notifications: click the lock/info icon in your browser's address bar, find 'Notifications', and set it to 'Allow'. Then try again.", 
+          variant: "destructive" 
+        });
         return;
       }
     }

@@ -17,6 +17,7 @@ interface Video {
   youtube_url: string;
   players: string[];
   video_type: string;
+  game_id: string | null;
 }
 
 interface EditVideoDialogProps {
@@ -109,25 +110,28 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
             />
           </div>
 
-          <div>
-            <Label className="text-muted-foreground">Featured Players</Label>
-            <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto">
-              {playersList.map(player => (
-                <button
-                  key={player}
-                  type="button"
-                  onClick={() => togglePlayer(player)}
-                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                    selectedPlayers.includes(player)
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {player}
-                </button>
-              ))}
+          {/* Only show Featured Players for Game Highlights */}
+          {(video?.video_type === 'highlight' || video?.game_id) && (
+            <div>
+              <Label className="text-muted-foreground">Featured Players</Label>
+              <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto">
+                {playersList.map(player => (
+                  <button
+                    key={player}
+                    type="button"
+                    onClick={() => togglePlayer(player)}
+                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                      selectedPlayers.includes(player)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {player}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <Button 
             onClick={handleSubmit} 
