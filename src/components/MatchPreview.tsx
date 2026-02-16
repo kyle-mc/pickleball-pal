@@ -6,18 +6,7 @@ import { getCurrentSeason } from "@/lib/seasons";
 import { VICTORY_TYPES, VictoryType } from "@/lib/victoryTypes";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { TrendingUp, TrendingDown, Percent } from "lucide-react";
+import { Percent } from "lucide-react";
 
 interface MatchPreviewProps {
   team1: string[];
@@ -28,25 +17,21 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
   const currentSeason = getCurrentSeason();
   const { data: allGames = [] } = useGames("all");
   const { data: avatarMap } = usePlayerAvatars();
-  const [activeVictoryTooltip, setActiveVictoryTooltip] = useState<string | null>(null);
   
   const preview = useMemo(() => {
     if (team1.length !== 2 || team2.length !== 2) return null;
     
-    // Get MMRs and RDs for all players
     const team1Mmrs = team1.map(p => getPlayerMMR(p, allGames));
     const team2Mmrs = team2.map(p => getPlayerMMR(p, allGames));
     
     const team1AvgMmr = (team1Mmrs[0] + team1Mmrs[1]) / 2;
     const team2AvgMmr = (team2Mmrs[0] + team2Mmrs[1]) / 2;
     
-    // Calculate win probability using Glicko formula (simplified)
     const mmrDiff = team1AvgMmr - team2AvgMmr;
     const team1WinProb = 1 / (1 + Math.pow(10, -mmrDiff / 400));
     const team2WinProb = 1 - team1WinProb;
     
-    // Estimate MMR changes for different victory types
-    const baseK = 32; // Base K-factor for estimation
+    const baseK = 32;
     const expectedScore1 = team1WinProb;
     const expectedScore2 = team2WinProb;
     
@@ -59,7 +44,6 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
       return Math.round(change);
     };
     
-    // Get placement status for each player
     const placementStatus = [...team1, ...team2].map(p => ({
       name: p,
       gamesPlayed: getPlayerSeasonGamesCount(p, allGames, currentSeason.id),
@@ -71,10 +55,8 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
       team2: { players: team2, mmrs: team2Mmrs, avgMmr: team2AvgMmr, winProb: team2WinProb },
       victoryPreviews: Object.values(VICTORY_TYPES).map(vt => ({
         type: vt,
-        // Team 1 wins scenarios
         team1Win: getEstimatedChange(vt, true, true),
         team1Lose: getEstimatedChange(vt, false, true),
-        // Team 2 wins scenarios  
         team2Win: getEstimatedChange(vt, true, false),
         team2Lose: getEstimatedChange(vt, false, false),
       })),
@@ -85,18 +67,6 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
   if (!preview) return null;
   
   const { team1: t1, team2: t2, victoryPreviews, placementStatus } = preview;
-
-  // Victory type tooltip content
-  const renderVictoryTypeInfo = (vt: VictoryType) => (
-    <div className="text-xs space-y-1">
-      <div className="font-medium">{vt.name}</div>
-      <div className="text-muted-foreground">{vt.description}</div>
-      <div className="text-primary">
-        {vt.multiplier !== 1 && <span>{vt.multiplier}x multiplier</span>}
-        {vt.bonus > 0 && <span className="ml-1">+{vt.bonus}pt bonus</span>}
-      </div>
-    </div>
-  );
   
   return (
     <Card className="bg-muted/30 border-border">
@@ -131,16 +101,16 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
           </div>
           <div className="relative h-6 rounded-full overflow-hidden bg-muted">
             <div 
-              className="absolute left-0 top-0 h-full bg-primary transition-all"
+              className="absolute left-0 top-0 h-full bg-primary transition-all flex items-center justify-center"
               style={{ width: `${t1.winProb * 100}%` }}
-            />
+            >
+              <span className="text-xs font-medium text-primary-foreground drop-shadow">{(t1.winProb * 100).toFixed(0)}%</span>
+            </div>
             <div 
-              className="absolute right-0 top-0 h-full bg-destructive transition-all"
+              className="absolute right-0 top-0 h-full bg-destructive transition-all flex items-center justify-center"
               style={{ width: `${t2.winProb * 100}%` }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center gap-4 text-xs font-medium">
-              <span className="text-primary-foreground drop-shadow">{(t1.winProb * 100).toFixed(0)}%</span>
-              <span className="text-destructive-foreground drop-shadow">{(t2.winProb * 100).toFixed(0)}%</span>
+            >
+              <span className="text-xs font-medium text-destructive-foreground drop-shadow">{(t2.winProb * 100).toFixed(0)}%</span>
             </div>
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -159,84 +129,47 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
           </div>
         )}
         
-        {/* Potential MMR Changes - ALL victory types, both teams */}
-        <div className="space-y-3">
+        {/* Potential MMR Changes - single table with winner/loser columns */}
+        <div className="space-y-2">
           <div className="text-xs font-medium text-muted-foreground">
             Potential MMR Changes:
           </div>
           
-          {/* If Team 1 Wins */}
-          <div className="space-y-1.5">
-            <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-primary" />
-              If {t1.players.join(' & ')} win:
-            </div>
-            <div className="grid gap-1">
-              {victoryPreviews.map(({ type, team1Win, team2Lose }) => (
-                <div key={type.id} className="flex items-center justify-between text-xs">
-                  {/* Desktop: Tooltip, Mobile: Popover */}
-                  <div className="hidden sm:block">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
-                        </TooltipTrigger>
-                        <TooltipContent>{renderVictoryTypeInfo(type)}</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="sm:hidden">
-                    <Popover open={activeVictoryTooltip === `t1-${type.id}`} onOpenChange={(open) => setActiveVictoryTooltip(open ? `t1-${type.id}` : null)}>
-                      <PopoverTrigger>
-                        <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-2">{renderVictoryTypeInfo(type)}</PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-primary">+{team1Win}</span>
-                    <span className="text-destructive">{team2Lose}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Header */}
+          <div className="grid grid-cols-3 text-xs text-muted-foreground gap-1">
+            <div>Victory Type</div>
+            <div className="text-center text-primary">Winners</div>
+            <div className="text-center text-destructive">Losers</div>
           </div>
           
-          {/* If Team 2 Wins */}
-          <div className="space-y-1.5">
-            <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <TrendingDown className="w-3 h-3 text-destructive" />
-              If {t2.players.join(' & ')} win:
-            </div>
-            <div className="grid gap-1">
-              {victoryPreviews.map(({ type, team2Win, team1Lose }) => (
-                <div key={type.id} className="flex items-center justify-between text-xs">
-                  {/* Desktop: Tooltip, Mobile: Popover */}
-                  <div className="hidden sm:block">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
-                        </TooltipTrigger>
-                        <TooltipContent>{renderVictoryTypeInfo(type)}</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="sm:hidden">
-                    <Popover open={activeVictoryTooltip === `t2-${type.id}`} onOpenChange={(open) => setActiveVictoryTooltip(open ? `t2-${type.id}` : null)}>
-                      <PopoverTrigger>
-                        <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-2">{renderVictoryTypeInfo(type)}</PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-destructive">{team1Lose}</span>
-                    <span className="text-primary">+{team2Win}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* If Team 1 (left) wins */}
+          <div className="text-[10px] text-muted-foreground font-medium mb-1">
+            If {t1.players.join(' & ')} win:
+          </div>
+          <div className="grid gap-1">
+            {victoryPreviews.map(({ type, team1Win, team2Lose }) => (
+              <div key={`t1-${type.id}`} className="grid grid-cols-3 items-center text-xs gap-1">
+                <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
+                <div className="text-center text-primary font-mono">+{team1Win}</div>
+                <div className="text-center text-destructive font-mono">{team2Lose}</div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="border-t border-border my-2" />
+          
+          {/* If Team 2 (right) wins */}
+          <div className="text-[10px] text-muted-foreground font-medium mb-1">
+            If {t2.players.join(' & ')} win:
+          </div>
+          <div className="grid gap-1">
+            {victoryPreviews.map(({ type, team2Win, team1Lose }) => (
+              <div key={`t2-${type.id}`} className="grid grid-cols-3 items-center text-xs gap-1">
+                <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
+                <div className="text-center text-primary font-mono">+{team2Win}</div>
+                <div className="text-center text-destructive font-mono">{team1Lose}</div>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>

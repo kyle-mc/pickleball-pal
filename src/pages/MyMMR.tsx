@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, Video, User, ChevronRight, Trophy, Target, Gamepad2, Plus } from "lucide-react";
+import { Loader2, Calendar, Video, User, ChevronRight, Trophy, Target, Gamepad2, Plus, Eye, EyeOff } from "lucide-react";
 import { useGames } from "@/hooks/useGames";
 import { useCurrentUserPlayer } from "@/hooks/useCurrentUserPlayer";
 import { useEvents, useEventRsvps } from "@/hooks/useEvents";
@@ -26,6 +26,7 @@ const MyMMR = () => {
   const currentSeason = getCurrentSeason();
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
+  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
   const { data: allGames = [], isLoading: gamesLoading } = useGames(selectedSeason);
   const { data: userPlayer, isLoading: playerLoading } = useCurrentUserPlayer();
   const { events, loading: eventsLoading } = useEvents();
@@ -34,10 +35,8 @@ const MyMMR = () => {
   
   useRealtimeGames();
 
-  // Get player name from profile
   const playerName = userPlayer?.linkedPlayerName || userPlayer?.displayName;
 
-  // Get player's games
   const playerGames = useMemo(() => {
     if (!playerName) return [];
     return allGames
@@ -49,24 +48,18 @@ const MyMMR = () => {
       });
   }, [playerName, allGames]);
 
-  // Calculate stats
   const stats = useMemo(() => {
     if (playerGames.length === 0) {
       return { currentMMR: 2000, winRate: 0, gamesPlayed: 0 };
     }
-    
     const currentMMR = playerGames[0]?.mmrAfter || 2000;
     const wins = playerGames.filter(g => g.result === 'Winner').length;
     const winRate = Math.round((wins / playerGames.length) * 100);
-    
-    return {
-      currentMMR,
-      winRate,
-      gamesPlayed: playerGames.length
-    };
+    return { currentMMR, winRate, gamesPlayed: playerGames.length };
   }, [playerGames]);
 
-  // Get upcoming events (future events user has RSVP'd to)
+  const isPlacement = stats.gamesPlayed < 10;
+
   const upcomingRsvpEvents = useMemo(() => {
     const today = new Date();
     return events
@@ -77,7 +70,6 @@ const MyMMR = () => {
       .slice(0, 3);
   }, [events, userRsvps]);
 
-  // Get upcoming events user hasn't RSVP'd to
   const availableEvents = useMemo(() => {
     const today = new Date();
     return events
@@ -88,7 +80,6 @@ const MyMMR = () => {
       .slice(0, 3);
   }, [events, userRsvps]);
 
-  // Get videos featuring this player
   const playerVideos = useMemo(() => {
     if (!playerName) return [];
     return videos
@@ -111,7 +102,6 @@ const MyMMR = () => {
     );
   }
 
-  // If no player linked, prompt to set up profile
   if (!playerName) {
     return (
       <main className="min-h-screen bg-background">
@@ -119,7 +109,6 @@ const MyMMR = () => {
         <div className="pt-24 pb-24 md:pb-20">
           <div className="container mx-auto px-4 max-w-2xl">
             <h1 className="font-display text-4xl md:text-5xl text-foreground mb-8">My MMR</h1>
-            
             <Card className="bg-card/50 border-border">
               <CardContent className="pt-6">
                 <div className="text-center py-8">
@@ -162,23 +151,43 @@ const MyMMR = () => {
           {/* Rank visualization */}
           <Card className="bg-card/50 border-border mb-6">
             <CardContent className="pt-6 pb-8">
-              <RankProgressBar mmr={stats.currentMMR} gamesPlayed={stats.gamesPlayed} />
+              <RankProgressBar 
+                mmr={stats.currentMMR} 
+                gamesPlayed={stats.gamesPlayed} 
+                hideMmr={isPlacement && !showPlacementMMR} 
+              />
+              {isPlacement && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPlacementMMR(!showPlacementMMR)}
+                    className="text-muted-foreground text-xs"
+                  >
+                    {showPlacementMMR ? (
+                      <><EyeOff className="w-3 h-3 mr-1" /> Hide MMR</>
+                    ) : (
+                      <><Eye className="w-3 h-3 mr-1" /> Peek at MMR</>
+                    )}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Add Game and Add Video */}
-          <div className="mb-6 flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
+          {/* Add Game and Add Video - same size on mobile */}
+          <div className="mb-6 grid grid-cols-2 sm:flex sm:flex-row gap-3">
+            <div className="sm:flex-1">
               <GameEntryForm />
             </div>
             <Button
               variant="outline"
               onClick={() => setIsAddVideoOpen(true)}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 h-10"
             >
               <Plus className="w-4 h-4" />
               <Video className="w-4 h-4" />
-              Add Video
+              <span className="hidden sm:inline">Add Video</span>
             </Button>
           </div>
 
@@ -194,7 +203,9 @@ const MyMMR = () => {
           <div className="grid grid-cols-3 gap-4 mb-8">
             <Card className="bg-card/50 border-border">
               <CardContent className="pt-4 pb-4 text-center">
-                <div className="text-3xl font-display text-foreground">{stats.currentMMR}</div>
+                <div className="text-3xl font-display text-foreground">
+                  {isPlacement && !showPlacementMMR ? '???' : stats.currentMMR}
+                </div>
                 <div className="text-xs text-muted-foreground mt-1">MMR</div>
               </CardContent>
             </Card>
@@ -275,7 +286,6 @@ const MyMMR = () => {
               <CardTitle className="text-foreground text-base">Quick Links</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {/* Profile reminder if not complete */}
               {!userPlayer?.profileComplete && (
                 <Link 
                   to="/profile" 
@@ -292,7 +302,6 @@ const MyMMR = () => {
                 </Link>
               )}
 
-              {/* New videos featuring player */}
               {playerVideos.length > 0 && (
                 <Link 
                   to={`/videos?player=${encodeURIComponent(playerName)}`}
@@ -309,7 +318,6 @@ const MyMMR = () => {
                 </Link>
               )}
 
-              {/* Stats page link */}
               <Link 
                 to="/standings" 
                 className="flex items-center justify-between p-3 rounded bg-muted/30 hover:bg-muted/50 transition-colors"
@@ -324,7 +332,6 @@ const MyMMR = () => {
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </Link>
 
-              {/* Games page link */}
               <Link 
                 to="/games" 
                 className="flex items-center justify-between p-3 rounded bg-muted/30 hover:bg-muted/50 transition-colors"
@@ -345,7 +352,6 @@ const MyMMR = () => {
       <Footer />
       <MobileBottomNav />
       
-      {/* Add Video Dialog */}
       <AddVideoDialog 
         open={isAddVideoOpen} 
         onOpenChange={setIsAddVideoOpen}

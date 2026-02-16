@@ -314,6 +314,7 @@ export const AddVideoDialog = ({
           game_id: videoType === 'highlight' ? selectedGameId || undefined : undefined,
           video_type: videoType,
           group_id: currentGroup?.id,
+          duration: videoDuration ? formatDuration(videoDuration) : undefined,
         });
 
         toast({ title: "Video Uploaded!", description: "Your video has been added." });
