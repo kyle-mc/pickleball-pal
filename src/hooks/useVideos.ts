@@ -190,6 +190,8 @@ export interface AddVideoParams {
   game_id?: string;
   video_type: 'highlight' | 'other';
   group_id?: string;
+  duration?: string;
+  video_date?: string;
 }
 
 export const useAddVideo = () => {
@@ -198,14 +200,19 @@ export const useAddVideo = () => {
 
   return useMutation({
     mutationFn: async (video: AddVideoParams) => {
+      // game_id might be a composite key like "2025-07-28-1" - only pass if it's a valid UUID
+      const isValidUUID = video.game_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(video.game_id);
+      
       const { error } = await supabase.from('videos').insert({
         title: video.title,
         description: video.description || null,
         youtube_url: video.youtube_url,
         players: video.players || [],
-        game_id: video.game_id || null,
+        game_id: isValidUUID ? video.game_id : null,
         video_type: video.video_type,
         group_id: video.group_id || currentGroup?.id || null,
+        duration: video.duration || null,
+        video_date: video.video_date || null,
       });
       if (error) throw error;
     },

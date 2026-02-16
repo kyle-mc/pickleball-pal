@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { getVictoryTypeById, getVictoryTypeFromScore, VictoryType } from "@/lib/victoryTypes";
 import { cn } from "@/lib/utils";
 import {
@@ -6,6 +7,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface VictoryTypeBadgeProps {
   victoryTypeId?: string;
@@ -34,6 +40,8 @@ export function VictoryTypeBadge({
   showLabel = false,
   size = "md",
 }: VictoryTypeBadgeProps) {
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  
   let victoryType: VictoryType;
   
   if (victoryTypeId) {
@@ -56,29 +64,47 @@ export function VictoryTypeBadge({
     </span>
   );
 
+  const tooltipContent = (
+    <div className="text-sm">
+      <div className="font-medium">{victoryType.name}</div>
+      <div className="text-muted-foreground">{victoryType.description}</div>
+      <div className="text-xs mt-1">
+        {victoryType.multiplier !== 1 && (
+          <span className="text-primary">{victoryType.multiplier}x multiplier</span>
+        )}
+        {victoryType.bonus > 0 && (
+          <span className="text-primary"> +{victoryType.bonus}pt bonus</span>
+        )}
+      </div>
+    </div>
+  );
+
   if (!showLabel) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {content}
-          </TooltipTrigger>
-          <TooltipContent>
-            <div className="text-sm">
-              <div className="font-medium">{victoryType.name}</div>
-              <div className="text-muted-foreground">{victoryType.description}</div>
-              <div className="text-xs mt-1">
-                {victoryType.multiplier !== 1 && (
-                  <span className="text-primary">{victoryType.multiplier}x multiplier</span>
-                )}
-                {victoryType.bonus > 0 && (
-                  <span className="text-primary"> +{victoryType.bonus}pt bonus</span>
-                )}
-              </div>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <>
+        {/* Desktop: Tooltip */}
+        <div className="hidden sm:inline">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {content}
+              </TooltipTrigger>
+              <TooltipContent>{tooltipContent}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        {/* Mobile: Popover */}
+        <div className="sm:hidden inline">
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+              {content}
+            </PopoverTrigger>
+            <PopoverContent className="bg-card border-border p-3 w-auto max-w-xs">
+              {tooltipContent}
+            </PopoverContent>
+          </Popover>
+        </div>
+      </>
     );
   }
 

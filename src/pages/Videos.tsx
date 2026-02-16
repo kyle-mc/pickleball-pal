@@ -232,7 +232,32 @@ const Videos = () => {
   };
 
   const filteredHighlights = useMemo(() => filterAndSort(highlights), [highlights, searchQuery, playerFilter, sortBy]);
-  const filteredOther = useMemo(() => filterAndSort(otherVideos), [otherVideos, searchQuery, playerFilter, sortBy]);
+  // Other videos should NOT be filtered by player - only search and sort apply
+  const filteredOther = useMemo(() => {
+    let filtered = [...otherVideos];
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(v => 
+        v.title.toLowerCase().includes(query) ||
+        v.description?.toLowerCase().includes(query)
+      );
+    }
+    switch (sortBy) {
+      case "date":
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case "views":
+        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+        break;
+      case "likes":
+        filtered.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+        break;
+      case "comments":
+        filtered.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
+        break;
+    }
+    return filtered;
+  }, [otherVideos, searchQuery, sortBy]);
 
   const handleLike = async (videoId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -302,9 +327,9 @@ const Videos = () => {
                 <h2 className="text-2xl font-display text-foreground">🎬 Game Highlights</h2>
                 <p className="text-sm text-muted-foreground">Clips from our games</p>
               </div>
-              <Button variant="hero" onClick={() => setIsAddHighlightOpen(true)}>
+              <Button variant="hero" onClick={() => setIsAddHighlightOpen(true)} className="whitespace-nowrap">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Game Highlight
+                Add Highlight
               </Button>
             </div>
 

@@ -378,7 +378,8 @@ const Schedule = () => {
   };
 
   const isEventFull = (eventId: string, maxPlayers: number | null): boolean => {
-    if (maxPlayers === null) return false;
+    // 0 or null means no limit
+    if (maxPlayers === null || maxPlayers === 0) return false;
     const count = getRsvpCountForEvent(eventId);
     return count >= maxPlayers;
   };
@@ -404,8 +405,7 @@ const Schedule = () => {
     return (
       <Card 
         key={event.instanceKey || event.id} 
-        className={`bg-card/50 border-border ${isPast ? "opacity-75 cursor-pointer hover:opacity-100" : ""}`}
-        onClick={isPast ? () => handlePastEventClick(event) : undefined}
+        className={`bg-card/50 border-border ${isPast ? "opacity-75" : ""}`}
       >
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -468,7 +468,7 @@ const Schedule = () => {
                 {getRsvpRatio(event.id, event.min_players)}
               </span>
               <span className="text-muted-foreground text-sm">
-                {event.max_players ? `(max ${event.max_players})` : "(no limit)"}
+                {event.max_players && event.max_players > 0 ? `(max ${event.max_players})` : "(no limit)"}
               </span>
             </div>
             {!isPast && (
@@ -492,7 +492,12 @@ const Schedule = () => {
               </Button>
             )}
             {isPast && (
-              <Button variant="outline" size="sm" className="w-full mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full mt-2"
+                onClick={() => handlePastEventClick(event)}
+              >
                 View Games from This Event
               </Button>
             )}

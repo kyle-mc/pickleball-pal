@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface RankProgressBarProps {
   mmr: number;
   gamesPlayed: number;
+  hideMmr?: boolean;
 }
 
 const TIER_ICONS: Record<string, string> = {
@@ -17,7 +18,6 @@ const TIER_ICONS: Record<string, string> = {
   supersonic_legend: "⚡",
 };
 
-// Get unique tiers in order with their boundaries
 const TIERS = [
   { tier: "bronze", label: "Bronze", minMmr: 0, maxMmr: 499 },
   { tier: "silver", label: "Silver", minMmr: 500, maxMmr: 999 },
@@ -31,13 +31,12 @@ const TIERS = [
 
 const MAX_MMR = 3500;
 
-export function RankProgressBar({ mmr, gamesPlayed }: RankProgressBarProps) {
+export function RankProgressBar({ mmr, gamesPlayed, hideMmr = false }: RankProgressBarProps) {
   const isUnranked = gamesPlayed < 10;
   const currentRank = getRankFromMmr(mmr);
-  const displayMmr = isUnranked ? mmr : mmr;
   
   // Calculate position as percentage (clamp between 0 and 100)
-  const positionPercent = Math.min(100, Math.max(0, (displayMmr / MAX_MMR) * 100));
+  const positionPercent = hideMmr ? 0 : Math.min(100, Math.max(0, (mmr / MAX_MMR) * 100));
 
   return (
     <div className="w-full space-y-3">
@@ -47,7 +46,7 @@ export function RankProgressBar({ mmr, gamesPlayed }: RankProgressBarProps) {
         <div className="flex h-4 rounded-full overflow-hidden bg-muted/30 border border-border">
           {TIERS.map((tier, index) => {
             const width = ((tier.maxMmr - tier.minMmr + 1) / MAX_MMR) * 100;
-            const isCurrentTier = !isUnranked && currentRank.tier === tier.tier;
+            const isCurrentTier = !isUnranked && !hideMmr && currentRank.tier === tier.tier;
             
             return (
               <div
@@ -77,41 +76,39 @@ export function RankProgressBar({ mmr, gamesPlayed }: RankProgressBarProps) {
           })}
         </div>
 
-        {/* Player position marker */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 transform transition-all duration-500"
-          style={{ left: `${positionPercent}%`, transform: `translateX(-50%) translateY(-50%)` }}
-        >
-          <div className={cn(
-            "relative flex flex-col items-center",
-          )}>
-            {/* Marker icon */}
-            <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-lg border-2",
-              isUnranked 
-                ? "bg-muted border-border" 
-                : cn(TIER_BG_COLORS[currentRank.tier], "border-current"),
-              !isUnranked && TIER_COLORS[currentRank.tier]
-            )}>
-              {isUnranked ? "❓" : TIER_ICONS[currentRank.tier]}
-            </div>
-            {/* MMR label below */}
-            <div className={cn(
-              "absolute -bottom-6 text-xs font-bold whitespace-nowrap px-1.5 py-0.5 rounded",
-              isUnranked ? "text-muted-foreground" : TIER_COLORS[currentRank.tier],
-              isUnranked ? "bg-muted" : TIER_BG_COLORS[currentRank.tier]
-            )}>
-              {displayMmr}
+        {/* Player position marker - hidden when placement MMR is hidden */}
+        {!hideMmr && (
+          <div
+            className="absolute top-1/2 -translate-y-1/2 transform transition-all duration-500"
+            style={{ left: `${positionPercent}%`, transform: `translateX(-50%) translateY(-50%)` }}
+          >
+            <div className="relative flex flex-col items-center">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-lg border-2",
+                isUnranked 
+                  ? "bg-muted border-border" 
+                  : cn(TIER_BG_COLORS[currentRank.tier], "border-current"),
+                !isUnranked && TIER_COLORS[currentRank.tier]
+              )}>
+                {isUnranked ? "❓" : TIER_ICONS[currentRank.tier]}
+              </div>
+              <div className={cn(
+                "absolute -bottom-6 text-xs font-bold whitespace-nowrap px-1.5 py-0.5 rounded",
+                isUnranked ? "text-muted-foreground" : TIER_COLORS[currentRank.tier],
+                isUnranked ? "bg-muted" : TIER_BG_COLORS[currentRank.tier]
+              )}>
+                {mmr}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tier labels below */}
       <div className="flex text-[9px] sm:text-[10px] text-muted-foreground mt-6">
         {TIERS.map((tier) => {
           const width = ((tier.maxMmr - tier.minMmr + 1) / MAX_MMR) * 100;
-          const isCurrentTier = !isUnranked && currentRank.tier === tier.tier;
+          const isCurrentTier = !isUnranked && !hideMmr && currentRank.tier === tier.tier;
           
           return (
             <div
