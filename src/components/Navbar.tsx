@@ -1,4 +1,4 @@
-import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail, Map } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import AuthDialog from "@/components/AuthDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,11 +16,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
+  const { startTour } = useOnboardingTour();
 
   const navLinks = [
     { href: "/", label: "My MMR" },
@@ -46,12 +47,13 @@ const Navbar = () => {
               <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
             </Link>
 
-            {/* Desktop Nav - hide nav links on mobile since we have bottom nav */}
+            {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
+                  data-tour={`nav-${link.label.toLowerCase().replace(/\s/g, '')}`}
                   className={`transition-colors ${
                     isActive(link.href) 
                       ? "text-primary font-medium" 
@@ -62,7 +64,6 @@ const Navbar = () => {
                 </Link>
               ))}
               
-              {/* Auth Button */}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -80,6 +81,10 @@ const Navbar = () => {
                         My Profile
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={startTour} className="cursor-pointer">
+                      <Map className="w-4 h-4 mr-2" />
+                      App Tour
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
@@ -94,7 +99,7 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Mobile - only show user menu button, not hamburger for nav */}
+            {/* Mobile - only show user menu button */}
             <div className="md:hidden flex items-center gap-2">
               {user ? (
                 <DropdownMenu>
@@ -110,8 +115,11 @@ const Navbar = () => {
                         My Profile
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={startTour} className="cursor-pointer">
+                      <Map className="w-4 h-4 mr-2" />
+                      App Tour
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    {/* Footer links moved here for mobile */}
                     <DropdownMenuItem asChild className="cursor-pointer">
                       <a href="#">
                         <HelpCircle className="w-4 h-4 mr-2" />

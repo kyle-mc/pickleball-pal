@@ -52,6 +52,7 @@ export const MobileBottomNav = () => {
             <Link
               key={item.path}
               to={item.path}
+              data-tour={`nav-${item.label.toLowerCase().replace(/\s/g, '')}`}
               className={`flex flex-col items-center justify-center flex-1 py-2 transition-colors ${
                 isActive
                   ? "text-primary"
