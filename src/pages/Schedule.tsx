@@ -219,18 +219,31 @@ const Schedule = () => {
     if (!isSupported) {
       toast({ 
         title: "Not Supported", 
-        description: "Push notifications are not supported in this browser. Try Chrome or Firefox on desktop.", 
+        description: "Push notifications aren't available in this browser. Try Chrome or Firefox on desktop, or Safari on iOS.", 
         variant: "destructive" 
       });
       return;
     }
 
+    if (permission === "denied") {
+      toast({ 
+        title: "Notifications Blocked", 
+        description: "You previously blocked notifications. To unblock: On Chrome, click the lock icon (🔒) left of the URL → Site Settings → Notifications → Allow. On Safari, go to Settings → Notifications. Then refresh this page.", 
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (permission !== "granted") {
+      toast({
+        title: "Allow Notifications",
+        description: "Your browser will show a popup asking to allow notifications. Click 'Allow' to enable reminders.",
+      });
       const granted = await requestPermission();
       if (!granted) {
         toast({ 
           title: "Permission Needed", 
-          description: "To enable notifications: click the lock/info icon in your browser's address bar, find 'Notifications', and set it to 'Allow'. Then try again.", 
+          description: "You dismissed or denied the notification prompt. To try again, click the lock icon (🔒) left of the URL in your browser's address bar, find 'Notifications', and set it to 'Allow'. Then refresh the page.", 
           variant: "destructive" 
         });
         return;

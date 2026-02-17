@@ -164,3 +164,56 @@
 .animation-delay-600 {
   animation-delay: 600ms;
 }
+
+/* Driver.js tour popover styling */
+.driver-popover.pickle-tour-popover {
+  background-color: hsl(160 25% 8%);
+  color: hsl(60 30% 96%);
+  border: 1px solid hsl(160 15% 25%);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-title {
+  color: hsl(145 70% 45%);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-description {
+  color: hsl(60 30% 86%);
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-progress-text {
+  color: hsl(160 10% 55%);
+}
+
+.driver-popover.pickle-tour-popover button {
+  background-color: hsl(145 70% 45%);
+  color: hsl(160 30% 4%);
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 6px 14px;
+}
+
+.driver-popover.pickle-tour-popover button:hover {
+  background-color: hsl(145 70% 50%);
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-close-btn {
+  color: hsl(160 10% 55%);
+  background: transparent;
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-close-btn:hover {
+  color: hsl(60 30% 96%);
+  background: transparent;
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow,
+.driver-popover.pickle-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow,
+.driver-popover.pickle-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow,
+.driver-popover.pickle-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-color: hsl(160 25% 8%);
+}

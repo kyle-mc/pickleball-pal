@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { GroupProvider } from "@/contexts/GroupContext";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { Loader2 } from "lucide-react";
 
 // Pages
@@ -32,23 +34,29 @@ const LoadingScreen = () => (
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
   const { loading: onboardingLoading, needsProfileSetup } = useOnboardingStatus();
+  const { startTour, hasCompletedTour } = useOnboardingTour();
   const location = useLocation();
+
+  // Auto-start tour for first-time users who have completed profile setup
+  useEffect(() => {
+    if (!authLoading && !onboardingLoading && user && !needsProfileSetup && !hasCompletedTour() && location.pathname === '/') {
+      // Small delay to let the page render first
+      const timer = setTimeout(() => startTour(), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, onboardingLoading, user, needsProfileSetup, location.pathname]);
 
   if (authLoading || onboardingLoading) {
     return <LoadingScreen />;
   }
 
-  // Not authenticated - redirect to landing
   if (!user) {
     return <Navigate to="/landing" state={{ from: location }} replace />;
   }
 
-  // Needs profile setup
   if (needsProfileSetup && location.pathname !== '/onboarding/profile') {
     return <Navigate to="/onboarding/profile" replace />;
   }
-
-  // No group onboarding check - everyone is auto-joined to KC Pickleballers
 
   return <>{children}</>;
 };
