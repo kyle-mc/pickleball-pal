@@ -190,7 +190,7 @@
 
 .driver-popover.pickle-tour-popover button {
   background-color: hsl(145 70% 45%);
-  color: hsl(160 30% 4%);
+  color: hsl(160 30% 4%) !important;
   border: none;
   border-radius: 6px;
   font-weight: 500;
@@ -199,16 +199,27 @@
 
 .driver-popover.pickle-tour-popover button:hover {
   background-color: hsl(145 70% 50%);
+  color: hsl(160 30% 4%) !important;
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-prev-btn {
+  background-color: hsl(160 20% 18%);
+  color: hsl(60 30% 96%) !important;
+}
+
+.driver-popover.pickle-tour-popover .driver-popover-prev-btn:hover {
+  background-color: hsl(160 20% 25%);
+  color: hsl(60 30% 96%) !important;
 }
 
 .driver-popover.pickle-tour-popover .driver-popover-close-btn {
-  color: hsl(160 10% 55%);
-  background: transparent;
+  color: hsl(160 10% 55%) !important;
+  background: transparent !important;
 }
 
 .driver-popover.pickle-tour-popover .driver-popover-close-btn:hover {
-  color: hsl(60 30% 96%);
-  background: transparent;
+  color: hsl(60 30% 96%) !important;
+  background: transparent !important;
 }
 
 .driver-popover.pickle-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow,

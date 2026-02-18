@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { useGames } from "@/hooks/useGames";
-import { Loader2 } from "lucide-react";
+import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
+import { getCurrentSeason } from "@/lib/seasons";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
@@ -20,8 +22,9 @@ const PLAYER_COLORS: Record<string, string> = {
 
 const AllPlayersView = () => {
   const { data: allGames = [], isLoading } = useGames();
+  const currentSeason = getCurrentSeason();
+  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
 
-  // Calculate current stats for all players
   const playerStats = useMemo(() => {
     const uniquePlayers = [...new Set(allGames.map(g => g.player))];
     
@@ -38,6 +41,8 @@ const AllPlayersView = () => {
       const wins = games.filter(g => g.result === 'Winner').length;
       const losses = games.filter(g => g.result === 'Loser').length;
       const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
+      const gamesPlayed = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
+      const isPlacement = gamesPlayed < 10;
       
       return {
         player,
@@ -46,16 +51,18 @@ const AllPlayersView = () => {
         losses,
         gamesPlayed: games.length,
         winRate,
+        isPlacement,
       };
     }).sort((a, b) => b.currentMMR - a.currentMMR);
-  }, [allGames]);
+  }, [allGames, currentSeason.id]);
+
+  const anyInPlacement = playerStats.some(p => p.isPlacement);
 
   // Build MMR history data for chart
   const mmrHistory = useMemo(() => {
     const uniquePlayers = [...new Set(allGames.map(g => g.player))];
     const dataMap: Map<string, Record<string, number>> = new Map();
     
-    // Group by date and track MMR for each player
     allGames.forEach(game => {
       const key = game.date;
       if (!dataMap.has(key)) {
@@ -65,7 +72,6 @@ const AllPlayersView = () => {
       entry[game.player] = game.mmrAfter;
     });
 
-    // Fill in missing values with last known MMR
     const sortedDates = [...dataMap.keys()].sort();
     const lastKnown: Record<string, number> = {};
     uniquePlayers.forEach(p => { lastKnown[p] = 2000; });
@@ -102,7 +108,20 @@ const AllPlayersView = () => {
       <TabsContent value="table">
         <Card className="bg-card/50 border-border overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-foreground">All Players MMR</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-foreground">All Players MMR</CardTitle>
+              {anyInPlacement && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPlacementMMR(!showPlacementMMR)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showPlacementMMR ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                  {showPlacementMMR ? "Hide Placement MMR" : "Peek at Placement MMR"}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -138,10 +157,13 @@ const AllPlayersView = () => {
                             style={{ backgroundColor: PLAYER_COLORS[player.player] || '#888' }}
                           />
                           {player.player}
+                          {player.isPlacement && (
+                            <span className="text-xs text-muted-foreground">(Placing)</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right text-primary font-display text-lg whitespace-nowrap">
-                        {player.currentMMR.toLocaleString()}
+                        {player.isPlacement && !showPlacementMMR ? '???' : player.currentMMR.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.wins}</TableCell>
                       <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.losses}</TableCell>

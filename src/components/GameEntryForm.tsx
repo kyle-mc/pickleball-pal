@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Plus, UserPlus, Loader2, ArrowLeftRight } from "lucide-react";
+import { Plus, UserPlus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubmitGame, useGames } from "@/hooks/useGames";
 import { usePlayers, useAddPlayer } from "@/hooks/usePlayers";
@@ -256,13 +256,10 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
               </div>
             </div>
 
-            {/* Swap teams button */}
-            <div className="flex items-center justify-center gap-2">
+            {/* Divider between teams */}
+            <div className="flex items-center justify-center">
               <div className="flex-1 h-px bg-border" />
-              <Button variant="ghost" size="sm" onClick={handleSwapTeams} className="text-muted-foreground hover:text-foreground">
-                <ArrowLeftRight className="w-4 h-4 mr-1" />
-                Swap Teams
-              </Button>
+              <span className="px-3 text-xs text-muted-foreground">VS</span>
               <div className="flex-1 h-px bg-border" />
             </div>
 
@@ -296,7 +293,7 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
             )}
 
             {allPlayersSelected && (
-              <MatchPreview team1={team1} team2={team2} />
+              <MatchPreview team1={team1} team2={team2} onSwapTeams={handleSwapTeams} />
             )}
 
             <Button onClick={handleSubmit} className="w-full" variant="hero" disabled={submitGameMutation.isPending}>

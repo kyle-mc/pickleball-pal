@@ -1,19 +1,21 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useGames, getPlayerMMR, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import { getCurrentSeason } from "@/lib/seasons";
 import { VICTORY_TYPES, VictoryType } from "@/lib/victoryTypes";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
-import { Percent } from "lucide-react";
+import { ArrowLeftRight, BarChart3 } from "lucide-react";
 
 interface MatchPreviewProps {
   team1: string[];
   team2: string[];
+  onSwapTeams?: () => void;
 }
 
-export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
+export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
   const currentSeason = getCurrentSeason();
   const { data: allGames = [] } = useGames("all");
   const { data: avatarMap } = usePlayerAvatars();
@@ -53,12 +55,11 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
     return {
       team1: { players: team1, mmrs: team1Mmrs, avgMmr: team1AvgMmr, winProb: team1WinProb },
       team2: { players: team2, mmrs: team2Mmrs, avgMmr: team2AvgMmr, winProb: team2WinProb },
+      // team1 is always the winning team in this context
       victoryPreviews: Object.values(VICTORY_TYPES).map(vt => ({
         type: vt,
-        team1Win: getEstimatedChange(vt, true, true),
-        team1Lose: getEstimatedChange(vt, false, true),
-        team2Win: getEstimatedChange(vt, true, false),
-        team2Lose: getEstimatedChange(vt, false, false),
+        winnerChange: getEstimatedChange(vt, true, true),
+        loserChange: getEstimatedChange(vt, false, false),
       })),
       placementStatus,
     };
@@ -67,14 +68,28 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
   if (!preview) return null;
   
   const { team1: t1, team2: t2, victoryPreviews, placementStatus } = preview;
+
+  // Determine if percentage text fits in bar (rough heuristic: < 15% width)
+  const t1ProbPct = t1.winProb * 100;
+  const t2ProbPct = t2.winProb * 100;
+  const t1TextOutside = t1ProbPct < 15;
+  const t2TextOutside = t2ProbPct < 15;
   
   return (
     <Card className="bg-muted/30 border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <Percent className="w-4 h-4" />
-          Match Preview
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Match Preview
+          </CardTitle>
+          {onSwapTeams && (
+            <Button variant="ghost" size="sm" onClick={onSwapTeams} className="text-muted-foreground hover:text-foreground h-7 text-xs">
+              <ArrowLeftRight className="w-3 h-3 mr-1" />
+              Swap Teams
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Win Probability */}
@@ -84,7 +99,7 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
               {t1.players.map((p, i) => (
                 <div key={p} className="flex items-center gap-1">
                   <PlayerAvatar name={p} avatarUrl={getPlayerAvatar(p, avatarMap)} size="xs" />
-                  <span>{p}</span>
+                  <span className="text-primary font-medium">{p}</span>
                   {i === 0 && <span className="mx-1">&</span>}
                 </div>
               ))}
@@ -93,27 +108,53 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
               {t2.players.map((p, i) => (
                 <div key={p} className="flex items-center gap-1">
                   {i === 1 && <span className="mx-1">&</span>}
-                  <span>{p}</span>
+                  <span className="text-destructive font-medium">{p}</span>
                   <PlayerAvatar name={p} avatarUrl={getPlayerAvatar(p, avatarMap)} size="xs" />
                 </div>
               ))}
             </div>
           </div>
-          <div className="relative h-6 rounded-full overflow-hidden bg-muted">
-            <div 
-              className="absolute left-0 top-0 h-full bg-primary transition-all flex items-center justify-center"
-              style={{ width: `${t1.winProb * 100}%` }}
-            >
-              <span className="text-xs font-medium text-primary-foreground drop-shadow">{(t1.winProb * 100).toFixed(0)}%</span>
+          
+          {/* Win probability bar */}
+          <div className="relative h-6 rounded-full overflow-visible bg-muted">
+            <div className="relative h-full rounded-full overflow-hidden">
+              <div 
+                className="absolute left-0 top-0 h-full bg-primary transition-all flex items-center justify-center"
+                style={{ width: `${t1ProbPct}%` }}
+              >
+                {!t1TextOutside && (
+                  <span className="text-xs font-medium text-primary-foreground drop-shadow">{t1ProbPct.toFixed(0)}%</span>
+                )}
+              </div>
+              <div 
+                className="absolute right-0 top-0 h-full bg-destructive transition-all flex items-center justify-center"
+                style={{ width: `${t2ProbPct}%` }}
+              >
+                {!t2TextOutside && (
+                  <span className="text-xs font-medium text-destructive-foreground drop-shadow">{t2ProbPct.toFixed(0)}%</span>
+                )}
+              </div>
             </div>
-            <div 
-              className="absolute right-0 top-0 h-full bg-destructive transition-all flex items-center justify-center"
-              style={{ width: `${t2.winProb * 100}%` }}
-            >
-              <span className="text-xs font-medium text-destructive-foreground drop-shadow">{(t2.winProb * 100).toFixed(0)}%</span>
-            </div>
+            {/* Leader lines for text that doesn't fit */}
+            {t1TextOutside && (
+              <div className="absolute top-full mt-1 flex items-start" style={{ left: `${Math.max(t1ProbPct, 2)}%` }}>
+                <div className="flex flex-col items-center">
+                  <div className="w-px h-2 bg-primary" />
+                  <span className="text-[10px] font-medium text-primary">{t1ProbPct.toFixed(0)}%</span>
+                </div>
+              </div>
+            )}
+            {t2TextOutside && (
+              <div className="absolute top-full mt-1 flex items-start" style={{ right: `${Math.max(t2ProbPct, 2)}%` }}>
+                <div className="flex flex-col items-center">
+                  <div className="w-px h-2 bg-destructive" />
+                  <span className="text-[10px] font-medium text-destructive">{t2ProbPct.toFixed(0)}%</span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
+          
+          <div className="flex justify-between text-xs text-muted-foreground" style={{ marginTop: (t1TextOutside || t2TextOutside) ? '1.25rem' : undefined }}>
             <span>Avg MMR: {Math.round(t1.avgMmr)}</span>
             <span>Avg MMR: {Math.round(t2.avgMmr)}</span>
           </div>
@@ -129,45 +170,25 @@ export function MatchPreview({ team1, team2 }: MatchPreviewProps) {
           </div>
         )}
         
-        {/* Potential MMR Changes - single table with winner/loser columns */}
+        {/* Potential MMR Changes - single table matching current teams */}
         <div className="space-y-2">
           <div className="text-xs font-medium text-muted-foreground">
             Potential MMR Changes:
           </div>
           
-          {/* Header */}
-          <div className="grid grid-cols-3 text-xs text-muted-foreground gap-1">
-            <div>Victory Type</div>
-            <div className="text-center text-primary">Winners</div>
-            <div className="text-center text-destructive">Losers</div>
+          {/* Header with team names */}
+          <div className="grid grid-cols-3 text-xs gap-1">
+            <div className="text-muted-foreground">Victory Type</div>
+            <div className="text-center text-primary font-medium">{t1.players.join(' & ')}</div>
+            <div className="text-center text-destructive font-medium">{t2.players.join(' & ')}</div>
           </div>
           
-          {/* If Team 1 (left) wins */}
-          <div className="text-[10px] text-muted-foreground font-medium mb-1">
-            If {t1.players.join(' & ')} win:
-          </div>
           <div className="grid gap-1">
-            {victoryPreviews.map(({ type, team1Win, team2Lose }) => (
-              <div key={`t1-${type.id}`} className="grid grid-cols-3 items-center text-xs gap-1">
+            {victoryPreviews.map(({ type, winnerChange, loserChange }) => (
+              <div key={type.id} className="grid grid-cols-3 items-center text-xs gap-1">
                 <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
-                <div className="text-center text-primary font-mono">+{team1Win}</div>
-                <div className="text-center text-destructive font-mono">{team2Lose}</div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="border-t border-border my-2" />
-          
-          {/* If Team 2 (right) wins */}
-          <div className="text-[10px] text-muted-foreground font-medium mb-1">
-            If {t2.players.join(' & ')} win:
-          </div>
-          <div className="grid gap-1">
-            {victoryPreviews.map(({ type, team2Win, team1Lose }) => (
-              <div key={`t2-${type.id}`} className="grid grid-cols-3 items-center text-xs gap-1">
-                <VictoryTypeBadge victoryTypeId={type.id} size="sm" />
-                <div className="text-center text-primary font-mono">+{team2Win}</div>
-                <div className="text-center text-destructive font-mono">{team1Lose}</div>
+                <div className="text-center text-primary font-mono">+{winnerChange}</div>
+                <div className="text-center text-destructive font-mono">{loserChange}</div>
               </div>
             ))}
           </div>
