@@ -54,6 +54,7 @@ interface VideoCardProps {
 const VideoCard = ({ video, isLiked, onLike, onClick, onEdit }: VideoCardProps) => {
   const videoId = getYouTubeVideoId(video.youtube_url);
   const displayDuration = formatDuration(video.duration);
+  const isDirectUpload = !videoId && video.youtube_url && (video.youtube_url.endsWith('.mp4') || video.youtube_url.includes('/storage/'));
   
   return (
     <Card 
@@ -66,6 +67,13 @@ const VideoCard = ({ video, isLiked, onLike, onClick, onEdit }: VideoCardProps) 
             src={video.thumbnail_url || getYouTubeThumbnail(video.youtube_url)}
             alt={video.title}
             className="w-full h-full object-cover"
+          />
+        ) : isDirectUpload ? (
+          <video
+            src={video.youtube_url}
+            className="w-full h-full object-cover"
+            preload="metadata"
+            muted
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -419,6 +427,13 @@ const Videos = () => {
                     title={selectedVideoData.title}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    className="w-full h-full"
+                  />
+                ) : selectedVideoData.youtube_url && (selectedVideoData.youtube_url.endsWith('.mp4') || selectedVideoData.youtube_url.includes('/storage/')) ? (
+                  <video
+                    src={selectedVideoData.youtube_url}
+                    controls
+                    autoPlay
                     className="w-full h-full"
                   />
                 ) : (

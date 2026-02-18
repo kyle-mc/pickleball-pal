@@ -14,6 +14,7 @@ interface Comment {
   session_id: string | null;
   content: string;
   created_at: string;
+  display_name?: string | null;
 }
 
 interface VideoCommentsProps {
@@ -48,16 +49,37 @@ export function VideoComments({ videoId }: VideoCommentsProps) {
 
     if (error) {
       console.error('Error fetching comments:', error);
-    } else {
-      setComments(data || []);
+      setIsLoading(false);
+      return;
     }
+
+    // Fetch display names for user_ids
+    const userIds = [...new Set((data || []).filter(c => c.user_id).map(c => c.user_id!))];
+    let profileMap: Record<string, string> = {};
+    
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name')
+        .in('user_id', userIds);
+      
+      if (profiles) {
+        profiles.forEach(p => {
+          if (p.display_name) profileMap[p.user_id] = p.display_name;
+        });
+      }
+    }
+
+    setComments((data || []).map(c => ({
+      ...c,
+      display_name: c.user_id ? (profileMap[c.user_id] || "User") : null,
+    })));
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchComments();
 
-    // Subscribe to realtime changes
     const channel = supabase
       .channel(`video-comments-${videoId}`)
       .on(
@@ -148,7 +170,7 @@ export function VideoComments({ videoId }: VideoCommentsProps) {
             <div key={comment.id} className="bg-muted/30 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-medium text-foreground">
-                  {comment.user_id ? "User" : "Guest"}
+                  {comment.display_name || "Guest"}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(comment.created_at), 'MMM d, h:mm a')}
