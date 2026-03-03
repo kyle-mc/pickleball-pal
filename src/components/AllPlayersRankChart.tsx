@@ -9,11 +9,13 @@ interface Player {
   name: string;
   mmr: number;
   gamesPlayed: number;
+  isPlacement?: boolean;
 }
 
 interface AllPlayersRankChartProps {
   players: Player[];
   highlightedPlayer?: string | null;
+  showPlacementMMR?: boolean;
 }
 
 const TIER_ICONS: Record<string, string> = {
@@ -45,10 +47,9 @@ const PLAYER_COLORS = [
   "#ec4899", "#06b6d4", "#f97316", "#84cc16", "#14b8a6",
 ];
 
-export function AllPlayersRankChart({ players, highlightedPlayer }: AllPlayersRankChartProps) {
+export function AllPlayersRankChart({ players, highlightedPlayer, showPlacementMMR = false }: AllPlayersRankChartProps) {
   const { data: avatarMap } = usePlayerAvatars();
 
-  // Sort players by MMR for consistent ordering
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => b.mmr - a.mmr);
   }, [players]);
@@ -97,7 +98,6 @@ export function AllPlayersRankChart({ players, highlightedPlayer }: AllPlayersRa
             {/* Player position markers */}
             {sortedPlayers.map((player, index) => {
               const isUnranked = player.gamesPlayed < 10;
-              const currentRank = getRankFromMmr(player.mmr);
               const positionPercent = Math.min(100, Math.max(0, (player.mmr / MAX_MMR) * 100));
               const isHighlighted = highlightedPlayer === player.name;
               const color = PLAYER_COLORS[index % PLAYER_COLORS.length];
@@ -115,7 +115,6 @@ export function AllPlayersRankChart({ players, highlightedPlayer }: AllPlayersRa
                   <div className={cn(
                     "relative flex flex-col items-center group cursor-pointer",
                   )}>
-                    {/* Marker */}
                     <div 
                       className={cn(
                         "w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-lg border-2 transition-transform hover:scale-125",
@@ -136,7 +135,7 @@ export function AllPlayersRankChart({ players, highlightedPlayer }: AllPlayersRa
                       <div className="bg-card border border-border rounded px-2 py-1 shadow-lg whitespace-nowrap">
                         <div className="text-xs font-medium text-foreground">{player.name}</div>
                         <div className="text-[10px] text-muted-foreground">
-                          {isUnranked ? "Placing" : player.mmr} MMR
+                          {isUnranked && !showPlacementMMR ? "Placing" : `${player.mmr} MMR`}
                         </div>
                       </div>
                     </div>
@@ -169,6 +168,7 @@ export function AllPlayersRankChart({ players, highlightedPlayer }: AllPlayersRa
             {sortedPlayers.map((player, index) => {
               const color = PLAYER_COLORS[index % PLAYER_COLORS.length];
               const isHighlighted = highlightedPlayer === player.name;
+              const isUnranked = player.gamesPlayed < 10;
               
               return (
                 <div 
@@ -183,7 +183,9 @@ export function AllPlayersRankChart({ players, highlightedPlayer }: AllPlayersRa
                     style={{ backgroundColor: color }}
                   />
                   <span className="font-medium text-foreground">{player.name}</span>
-                  <span className="text-muted-foreground">{player.mmr}</span>
+                  <span className="text-muted-foreground">
+                    {isUnranked && !showPlacementMMR ? 'Placing' : player.mmr}
+                  </span>
                 </div>
               );
             })}

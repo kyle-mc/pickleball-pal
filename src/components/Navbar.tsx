@@ -23,11 +23,11 @@ const Navbar = () => {
   const { startTour } = useOnboardingTour();
 
   const navLinks = [
-    { href: "/", label: "My MMR" },
-    { href: "/standings", label: "Stats" },
-    { href: "/games", label: "Games" },
-    { href: "/videos", label: "Videos" },
-    { href: "/schedule", label: "Events" },
+    { href: "/", label: "My MMR", tourLabel: "my mmr" },
+    { href: "/standings", label: "Stats", tourLabel: "stats" },
+    { href: "/games", label: "Games", tourLabel: "games" },
+    { href: "/videos", label: "Videos", tourLabel: "videos" },
+    { href: "/schedule", label: "Events", tourLabel: "events" },
   ];
 
   const isActive = (href: string) => location.pathname === href;
@@ -53,7 +53,7 @@ const Navbar = () => {
                 <Link
                   key={link.href}
                   to={link.href}
-                  data-tour={`nav-${link.label.toLowerCase().replace(/\s/g, '')}`}
+                  data-tour={`nav-${link.tourLabel}`}
                   className={`transition-colors ${
                     isActive(link.href) 
                       ? "text-primary font-medium" 

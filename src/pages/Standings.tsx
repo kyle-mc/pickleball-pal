@@ -2,10 +2,11 @@ import { useState, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useGames } from "@/hooks/useGames";
+import { Button } from "@/components/ui/button";
+import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useSelectedPlayer } from "@/hooks/useSelectedPlayer";
-import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart } from "lucide-react";
+import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart, Eye, EyeOff } from "lucide-react";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { RankBadge } from "@/components/RankBadge";
 import { MmrDistributionChart } from "@/components/MmrDistributionChart";
@@ -41,12 +42,11 @@ const Standings = () => {
   
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
 
-  // Head-to-head state
   const [h2hPlayer1, setH2hPlayer1] = useState<string>("");
   const [h2hPlayer2, setH2hPlayer2] = useState<string>("");
 
-  // Multi-player comparison - always visible
   const [comparisonPlayers, setComparisonPlayers] = useState<string[]>([]);
 
   const toggleComparisonPlayer = (player: string) => {
@@ -88,6 +88,7 @@ const Standings = () => {
       });
       
       const avgPointsScored = scoredGames > 0 ? totalPoints / scoredGames : 0;
+      const seasonGames = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
       
       return {
         name: player,
@@ -97,6 +98,7 @@ const Standings = () => {
         gamesPlayed,
         avgPointsScored,
         winPct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0,
+        isPlacement: seasonGames < 10,
       };
     });
     
@@ -128,7 +130,9 @@ const Standings = () => {
       }
       return sortDir === "asc" ? comparison : -comparison;
     });
-  }, [allGames, sortField, sortDir]);
+  }, [allGames, sortField, sortDir, currentSeason.id]);
+
+  const anyInPlacement = players.some(p => p.isPlacement);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -175,10 +179,23 @@ const Standings = () => {
         <div className="container mx-auto px-4 max-w-full overflow-x-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <h1 className="font-display text-4xl md:text-5xl text-foreground">Stats</h1>
-            <SeasonSelector 
-              selectedSeason={selectedSeason} 
-              onSeasonChange={setSelectedSeason} 
-            />
+            <div className="flex items-center gap-2">
+              <SeasonSelector 
+                selectedSeason={selectedSeason} 
+                onSeasonChange={setSelectedSeason} 
+              />
+              {anyInPlacement && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPlacementMMR(!showPlacementMMR)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showPlacementMMR ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                  {showPlacementMMR ? "Hide MMR" : "Peek at MMR"}
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* 1. Leaderboard Table */}
@@ -232,12 +249,16 @@ const Standings = () => {
                             )}
                           </td>
                           <td className="py-3 px-2 sm:px-4 whitespace-nowrap">
-                            <RankBadge 
-                              mmr={player.mmr} 
-                              gamesPlayed={player.gamesPlayed}
-                              showMmr={true}
-                              size="sm"
-                            />
+                            {player.isPlacement && !showPlacementMMR ? (
+                              <span className="text-muted-foreground text-sm">Placing ({player.gamesPlayed}/10)</span>
+                            ) : (
+                              <RankBadge 
+                                mmr={player.mmr} 
+                                gamesPlayed={player.gamesPlayed}
+                                showMmr={true}
+                                size="sm"
+                              />
+                            )}
                           </td>
                           <td className="py-3 px-2 sm:px-4 text-muted-foreground whitespace-nowrap text-sm">{player.wins}</td>
                           <td className="py-3 px-2 sm:px-4 text-muted-foreground whitespace-nowrap text-sm">{player.losses}</td>
@@ -256,7 +277,7 @@ const Standings = () => {
             </CardContent>
           </Card>
 
-          {/* 2. Compare Multiple Players - Always visible */}
+          {/* 2. Compare Multiple Players */}
           <Card className="bg-card/50 border-border mb-8">
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -283,7 +304,7 @@ const Standings = () => {
               </div>
               
               {comparisonPlayers.length >= 2 ? (
-                <PlayerComparisonView selectedPlayers={comparisonPlayers} />
+                <PlayerComparisonView selectedPlayers={comparisonPlayers} showPlacementMMR={showPlacementMMR} />
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Select at least 2 players to compare their MMR over time
@@ -306,6 +327,7 @@ const Standings = () => {
           <AllPlayersRankChart 
             players={players}
             highlightedPlayer={selectedPlayer}
+            showPlacementMMR={showPlacementMMR}
           />
 
           {/* 5. MMR Distribution Chart */}

@@ -48,15 +48,14 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
     let p2Wins = 0;
     let p1PointsFor = 0;
     let p2PointsFor = 0;
-    let p1MmrCausedToP2 = 0; // MMR player1 caused player2 to gain/lose
-    let p2MmrCausedToP1 = 0; // MMR player2 caused player1 to gain/lose
+    let p1MmrCausedToP2 = 0;
+    let p2MmrCausedToP1 = 0;
 
     Object.values(gamesByDateAndNumber).forEach(gameRecords => {
       const p1Record = gameRecords.find(g => g.player === player1);
       const p2Record = gameRecords.find(g => g.player === player2);
 
       if (p1Record && p2Record) {
-        // They were on opposite teams
         if (p1Record.result !== p2Record.result) {
           if (p1Record.result === 'Winner') {
             p1Wins++;
@@ -64,11 +63,9 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
             p2Wins++;
           }
 
-          // Track MMR impact
-          p2MmrCausedToP1 += p1Record.mmrChange; // p1's MMR change when playing against p2
-          p1MmrCausedToP2 += p2Record.mmrChange; // p2's MMR change when playing against p1
+          p2MmrCausedToP1 += p1Record.mmrChange;
+          p1MmrCausedToP2 += p2Record.mmrChange;
 
-          // Parse score
           const score = p1Record.score || '';
           const scoreParts = score.split('-').map(s => parseInt(s.trim()));
           if (scoreParts.length === 2 && !isNaN(scoreParts[0]) && !isNaN(scoreParts[1])) {
@@ -95,7 +92,6 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
     };
   }, [player1, player2, allGames]);
 
-  // Check placement status
   const p1InPlacement = player1 ? getPlayerSeasonGamesCount(player1, allGames, currentSeason.id) < 10 : false;
   const p2InPlacement = player2 ? getPlayerSeasonGamesCount(player2, allGames, currentSeason.id) < 10 : false;
   const anyInPlacement = p1InPlacement || p2InPlacement;
@@ -137,7 +133,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
               </div>
             </div>
 
-            {/* Peek at MMR button for placement players */}
+            {/* Peek at MMR button */}
             {anyInPlacement && (
               <div className="flex justify-center mb-4">
                 <Button
@@ -147,7 +143,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   {showPlacementMMR ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                  {showPlacementMMR ? "Hide Placement MMR" : "Peek at Placement MMR"}
+                  {showPlacementMMR ? "Hide MMR" : "Peek at MMR"}
                 </Button>
               </div>
             )}
@@ -183,7 +179,6 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
             {player1 && player2 && player1 !== player2 && matchupStats && (
               <>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
-                  {/* Player 1 */}
                   <div className="text-center">
                     <div 
                       className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-3xl font-display mb-3 shadow-lg"
@@ -210,7 +205,6 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                     </div>
                   </div>
 
-                  {/* Center divider */}
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-16 h-16 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center animate-pulse-glow">
                       <span className="text-2xl">🥒</span>
@@ -221,7 +215,6 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                     </div>
                   </div>
 
-                  {/* Player 2 */}
                   <div className="text-center">
                     <div 
                       className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-3xl font-display mb-3 shadow-lg"

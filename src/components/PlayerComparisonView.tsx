@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { useGames } from "@/hooks/useGames";
+import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
+import { getCurrentSeason } from "@/lib/seasons";
 import { Loader2 } from "lucide-react";
 
 const PLAYER_COLORS: Record<string, string> = {
@@ -18,12 +19,13 @@ const PLAYER_COLORS: Record<string, string> = {
 
 interface PlayerComparisonViewProps {
   selectedPlayers: string[];
+  showPlacementMMR?: boolean;
 }
 
-const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) => {
+const PlayerComparisonView = ({ selectedPlayers, showPlacementMMR = false }: PlayerComparisonViewProps) => {
   const { data: allGames = [], isLoading } = useGames();
+  const currentSeason = getCurrentSeason();
 
-  // Calculate stats for selected players
   const playerStats = useMemo(() => {
     return selectedPlayers.map(player => {
       const games = allGames
@@ -38,6 +40,8 @@ const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) =>
       const wins = games.filter(g => g.result === 'Winner').length;
       const losses = games.filter(g => g.result === 'Loser').length;
       const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
+      const seasonGames = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
+      const isPlacement = seasonGames < 10;
       
       return {
         player,
@@ -47,11 +51,11 @@ const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) =>
         gamesPlayed: games.length,
         winRate,
         color: PLAYER_COLORS[player] || '#888',
+        isPlacement,
       };
     });
-  }, [selectedPlayers, allGames]);
+  }, [selectedPlayers, allGames, currentSeason.id]);
 
-  // Build MMR history data for chart (only for selected players)
   const mmrHistory = useMemo(() => {
     const dataMap: Map<string, Record<string, number>> = new Map();
     
@@ -121,7 +125,9 @@ const PlayerComparisonView = ({ selectedPlayers }: PlayerComparisonViewProps) =>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground text-sm">MMR</span>
-                  <span className="text-foreground font-display text-xl">{stat.currentMMR}</span>
+                  <span className="text-foreground font-display text-xl">
+                    {stat.isPlacement && !showPlacementMMR ? '???' : stat.currentMMR}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground text-sm">Win Rate</span>

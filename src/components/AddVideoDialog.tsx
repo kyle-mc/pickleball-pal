@@ -268,6 +268,22 @@ export const AddVideoDialog = ({
         });
         return;
       }
+
+      // Duplicate video prevention - check if this YouTube URL already exists
+      const { data: existing } = await supabase
+        .from('videos')
+        .select('id, title')
+        .ilike('youtube_url', `%${videoId}%`)
+        .limit(1);
+      
+      if (existing && existing.length > 0) {
+        toast({
+          title: "Duplicate Video",
+          description: `This video has already been added as "${existing[0].title}".`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Use auto-generated title/description for highlights if not provided
