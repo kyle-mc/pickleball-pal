@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayers } from "@/hooks/usePlayers";
+import { useGames } from "@/hooks/useGames";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 interface Video {
   id: string;
@@ -30,10 +33,12 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: playersList = [] } = usePlayers();
+  const { data: allGames = [] } = useGames("all");
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<string>("none");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -41,6 +46,7 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
       setTitle(video.title);
       setDescription(video.description || "");
       setSelectedPlayers(video.players || []);
+      setSelectedGameId(video.game_id || "none");
     }
   }, [video, open]);
 
@@ -52,10 +58,37 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
     );
   };
 
+  // Build list of past games grouped by date
+  const pastGames = useMemo(() => {
+    const gameMap = new Map<string, { date: string; gameNum: number; players: string[]; score: string; id: string }>();
+    
+    allGames.forEach(g => {
+      const key = `${g.date}-${g.game}`;
+      if (!gameMap.has(key)) {
+        gameMap.set(key, {
+          date: g.date,
+          gameNum: g.game,
+          players: [],
+          score: g.score || '',
+          id: key,
+        });
+      }
+      gameMap.get(key)!.players.push(g.player);
+    });
+
+    return [...gameMap.values()]
+      .sort((a, b) => b.date.localeCompare(a.date) || b.gameNum - a.gameNum)
+      .slice(0, 50); // Limit to last 50 games
+  }, [allGames]);
+
   const handleSubmit = async () => {
     if (!video) return;
 
     setIsSubmitting(true);
+
+    const gameId = selectedGameId === "none" ? null : selectedGameId;
+    // Determine video_type based on game assignment
+    const videoType = gameId ? 'highlight' : video.video_type;
 
     const { error } = await supabase
       .from('videos')
@@ -63,6 +96,8 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
         title,
         description: description || null,
         players: selectedPlayers,
+        game_id: gameId && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(gameId) ? gameId : null,
+        video_type: videoType,
       })
       .eq('id', video.id);
 
@@ -84,7 +119,7 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-lg">
+      <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">Edit Video</DialogTitle>
         </DialogHeader>
@@ -110,28 +145,44 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
             />
           </div>
 
-          {/* Only show Featured Players for Game Highlights */}
-          {(video?.video_type === 'highlight' || video?.game_id) && (
-            <div>
-              <Label className="text-muted-foreground">Featured Players</Label>
-              <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto">
-                {playersList.map(player => (
-                  <button
-                    key={player}
-                    type="button"
-                    onClick={() => togglePlayer(player)}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                      selectedPlayers.includes(player)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {player}
-                  </button>
+          {/* Assign to Game */}
+          <div>
+            <Label className="text-muted-foreground">Link to Game</Label>
+            <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+              <SelectTrigger className="bg-muted border-border">
+                <SelectValue placeholder="Select a game..." />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border max-h-48">
+                <SelectItem value="none">No game linked</SelectItem>
+                {pastGames.map(game => (
+                  <SelectItem key={game.id} value={game.id}>
+                    {format(parseISO(game.date), 'MMM d')} - Game {game.gameNum} ({game.players.slice(0, 4).join(', ')}) {game.score}
+                  </SelectItem>
                 ))}
-              </div>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Featured Players */}
+          <div>
+            <Label className="text-muted-foreground">Featured Players</Label>
+            <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto">
+              {playersList.map(player => (
+                <button
+                  key={player}
+                  type="button"
+                  onClick={() => togglePlayer(player)}
+                  className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                    selectedPlayers.includes(player)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {player}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
           <Button 
             onClick={handleSubmit} 

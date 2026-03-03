@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Eye, Heart, Search, Filter, Plus, X, Video, Edit, MessageCircle } from "lucide-react";
+import { Eye, Heart, Search, Filter, Plus, X, Video, Edit, MessageCircle, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVideos, useUserLikes, useToggleLike } from "@/hooks/useVideos";
 import { usePlayers } from "@/hooks/usePlayers";
@@ -17,30 +17,33 @@ import { VideoComments } from "@/components/VideoComments";
 import VideoBulkImport from "@/components/VideoBulkImport";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
-// Helper to extract YouTube video ID - supports regular videos and Shorts
 const getYouTubeVideoId = (url: string): string | null => {
-  // Handle YouTube Shorts format: youtube.com/shorts/VIDEO_ID
   const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
   if (shortsMatch) return shortsMatch[1];
-  
-  // Handle standard YouTube URLs
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
 };
 
-// Helper to get YouTube thumbnail
 const getYouTubeThumbnail = (url: string): string => {
   const videoId = getYouTubeVideoId(url);
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
 };
 
-// Format duration from ISO 8601 or display stored duration
 const formatDuration = (duration: string | null): string | null => {
   if (!duration) return null;
-  // If it's already formatted (e.g., "3:45"), return as-is
   if (/^\d+:\d{2}$/.test(duration)) return duration;
   return duration;
+};
+
+const isDirectUploadUrl = (url: string): boolean => {
+  return !getYouTubeVideoId(url) && (
+    url.endsWith('.mp4') || 
+    url.endsWith('.webm') || 
+    url.endsWith('.mov') || 
+    url.includes('/storage/') ||
+    url.includes('supabase')
+  );
 };
 
 interface VideoCardProps {
@@ -54,7 +57,7 @@ interface VideoCardProps {
 const VideoCard = ({ video, isLiked, onLike, onClick, onEdit }: VideoCardProps) => {
   const videoId = getYouTubeVideoId(video.youtube_url);
   const displayDuration = formatDuration(video.duration);
-  const isDirectUpload = !videoId && video.youtube_url && (video.youtube_url.endsWith('.mp4') || video.youtube_url.includes('/storage/'));
+  const isDirectUpload = isDirectUploadUrl(video.youtube_url);
   
   return (
     <Card 
@@ -93,7 +96,6 @@ const VideoCard = ({ video, isLiked, onLike, onClick, onEdit }: VideoCardProps) 
             Game Clip
           </div>
         )}
-        {/* Edit button */}
         <button
           onClick={onEdit}
           className="absolute top-2 right-2 p-1.5 bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
@@ -163,19 +165,18 @@ const Videos = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [playerFilter, setPlayerFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date");
+  const [sortAsc, setSortAsc] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [isAddHighlightOpen, setIsAddHighlightOpen] = useState(false);
   const [isAddOtherOpen, setIsAddOtherOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<typeof videos[0] | null>(null);
 
-  // Separate videos by type
   const { highlights, otherVideos } = useMemo(() => {
     const highlights = videos.filter(v => v.video_type === 'highlight' || v.game_id);
     const otherVideos = videos.filter(v => v.video_type === 'other' && !v.game_id);
     return { highlights, otherVideos };
   }, [videos]);
 
-  // Get unique players from videos and existing players
   const allPlayers = useMemo(() => {
     const playerSet = new Set<string>();
     videos.forEach(v => v.players?.forEach(p => playerSet.add(p)));
@@ -183,28 +184,32 @@ const Videos = () => {
     return [...playerSet].sort();
   }, [videos, playersList]);
 
-  // Handle auto-play from URL query param and player filter
   useEffect(() => {
     const playId = searchParams.get('play');
     if (playId && videos.length > 0) {
       const videoExists = videos.some(v => v.id === playId);
       if (videoExists) {
         setSelectedVideo(playId);
-        // Clear the query param after setting
         setSearchParams({}, { replace: true });
       }
     }
     
-    // Handle player filter from URL (e.g., from My MMR page "Your Videos" link)
     const playerParam = searchParams.get('player');
     if (playerParam && allPlayers.includes(playerParam)) {
       setPlayerFilter(playerParam);
-      // Clear the query param after setting
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, videos, setSearchParams, allPlayers]);
 
-  // Filter and sort function
+  const handleSortChange = (newSort: string) => {
+    if (newSort === sortBy) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortBy(newSort);
+      setSortAsc(false);
+    }
+  };
+
   const filterAndSort = (videoList: typeof videos) => {
     let filtered = [...videoList];
 
@@ -221,26 +226,26 @@ const Videos = () => {
       filtered = filtered.filter(v => v.players?.includes(playerFilter));
     }
 
+    const dir = sortAsc ? 1 : -1;
     switch (sortBy) {
       case "date":
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        filtered.sort((a, b) => dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
         break;
       case "views":
-        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+        filtered.sort((a, b) => dir * ((a.views || 0) - (b.views || 0)));
         break;
       case "likes":
-        filtered.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+        filtered.sort((a, b) => dir * ((a.likes_count || 0) - (b.likes_count || 0)));
         break;
       case "comments":
-        filtered.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
+        filtered.sort((a, b) => dir * ((a.comments_count || 0) - (b.comments_count || 0)));
         break;
     }
 
     return filtered;
   };
 
-  const filteredHighlights = useMemo(() => filterAndSort(highlights), [highlights, searchQuery, playerFilter, sortBy]);
-  // Other videos should NOT be filtered by player - only search and sort apply
+  const filteredHighlights = useMemo(() => filterAndSort(highlights), [highlights, searchQuery, playerFilter, sortBy, sortAsc]);
   const filteredOther = useMemo(() => {
     let filtered = [...otherVideos];
     if (searchQuery) {
@@ -250,22 +255,23 @@ const Videos = () => {
         v.description?.toLowerCase().includes(query)
       );
     }
+    const dir = sortAsc ? 1 : -1;
     switch (sortBy) {
       case "date":
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        filtered.sort((a, b) => dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
         break;
       case "views":
-        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+        filtered.sort((a, b) => dir * ((a.views || 0) - (b.views || 0)));
         break;
       case "likes":
-        filtered.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+        filtered.sort((a, b) => dir * ((a.likes_count || 0) - (b.likes_count || 0)));
         break;
       case "comments":
-        filtered.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
+        filtered.sort((a, b) => dir * ((a.comments_count || 0) - (b.comments_count || 0)));
         break;
     }
     return filtered;
-  }, [otherVideos, searchQuery, sortBy]);
+  }, [otherVideos, searchQuery, sortBy, sortAsc]);
 
   const handleLike = async (videoId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -281,6 +287,9 @@ const Videos = () => {
 
   const selectedVideoData = videos.find(v => v.id === selectedVideo);
   const selectedVideoYouTubeId = selectedVideoData ? getYouTubeVideoId(selectedVideoData.youtube_url) : null;
+  const selectedVideoIsDirect = selectedVideoData ? isDirectUploadUrl(selectedVideoData.youtube_url) : false;
+
+  const sortLabel = sortBy === "date" ? "Most Recent" : sortBy === "views" ? "Most Viewed" : sortBy === "likes" ? "Most Liked" : "Most Comments";
 
   return (
     <main className="min-h-screen bg-background">
@@ -315,17 +324,28 @@ const Videos = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[150px] bg-card border-border">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="date">Most Recent</SelectItem>
-                <SelectItem value="views">Most Viewed</SelectItem>
-                <SelectItem value="likes">Most Liked</SelectItem>
-                <SelectItem value="comments">Most Comments</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-1">
+              <Select value={sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-[150px] bg-card border-border">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="date">Most Recent</SelectItem>
+                  <SelectItem value="views">Most Viewed</SelectItem>
+                  <SelectItem value="likes">Most Liked</SelectItem>
+                  <SelectItem value="comments">Most Comments</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                onClick={() => setSortAsc(!sortAsc)}
+                title={sortAsc ? "Ascending" : "Descending"}
+              >
+                {sortAsc ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
 
           {/* Highlights Section */}
@@ -429,7 +449,7 @@ const Videos = () => {
                     allowFullScreen
                     className="w-full h-full"
                   />
-                ) : selectedVideoData.youtube_url && (selectedVideoData.youtube_url.endsWith('.mp4') || selectedVideoData.youtube_url.includes('/storage/')) ? (
+                ) : selectedVideoIsDirect ? (
                   <video
                     src={selectedVideoData.youtube_url}
                     controls
@@ -472,7 +492,6 @@ const Videos = () => {
                   </div>
                 </div>
                 
-                {/* Comments Section */}
                 <div className="border-t border-border pt-4">
                   <VideoComments videoId={selectedVideoData.id} />
                 </div>
@@ -482,7 +501,6 @@ const Videos = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Video Dialogs */}
       <AddVideoDialog 
         open={isAddHighlightOpen} 
         onOpenChange={setIsAddHighlightOpen}
@@ -494,7 +512,6 @@ const Videos = () => {
         defaultVideoType="other"
       />
 
-      {/* Edit Video Dialog */}
       <EditVideoDialog
         open={!!editingVideo}
         onOpenChange={(open) => !open && setEditingVideo(null)}

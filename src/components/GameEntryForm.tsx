@@ -34,7 +34,7 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const [losingPlayer1, setLosingPlayer1] = useState("");
   const [losingPlayer2, setLosingPlayer2] = useState("");
   const [winningScore, setWinningScore] = useState("11");
-  const [losingScore, setLosingScore] = useState("");
+  const [losingScore, setLosingScore] = useState("0");
   
   const [newPlayerName, setNewPlayerName] = useState("");
   const [showNewPlayerInput, setShowNewPlayerInput] = useState(false);
@@ -44,6 +44,42 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const currentSeason = getCurrentSeason();
   const dateSeason = getSeasonFromDate(date);
   const isCurrentSeason = dateSeason.id === currentSeason.id;
+
+  // Score validation logic
+  const handleWinningScoreChange = (value: string) => {
+    const wScore = parseInt(value);
+    if (!isNaN(wScore) && wScore > 99) return; // Cap at 99
+    setWinningScore(value);
+    
+    if (!isNaN(wScore) && wScore > 11) {
+      // Auto-set losing score to wScore - 2
+      setLosingScore(String(wScore - 2));
+    }
+  };
+
+  const handleWinningScoreSlider = (v: number) => {
+    if (v > 99) return;
+    setWinningScore(String(v));
+    if (v > 11) {
+      setLosingScore(String(v - 2));
+    }
+  };
+
+  const handleLosingScoreChange = (value: string) => {
+    const lScore = parseInt(value);
+    const wScore = parseInt(winningScore);
+    if (isNaN(lScore)) { setLosingScore(value); return; }
+    
+    // Don't allow losing score within less than 2 of winning score
+    if (!isNaN(wScore) && wScore - lScore < 2) return;
+    setLosingScore(value);
+  };
+
+  const handleLosingScoreSlider = (v: number) => {
+    const wScore = parseInt(winningScore);
+    if (!isNaN(wScore) && wScore - v < 2) return;
+    setLosingScore(String(v));
+  };
 
   const previewVictoryType = winningScore && losingScore 
     ? getVictoryTypeFromScore(parseInt(winningScore), parseInt(losingScore))
@@ -73,7 +109,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
     }
   };
 
-  // Swap winning and losing teams
   const handleSwapTeams = () => {
     const tempP1 = winningPlayer1;
     const tempP2 = winningPlayer2;
@@ -116,7 +151,7 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       setLosingPlayer1(""); 
       setLosingPlayer2("");
       setWinningScore("11"); 
-      setLosingScore(""); 
+      setLosingScore("0"); 
       setIsOpen(false);
       onGameAdded?.();
     } catch (error) {
@@ -142,6 +177,10 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
     }
     if (wScore < 11) {
       toast({ title: "Invalid Scores", description: "Winning score must be at least 11.", variant: "destructive" });
+      return;
+    }
+    if (wScore - lScore < 2) {
+      toast({ title: "Invalid Scores", description: "Winning team must win by at least 2.", variant: "destructive" });
       return;
     }
     if (wScore > 11 && wScore - lScore !== 2) {
@@ -173,7 +212,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className="bg-muted border-border"><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent className="bg-card border-border z-50">
-        {/* Add New Player at top */}
         <SelectItem value="__new__" className="text-primary font-medium border-b border-border">
           <span className="flex items-center gap-1">
             <UserPlus className="w-3 h-3" />
@@ -185,7 +223,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
     </Select>
   );
 
-  // Handle "Add New Player" selection from dropdown
   const handlePlayerChange = (setter: (v: string) => void) => (value: string) => {
     if (value === "__new__") {
       setShowNewPlayerInput(true);
@@ -193,6 +230,13 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       setter(value);
     }
   };
+
+  // Compute max losing score based on winning score
+  const maxLosingScore = useMemo(() => {
+    const wScore = parseInt(winningScore);
+    if (isNaN(wScore)) return 15;
+    return Math.max(0, wScore - 2);
+  }, [winningScore]);
 
   return (
     <>
@@ -243,12 +287,12 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
               <div className="mt-3 space-y-2">
                 <Label className="text-muted-foreground text-sm">Score</Label>
                 <div className="flex items-center gap-3">
-                  <Input type="number" placeholder="11" value={winningScore} onChange={e => setWinningScore(e.target.value)} className="bg-muted border-border w-20" />
+                  <Input type="number" placeholder="11" value={winningScore} onChange={e => handleWinningScoreChange(e.target.value)} className="bg-muted border-border w-20" min={0} max={99} />
                   <Slider
                     value={[parseInt(winningScore) || 11]}
-                    onValueChange={([v]) => setWinningScore(String(v))}
+                    onValueChange={([v]) => handleWinningScoreSlider(v)}
                     min={0}
-                    max={15}
+                    max={25}
                     step={1}
                     className="flex-1"
                   />
@@ -256,7 +300,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
               </div>
             </div>
 
-            {/* Divider between teams */}
             <div className="flex items-center justify-center">
               <div className="flex-1 h-px bg-border" />
               <span className="px-3 text-xs text-muted-foreground">VS</span>
@@ -272,12 +315,12 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
               <div className="mt-3 space-y-2">
                 <Label className="text-muted-foreground text-sm">Score</Label>
                 <div className="flex items-center gap-3">
-                  <Input type="number" placeholder="9" value={losingScore} onChange={e => setLosingScore(e.target.value)} className="bg-muted border-border w-20" />
+                  <Input type="number" value={losingScore} onChange={e => handleLosingScoreChange(e.target.value)} className="bg-muted border-border w-20" min={0} max={maxLosingScore} />
                   <Slider
                     value={[parseInt(losingScore) || 0]}
-                    onValueChange={([v]) => setLosingScore(String(v))}
+                    onValueChange={([v]) => handleLosingScoreSlider(v)}
                     min={0}
-                    max={15}
+                    max={maxLosingScore}
                     step={1}
                     className="flex-1"
                   />

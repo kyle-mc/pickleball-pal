@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Trophy, Calendar, Video, CircleDot } from "lucide-react";
+import { Home, Trophy, Calendar, Video } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Custom pickleball icon component - designed to look like an actual pickleball
@@ -14,7 +14,6 @@ const PickleballIcon = ({ className }: { className?: string }) => (
     className={className}
   >
     <circle cx="12" cy="12" r="10" />
-    {/* Pickleball hole pattern - arranged like a real pickleball */}
     <circle cx="7" cy="8" r="1" fill="currentColor" stroke="none" />
     <circle cx="12" cy="7" r="1" fill="currentColor" stroke="none" />
     <circle cx="17" cy="8" r="1" fill="currentColor" stroke="none" />
@@ -29,11 +28,11 @@ const PickleballIcon = ({ className }: { className?: string }) => (
 );
 
 const NAV_ITEMS = [
-  { path: "/", label: "My MMR", icon: Home },
-  { path: "/standings", label: "Stats", icon: Trophy },
-  { path: "/games", label: "Games", icon: "pickleball" as const },
-  { path: "/videos", label: "Videos", icon: Video },
-  { path: "/schedule", label: "Events", icon: Calendar },
+  { path: "/", label: "My MMR", tourLabel: "mymmr", icon: Home },
+  { path: "/standings", label: "Stats", tourLabel: "stats", icon: Trophy },
+  { path: "/games", label: "Games", tourLabel: "games", icon: "pickleball" as const },
+  { path: "/videos", label: "Videos", tourLabel: "videos", icon: Video },
+  { path: "/schedule", label: "Events", tourLabel: "events", icon: Calendar },
 ];
 
 export const MobileBottomNav = () => {
@@ -52,7 +51,7 @@ export const MobileBottomNav = () => {
             <Link
               key={item.path}
               to={item.path}
-              data-tour={`nav-${item.label.toLowerCase().replace(/\s/g, '')}`}
+              data-tour={`nav-${item.tourLabel}`}
               className={`flex flex-col items-center justify-center flex-1 py-2 transition-colors ${
                 isActive
                   ? "text-primary"

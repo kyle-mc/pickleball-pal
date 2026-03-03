@@ -23,11 +23,12 @@ export const useOnboardingTour = () => {
           },
         },
         {
-          element: "[data-tour='nav-mymmr']",
+          element: isMobile ? "[data-tour='nav-mymmr']" : "[data-tour='nav-my mmr']",
           popover: {
             title: "My MMR 📊",
             description: "This is your personal dashboard. See your stats, upcoming events, and quick links.",
             side: isMobile ? "top" : "bottom",
+            align: "center",
           },
         },
         {
@@ -36,14 +37,16 @@ export const useOnboardingTour = () => {
             title: "Stats & Leaderboard 🏆",
             description: "Compare yourself against other players. View the leaderboard, head-to-head stats, and MMR distribution across ranks.",
             side: isMobile ? "top" : "bottom",
+            align: "center",
           },
         },
         {
           element: "[data-tour='nav-games']",
           popover: {
-            title: "Games 🥒",
+            title: "Games 🏓",
             description: "View all recorded games and how they affected MMR. You can also add new games here — just pick the winning and losing teams and enter the score!",
             side: isMobile ? "top" : "bottom",
+            align: "center",
           },
         },
         {
@@ -52,6 +55,7 @@ export const useOnboardingTour = () => {
             title: "Videos 🎬",
             description: "Watch game highlights and other pickleball content. You can upload YouTube links or record clips directly from your phone (max 60 seconds).",
             side: isMobile ? "top" : "bottom",
+            align: "center",
           },
         },
         {
@@ -60,6 +64,7 @@ export const useOnboardingTour = () => {
             title: "Events 📅",
             description: "See upcoming and past events. RSVP to events, set reminders, and create your own recurring events for the group.",
             side: isMobile ? "top" : "bottom",
+            align: "center",
           },
         },
         {

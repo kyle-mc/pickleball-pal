@@ -55,7 +55,6 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
     return {
       team1: { players: team1, mmrs: team1Mmrs, avgMmr: team1AvgMmr, winProb: team1WinProb },
       team2: { players: team2, mmrs: team2Mmrs, avgMmr: team2AvgMmr, winProb: team2WinProb },
-      // team1 is always the winning team in this context
       victoryPreviews: Object.values(VICTORY_TYPES).map(vt => ({
         type: vt,
         winnerChange: getEstimatedChange(vt, true, true),
@@ -69,7 +68,6 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
   
   const { team1: t1, team2: t2, victoryPreviews, placementStatus } = preview;
 
-  // Determine if percentage text fits in bar (rough heuristic: < 15% width)
   const t1ProbPct = t1.winProb * 100;
   const t2ProbPct = t2.winProb * 100;
   const t1TextOutside = t1ProbPct < 15;
@@ -94,20 +92,19 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
       <CardContent className="space-y-4">
         {/* Win Probability */}
         <div className="space-y-2">
+          {/* Team names - 2 rows */}
           <div className="flex justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              {t1.players.map((p, i) => (
+            <div className="flex flex-col gap-0.5">
+              {t1.players.map((p) => (
                 <div key={p} className="flex items-center gap-1">
                   <PlayerAvatar name={p} avatarUrl={getPlayerAvatar(p, avatarMap)} size="xs" />
                   <span className="text-primary font-medium">{p}</span>
-                  {i === 0 && <span className="mx-1">&</span>}
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-1">
-              {t2.players.map((p, i) => (
+            <div className="flex flex-col gap-0.5 items-end">
+              {t2.players.map((p) => (
                 <div key={p} className="flex items-center gap-1">
-                  {i === 1 && <span className="mx-1">&</span>}
                   <span className="text-destructive font-medium">{p}</span>
                   <PlayerAvatar name={p} avatarUrl={getPlayerAvatar(p, avatarMap)} size="xs" />
                 </div>
@@ -135,26 +132,26 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
                 )}
               </div>
             </div>
-            {/* Leader lines for text that doesn't fit */}
+            {/* Leader lines for text that doesn't fit - pointing to middle of bar */}
             {t1TextOutside && (
-              <div className="absolute top-full mt-1 flex items-start" style={{ left: `${Math.max(t1ProbPct, 2)}%` }}>
+              <div className="absolute top-full mt-1 flex items-start" style={{ left: `${Math.max(t1ProbPct / 2, 2)}%`, transform: 'translateX(-50%)' }}>
                 <div className="flex flex-col items-center">
-                  <div className="w-px h-2 bg-primary" />
+                  <div className="w-px h-3 bg-primary" />
                   <span className="text-[10px] font-medium text-primary">{t1ProbPct.toFixed(0)}%</span>
                 </div>
               </div>
             )}
             {t2TextOutside && (
-              <div className="absolute top-full mt-1 flex items-start" style={{ right: `${Math.max(t2ProbPct, 2)}%` }}>
+              <div className="absolute top-full mt-1 flex items-start" style={{ right: `${Math.max(t2ProbPct / 2, 2)}%`, transform: 'translateX(50%)' }}>
                 <div className="flex flex-col items-center">
-                  <div className="w-px h-2 bg-destructive" />
+                  <div className="w-px h-3 bg-destructive" />
                   <span className="text-[10px] font-medium text-destructive">{t2ProbPct.toFixed(0)}%</span>
                 </div>
               </div>
             )}
           </div>
           
-          <div className="flex justify-between text-xs text-muted-foreground" style={{ marginTop: (t1TextOutside || t2TextOutside) ? '1.25rem' : undefined }}>
+          <div className="flex justify-between text-xs text-muted-foreground" style={{ marginTop: (t1TextOutside || t2TextOutside) ? '1.75rem' : undefined }}>
             <span>Avg MMR: {Math.round(t1.avgMmr)}</span>
             <span>Avg MMR: {Math.round(t2.avgMmr)}</span>
           </div>
@@ -170,17 +167,23 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
           </div>
         )}
         
-        {/* Potential MMR Changes - single table matching current teams */}
+        {/* Potential MMR Changes */}
         <div className="space-y-2">
           <div className="text-xs font-medium text-muted-foreground">
             Potential MMR Changes:
           </div>
           
-          {/* Header with team names */}
+          {/* Header with team names as 2 rows */}
           <div className="grid grid-cols-3 text-xs gap-1">
             <div className="text-muted-foreground">Victory Type</div>
-            <div className="text-center text-primary font-medium">{t1.players.join(' & ')}</div>
-            <div className="text-center text-destructive font-medium">{t2.players.join(' & ')}</div>
+            <div className="text-center">
+              <div className="text-primary font-medium">{t1.players[0]}</div>
+              <div className="text-primary font-medium">{t1.players[1]}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-destructive font-medium">{t2.players[0]}</div>
+              <div className="text-destructive font-medium">{t2.players[1]}</div>
+            </div>
           </div>
           
           <div className="grid gap-1">
