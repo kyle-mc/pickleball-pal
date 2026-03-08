@@ -44,6 +44,14 @@ const Landing = () => {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
+            {/* CTA Button - Top */}
+            <div className="flex items-center justify-center mb-10 animate-slide-up">
+              <Button variant="hero" size="xl" onClick={() => openAuth("signin")} className="text-lg px-12 py-6">
+                <LogIn className="mr-2" size={24} />
+                Login
+              </Button>
+            </div>
+
             {/* Main Headline */}
             <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-foreground mb-6 animate-slide-up animation-delay-200 leading-tight">
               YOUR GAME.
@@ -58,7 +66,7 @@ const Landing = () => {
               Track your MMR, compete with your group, and watch your pickleball game improve over time. Private, secure, and built for serious players.
             </p>
 
-            {/* CTA Button */}
+            {/* CTA Button - Bottom */}
             <div className="flex items-center justify-center animate-slide-up animation-delay-600">
               <Button variant="hero" size="xl" onClick={() => openAuth("signin")} className="text-lg px-12 py-6">
                 <LogIn className="mr-2" size={24} />
