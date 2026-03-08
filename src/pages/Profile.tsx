@@ -18,10 +18,6 @@ import {
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
-import { Switch } from "@/components/ui/switch";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { useGroupContext } from "@/contexts/GroupContext";
-import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface ProfileData {
   display_name: string | null;
