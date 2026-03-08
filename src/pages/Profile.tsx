@@ -57,9 +57,6 @@ const US_STATES = [
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = useIsAdmin();
-  const { currentGroup } = useGroupContext();
-  const { placementEnabled } = usePlacementEnabled();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
