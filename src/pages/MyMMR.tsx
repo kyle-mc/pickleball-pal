@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, Video, User, ChevronRight, Trophy, Target, Gamepad2, Plus, Eye, EyeOff } from "lucide-react";
+import { Loader2, Calendar, Video, User, ChevronRight, Trophy, Target, Gamepad2, Plus } from "lucide-react";
 import { useGames } from "@/hooks/useGames";
 import { useCurrentUserPlayer } from "@/hooks/useCurrentUserPlayer";
 import { useEvents, useEventRsvps } from "@/hooks/useEvents";
@@ -20,6 +20,8 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AddVideoDialog } from "@/components/AddVideoDialog";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
+import { RankChangePopup } from "@/components/RankChangePopup";
+import { RanksChartDialog } from "@/components/RanksChartDialog";
 
 const MyMMR = () => {
   const { user } = useAuth();
@@ -27,7 +29,6 @@ const MyMMR = () => {
   const currentSeason = getCurrentSeason();
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
-  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
   const { placementEnabled } = usePlacementEnabled();
   const { data: allGames = [], isLoading: gamesLoading } = useGames(selectedSeason);
   const { data: userPlayer, isLoading: playerLoading } = useCurrentUserPlayer();
@@ -156,24 +157,11 @@ const MyMMR = () => {
               <RankProgressBar 
                 mmr={stats.currentMMR} 
                 gamesPlayed={stats.gamesPlayed} 
-                hideMmr={isPlacement && !showPlacementMMR} 
+                hideMmr={isPlacement} 
               />
-              {isPlacement && (
-                <div className="mt-4 flex justify-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPlacementMMR(!showPlacementMMR)}
-                    className="text-muted-foreground text-xs"
-                  >
-                    {showPlacementMMR ? (
-                      <><EyeOff className="w-3 h-3 mr-1" /> Hide MMR</>
-                    ) : (
-                      <><Eye className="w-3 h-3 mr-1" /> Peek at MMR</>
-                    )}
-                  </Button>
-                </div>
-              )}
+              <div className="mt-4 flex justify-center">
+                <RanksChartDialog currentMmr={stats.currentMMR} />
+              </div>
             </CardContent>
           </Card>
 
@@ -204,23 +192,23 @@ const MyMMR = () => {
 
           <div className="grid grid-cols-3 gap-4 mb-8">
             <Card className="bg-card/50 border-border">
-              <CardContent className="pt-4 pb-4 text-center">
+              <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
                 <div className="text-3xl font-display text-foreground">
-                  {isPlacement && !showPlacementMMR ? '???' : stats.currentMMR}
+                  {isPlacement ? '???' : stats.currentMMR}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">MMR</div>
               </CardContent>
             </Card>
             
             <Card className="bg-card/50 border-border">
-              <CardContent className="pt-4 pb-4 text-center">
+              <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
                 <div className="text-3xl font-display text-foreground">{stats.winRate}%</div>
                 <div className="text-xs text-muted-foreground mt-1">Win Rate</div>
               </CardContent>
             </Card>
             
             <Card className="bg-card/50 border-border">
-              <CardContent className="pt-4 pb-4 text-center">
+              <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
                 <div className="text-3xl font-display text-foreground">{stats.gamesPlayed}</div>
                 <div className="text-xs text-muted-foreground mt-1">Games</div>
               </CardContent>
@@ -358,6 +346,15 @@ const MyMMR = () => {
         open={isAddVideoOpen} 
         onOpenChange={setIsAddVideoOpen}
       />
+
+      {/* Rank change detection */}
+      {playerName && stats.gamesPlayed > 0 && (
+        <RankChangePopup 
+          playerName={playerName} 
+          currentMmr={stats.currentMMR} 
+          gamesPlayed={stats.gamesPlayed} 
+        />
+      )}
     </main>
   );
 };

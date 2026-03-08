@@ -21,7 +21,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, Eye, EyeOff } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
@@ -48,7 +48,6 @@ const Games = () => {
   // State for add video dialog
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
-  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
   const { placementEnabled } = usePlacementEnabled();
 
   // Handle date filter from URL params (from Events page)
@@ -251,16 +250,6 @@ const Games = () => {
             {sortDirection === "desc" ? "Newest First" : "Oldest First"}
           </button>
           
-          {/* Peek at MMR for placement players */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowPlacementMMR(!showPlacementMMR)}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            {showPlacementMMR ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-            {showPlacementMMR ? "Hide Placement MMR" : "Peek at MMR"}
-          </Button>
         </div>
 
         {/* Games by Date */}
@@ -376,10 +365,10 @@ const Games = () => {
                                       </div>
                                     </TableCell>
                                     <TableCell className="text-right text-muted-foreground whitespace-nowrap">
-                                      {isUnranked && !showPlacementMMR ? '???' : player.mmrBefore.toLocaleString()}
+                                      {isUnranked ? '???' : player.mmrBefore.toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-right text-foreground font-medium whitespace-nowrap">
-                                      {isUnranked && !showPlacementMMR ? '???' : player.mmrAfter.toLocaleString()}
+                                      {isUnranked ? '???' : player.mmrAfter.toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-right whitespace-nowrap">
                                       <MmrChangeTooltip
@@ -391,7 +380,7 @@ const Games = () => {
                                         <span className={`font-medium cursor-help ${
                                           player.mmrChange > 0 ? 'text-primary' : 'text-destructive'
                                         }`}>
-                                          {isUnranked && !showPlacementMMR ? '???' : (
+                                          {isUnranked ? '???' : (
                                             <>{player.mmrChange > 0 ? '▲' : '▼'}{Math.abs(player.mmrChange)}</>
                                           )}
                                         </span>

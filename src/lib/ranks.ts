@@ -1,5 +1,5 @@
 // Rocket League-style rank system
-// Rank thresholds based on MMR
+// 7 main ranks × 3 divisions + Supersonic Legend = 22 ranks
 
 export interface Rank {
   name: string;
@@ -14,22 +14,19 @@ export interface Rank {
 // Rank definitions with Rocket League-inspired names
 export const RANKS: Rank[] = [
   // Bronze (0-499)
-  { name: 'Bronze I', tier: 'bronze', division: 1, minMmr: 0, maxMmr: 124, color: '#CD7F32', gradient: 'from-amber-700 to-amber-900' },
-  { name: 'Bronze II', tier: 'bronze', division: 2, minMmr: 125, maxMmr: 249, color: '#CD7F32', gradient: 'from-amber-700 to-amber-900' },
-  { name: 'Bronze III', tier: 'bronze', division: 3, minMmr: 250, maxMmr: 374, color: '#CD7F32', gradient: 'from-amber-700 to-amber-900' },
-  { name: 'Bronze IV', tier: 'bronze', division: 4, minMmr: 375, maxMmr: 499, color: '#CD7F32', gradient: 'from-amber-700 to-amber-900' },
+  { name: 'Bronze I', tier: 'bronze', division: 1, minMmr: 0, maxMmr: 166, color: '#CD7F32', gradient: 'from-amber-700 to-amber-900' },
+  { name: 'Bronze II', tier: 'bronze', division: 2, minMmr: 167, maxMmr: 333, color: '#CD7F32', gradient: 'from-amber-700 to-amber-900' },
+  { name: 'Bronze III', tier: 'bronze', division: 3, minMmr: 334, maxMmr: 499, color: '#CD7F32', gradient: 'from-amber-700 to-amber-900' },
   
   // Silver (500-999)
-  { name: 'Silver I', tier: 'silver', division: 1, minMmr: 500, maxMmr: 624, color: '#C0C0C0', gradient: 'from-gray-400 to-gray-600' },
-  { name: 'Silver II', tier: 'silver', division: 2, minMmr: 625, maxMmr: 749, color: '#C0C0C0', gradient: 'from-gray-400 to-gray-600' },
-  { name: 'Silver III', tier: 'silver', division: 3, minMmr: 750, maxMmr: 874, color: '#C0C0C0', gradient: 'from-gray-400 to-gray-600' },
-  { name: 'Silver IV', tier: 'silver', division: 4, minMmr: 875, maxMmr: 999, color: '#C0C0C0', gradient: 'from-gray-400 to-gray-600' },
+  { name: 'Silver I', tier: 'silver', division: 1, minMmr: 500, maxMmr: 666, color: '#C0C0C0', gradient: 'from-gray-400 to-gray-600' },
+  { name: 'Silver II', tier: 'silver', division: 2, minMmr: 667, maxMmr: 833, color: '#C0C0C0', gradient: 'from-gray-400 to-gray-600' },
+  { name: 'Silver III', tier: 'silver', division: 3, minMmr: 834, maxMmr: 999, color: '#C0C0C0', gradient: 'from-gray-400 to-gray-600' },
   
   // Gold (1000-1499)
-  { name: 'Gold I', tier: 'gold', division: 1, minMmr: 1000, maxMmr: 1124, color: '#FFD700', gradient: 'from-yellow-400 to-yellow-600' },
-  { name: 'Gold II', tier: 'gold', division: 2, minMmr: 1125, maxMmr: 1249, color: '#FFD700', gradient: 'from-yellow-400 to-yellow-600' },
-  { name: 'Gold III', tier: 'gold', division: 3, minMmr: 1250, maxMmr: 1374, color: '#FFD700', gradient: 'from-yellow-400 to-yellow-600' },
-  { name: 'Gold IV', tier: 'gold', division: 4, minMmr: 1375, maxMmr: 1499, color: '#FFD700', gradient: 'from-yellow-400 to-yellow-600' },
+  { name: 'Gold I', tier: 'gold', division: 1, minMmr: 1000, maxMmr: 1166, color: '#FFD700', gradient: 'from-yellow-400 to-yellow-600' },
+  { name: 'Gold II', tier: 'gold', division: 2, minMmr: 1167, maxMmr: 1333, color: '#FFD700', gradient: 'from-yellow-400 to-yellow-600' },
+  { name: 'Gold III', tier: 'gold', division: 3, minMmr: 1334, maxMmr: 1499, color: '#FFD700', gradient: 'from-yellow-400 to-yellow-600' },
   
   // Platinum (1500-1799)
   { name: 'Platinum I', tier: 'platinum', division: 1, minMmr: 1500, maxMmr: 1599, color: '#4DD0E1', gradient: 'from-cyan-400 to-cyan-600' },
@@ -64,6 +61,11 @@ export function getNextRank(currentRank: Rank): Rank | null {
   return currentIndex < RANKS.length - 1 ? RANKS[currentIndex + 1] : null;
 }
 
+export function getPreviousRank(currentRank: Rank): Rank | null {
+  const currentIndex = RANKS.findIndex(r => r.name === currentRank.name);
+  return currentIndex > 0 ? RANKS[currentIndex - 1] : null;
+}
+
 export function getMmrProgressToNextRank(mmr: number, rank: Rank): number {
   const rangeSize = rank.maxMmr - rank.minMmr + 1;
   const progress = mmr - rank.minMmr;
@@ -92,3 +94,25 @@ export const TIER_BG_COLORS: Record<string, string> = {
   grand_champion: 'bg-red-500/20',
   supersonic_legend: 'bg-gradient-to-r from-amber-300/20 via-yellow-200/20 to-amber-400/20',
 };
+
+export const TIER_ICONS: Record<string, string> = {
+  bronze: "🥉",
+  silver: "🥈",
+  gold: "🥇",
+  platinum: "💎",
+  diamond: "💠",
+  champion: "🏆",
+  grand_champion: "👑",
+  supersonic_legend: "⚡",
+};
+
+export const TIERS = [
+  { tier: "bronze", label: "Bronze", minMmr: 0, maxMmr: 499 },
+  { tier: "silver", label: "Silver", minMmr: 500, maxMmr: 999 },
+  { tier: "gold", label: "Gold", minMmr: 1000, maxMmr: 1499 },
+  { tier: "platinum", label: "Platinum", minMmr: 1500, maxMmr: 1799 },
+  { tier: "diamond", label: "Diamond", minMmr: 1800, maxMmr: 2099 },
+  { tier: "champion", label: "Champion", minMmr: 2100, maxMmr: 2399 },
+  { tier: "grand_champion", label: "GC", minMmr: 2400, maxMmr: 2699 },
+  { tier: "supersonic_legend", label: "SSL", minMmr: 2700, maxMmr: 3500 },
+];
