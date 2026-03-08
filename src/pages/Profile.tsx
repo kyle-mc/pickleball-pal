@@ -64,27 +64,6 @@ const Profile = () => {
   const [groups, setGroups] = useState<GroupMembership[]>([]);
   const [newPaddle, setNewPaddle] = useState("");
   const [newAward, setNewAward] = useState("");
-  const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
-
-  // Sync local state when DB value loads
-  useEffect(() => {
-    setLocalPlacementEnabled(placementEnabled);
-  }, [placementEnabled]);
-
-  const handleTogglePlacement = async (enabled: boolean) => {
-    if (!currentGroup?.id) return;
-    setLocalPlacementEnabled(enabled);
-    const { error } = await supabase
-      .from('groups')
-      .update({ placement_enabled: enabled } as any)
-      .eq('id', currentGroup.id);
-    if (error) {
-      setLocalPlacementEnabled(!enabled);
-      toast({ title: "Error", description: "Failed to update setting", variant: "destructive" });
-    } else {
-      toast({ title: enabled ? "Placement system enabled" : "Placement system disabled" });
-    }
-  };
 
   useEffect(() => {
     const fetchProfile = async () => {
