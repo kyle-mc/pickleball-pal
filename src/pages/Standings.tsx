@@ -44,6 +44,7 @@ const Standings = () => {
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
+  const { placementEnabled } = usePlacementEnabled();
 
   const [h2hPlayer1, setH2hPlayer1] = useState<string>("");
   const [h2hPlayer2, setH2hPlayer2] = useState<string>("");
