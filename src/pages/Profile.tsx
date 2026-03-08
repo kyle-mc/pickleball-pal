@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, User, MapPin, Award, Link as LinkIcon, 
-  Plus, X, Trophy, Calendar, Users, Shield
+  Plus, X, Trophy, Calendar, Users
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
