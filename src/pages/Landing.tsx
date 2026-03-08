@@ -23,14 +23,10 @@ const Landing = () => {
               <img src={logo} alt="PicklePlay Logo" className="w-10 h-10 rounded-full object-cover" />
               <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
             </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => openAuth("signin")}>
-                Sign In
-              </Button>
-              <Button variant="default" onClick={() => openAuth("signup")}>
-                Get Started
-              </Button>
-            </div>
+            <Button variant="default" size="lg" onClick={() => openAuth("signin")} className="text-base font-semibold px-8">
+              <LogIn className="mr-2" size={20} />
+              Login
+            </Button>
           </div>
         </div>
       </nav>
