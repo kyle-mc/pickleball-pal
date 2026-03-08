@@ -20,6 +20,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AddVideoDialog } from "@/components/AddVideoDialog";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 const MyMMR = () => {
   const { user } = useAuth();

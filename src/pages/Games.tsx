@@ -347,7 +347,7 @@ const Games = () => {
                             </TableHeader>
                             <TableBody>
                               {[...winners, ...losers].map((player, idx) => {
-                                const isUnranked = playerGamesCount[player.player] < 10;
+                                const isUnranked = placementEnabled && playerGamesCount[player.player] < 10;
                                 
                                 return (
                                   <TableRow key={idx} className="border-border">
