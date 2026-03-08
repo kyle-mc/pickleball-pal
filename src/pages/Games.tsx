@@ -380,7 +380,7 @@ const Games = () => {
                                         <span className={`font-medium cursor-help ${
                                           player.mmrChange > 0 ? 'text-primary' : 'text-destructive'
                                         }`}>
-                                          {isUnranked && !showPlacementMMR ? '???' : (
+                                          {isUnranked ? '???' : (
                                             <>{player.mmrChange > 0 ? '▲' : '▼'}{Math.abs(player.mmrChange)}</>
                                           )}
                                         </span>
