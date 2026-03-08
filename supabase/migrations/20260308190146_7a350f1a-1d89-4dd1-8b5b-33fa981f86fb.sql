@@ -1,0 +1,1 @@
+ALTER TABLE public.groups ADD COLUMN placement_enabled boolean NOT NULL DEFAULT false;
