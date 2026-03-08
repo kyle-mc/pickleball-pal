@@ -14,10 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, User, MapPin, Award, Link as LinkIcon, 
-  Plus, X, Trophy, Calendar, Users
+  Plus, X, Trophy, Calendar, Users, Shield
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { Switch } from "@/components/ui/switch";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useGroupContext } from "@/contexts/GroupContext";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface ProfileData {
   display_name: string | null;
