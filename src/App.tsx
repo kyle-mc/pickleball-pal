@@ -20,6 +20,7 @@ import Standings from "./pages/Standings";
 import Schedule from "./pages/Schedule";
 import Videos from "./pages/Videos";
 import Games from "./pages/Games";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
