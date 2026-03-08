@@ -57,10 +57,12 @@ const Chat = () => {
                 <Button
                   size="lg"
                   className="gap-2"
-                  onClick={() => window.open(groupmeUrl, "_blank")}
+                  asChild
                 >
-                  <ExternalLink className="w-5 h-5" />
-                  Open GroupMe Chat
+                  <a href={groupmeUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-5 h-5" />
+                    Open GroupMe Chat
+                  </a>
                 </Button>
               </CardContent>
             </Card>
