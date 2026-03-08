@@ -497,32 +497,6 @@ const Profile = () => {
               </CardContent>
             </Card>
 
-            {/* Admin Settings */}
-            {isAdmin && (
-              <Card className="bg-card/50 border-border border-primary/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-primary" />
-                    Admin Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-sm font-medium">Placement System</Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        When enabled, players with fewer than 10 games will have their MMR hidden until they complete placement.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={localPlacementEnabled}
-                      onCheckedChange={handleTogglePlacement}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Groups */}
             <Card className="bg-card/50 border-border">
               <CardHeader>
