@@ -1,7 +1,4 @@
 project_id = "gvcqffobldghuvexmrij"
 
-[functions.migrate-games]
-verify_jwt = false
-
 [functions.calculate-mmr]
 verify_jwt = false
