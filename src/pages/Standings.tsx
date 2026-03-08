@@ -132,7 +132,7 @@ const Standings = () => {
       }
       return sortDir === "asc" ? comparison : -comparison;
     });
-  }, [allGames, sortField, sortDir, currentSeason.id]);
+  }, [allGames, sortField, sortDir, currentSeason.id, placementEnabled]);
 
   const anyInPlacement = players.some(p => p.isPlacement);
 
