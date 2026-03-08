@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { getCurrentSeason } from "@/lib/seasons";
 import { Loader2 } from "lucide-react";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
@@ -25,6 +26,7 @@ interface PlayerComparisonViewProps {
 const PlayerComparisonView = ({ selectedPlayers, showPlacementMMR = false }: PlayerComparisonViewProps) => {
   const { data: allGames = [], isLoading } = useGames();
   const currentSeason = getCurrentSeason();
+  const { placementEnabled } = usePlacementEnabled();
 
   const playerStats = useMemo(() => {
     return selectedPlayers.map(player => {
@@ -41,7 +43,7 @@ const PlayerComparisonView = ({ selectedPlayers, showPlacementMMR = false }: Pla
       const losses = games.filter(g => g.result === 'Loser').length;
       const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
       const seasonGames = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
-      const isPlacement = seasonGames < 10;
+      const isPlacement = placementEnabled && seasonGames < 10;
       
       return {
         player,

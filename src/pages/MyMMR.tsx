@@ -19,6 +19,7 @@ import GameEntryForm from "@/components/GameEntryForm";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AddVideoDialog } from "@/components/AddVideoDialog";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 const MyMMR = () => {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ const MyMMR = () => {
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
+  const { placementEnabled } = usePlacementEnabled();
   const { data: allGames = [], isLoading: gamesLoading } = useGames(selectedSeason);
   const { data: userPlayer, isLoading: playerLoading } = useCurrentUserPlayer();
   const { events, loading: eventsLoading } = useEvents();
@@ -58,7 +60,7 @@ const MyMMR = () => {
     return { currentMMR, winRate, gamesPlayed: playerGames.length };
   }, [playerGames]);
 
-  const isPlacement = stats.gamesPlayed < 10;
+  const isPlacement = placementEnabled && stats.gamesPlayed < 10;
 
   const upcomingRsvpEvents = useMemo(() => {
     const today = new Date();

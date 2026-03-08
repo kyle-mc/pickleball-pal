@@ -8,6 +8,7 @@ import { VICTORY_TYPES, VictoryType } from "@/lib/victoryTypes";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ArrowLeftRight, BarChart3 } from "lucide-react";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface MatchPreviewProps {
   team1: string[];
@@ -19,6 +20,7 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
   const currentSeason = getCurrentSeason();
   const { data: allGames = [] } = useGames("all");
   const { data: avatarMap } = usePlayerAvatars();
+  const { placementEnabled } = usePlacementEnabled();
   
   const preview = useMemo(() => {
     if (team1.length !== 2 || team2.length !== 2) return null;
@@ -49,7 +51,7 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
     const placementStatus = [...team1, ...team2].map(p => ({
       name: p,
       gamesPlayed: getPlayerSeasonGamesCount(p, allGames, currentSeason.id),
-      isPlacement: getPlayerSeasonGamesCount(p, allGames, currentSeason.id) < 10,
+      isPlacement: placementEnabled && getPlayerSeasonGamesCount(p, allGames, currentSeason.id) < 10,
     }));
     
     return {

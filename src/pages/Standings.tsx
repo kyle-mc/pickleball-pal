@@ -17,6 +17,7 @@ import PlayerComparisonView from "@/components/PlayerComparisonView";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints";
 type SortDir = "asc" | "desc";
@@ -43,6 +44,7 @@ const Standings = () => {
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
+  const { placementEnabled } = usePlacementEnabled();
 
   const [h2hPlayer1, setH2hPlayer1] = useState<string>("");
   const [h2hPlayer2, setH2hPlayer2] = useState<string>("");
@@ -98,7 +100,7 @@ const Standings = () => {
         gamesPlayed,
         avgPointsScored,
         winPct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0,
-        isPlacement: seasonGames < 10,
+        isPlacement: placementEnabled && seasonGames < 10,
       };
     });
     
@@ -130,7 +132,7 @@ const Standings = () => {
       }
       return sortDir === "asc" ? comparison : -comparison;
     });
-  }, [allGames, sortField, sortDir, currentSeason.id]);
+  }, [allGames, sortField, sortDir, currentSeason.id, placementEnabled]);
 
   const anyInPlacement = players.some(p => p.isPlacement);
 

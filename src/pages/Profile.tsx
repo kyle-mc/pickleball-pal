@@ -14,10 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, User, MapPin, Award, Link as LinkIcon, 
-  Plus, X, Trophy, Calendar, Users
+  Plus, X, Trophy, Calendar, Users, Shield
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { Switch } from "@/components/ui/switch";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useGroupContext } from "@/contexts/GroupContext";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface ProfileData {
   display_name: string | null;
@@ -57,6 +61,9 @@ const US_STATES = [
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isAdmin = useIsAdmin();
+  const { currentGroup } = useGroupContext();
+  const { placementEnabled } = usePlacementEnabled();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,6 +71,27 @@ const Profile = () => {
   const [groups, setGroups] = useState<GroupMembership[]>([]);
   const [newPaddle, setNewPaddle] = useState("");
   const [newAward, setNewAward] = useState("");
+  const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
+
+  // Sync local state when DB value loads
+  useEffect(() => {
+    setLocalPlacementEnabled(placementEnabled);
+  }, [placementEnabled]);
+
+  const handleTogglePlacement = async (enabled: boolean) => {
+    if (!currentGroup?.id) return;
+    setLocalPlacementEnabled(enabled);
+    const { error } = await supabase
+      .from('groups')
+      .update({ placement_enabled: enabled } as any)
+      .eq('id', currentGroup.id);
+    if (error) {
+      setLocalPlacementEnabled(!enabled);
+      toast({ title: "Error", description: "Failed to update setting", variant: "destructive" });
+    } else {
+      toast({ title: enabled ? "Placement system enabled" : "Placement system disabled" });
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -496,6 +524,32 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Admin Settings */}
+            {isAdmin && (
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-primary" />
+                    Admin Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Placement System</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        When enabled, players with fewer than 10 games will have their MMR hidden until they complete placement.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={localPlacementEnabled}
+                      onCheckedChange={handleTogglePlacement}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Groups */}
             <Card className="bg-card/50 border-border">

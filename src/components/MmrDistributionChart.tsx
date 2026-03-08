@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label } from "recharts";
 import { RANKS, getRankFromMmr, TIER_COLORS } from "@/lib/ranks";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface PlayerStat {
   name: string;
@@ -26,6 +27,7 @@ const TIER_HEX_COLORS: Record<string, string> = {
 };
 
 export function MmrDistributionChart({ players, highlightedPlayer }: MmrDistributionChartProps) {
+  const { placementEnabled } = usePlacementEnabled();
   const chartData = useMemo(() => {
     // Create buckets of 100 MMR each from 1000 to 3500
     const buckets: Record<number, { count: number; players: string[] }> = {};
@@ -63,7 +65,7 @@ export function MmrDistributionChart({ players, highlightedPlayer }: MmrDistribu
   const highlightedPlayerMmr = useMemo(() => {
     if (!highlightedPlayer || highlightedPlayer === "all") return null;
     const player = players.find(p => p.name === highlightedPlayer);
-    if (!player || player.gamesPlayed < 10) return null;
+    if (!player || (placementEnabled && player.gamesPlayed < 10)) return null;
     return player.mmr;
   }, [players, highlightedPlayer]);
   

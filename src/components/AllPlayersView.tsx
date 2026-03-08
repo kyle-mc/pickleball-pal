@@ -7,6 +7,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { getCurrentSeason } from "@/lib/seasons";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
@@ -24,7 +25,7 @@ const AllPlayersView = () => {
   const { data: allGames = [], isLoading } = useGames();
   const currentSeason = getCurrentSeason();
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
-
+  const { placementEnabled } = usePlacementEnabled();
   const playerStats = useMemo(() => {
     const uniquePlayers = [...new Set(allGames.map(g => g.player))];
     
@@ -42,7 +43,7 @@ const AllPlayersView = () => {
       const losses = games.filter(g => g.result === 'Loser').length;
       const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
       const gamesPlayed = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
-      const isPlacement = gamesPlayed < 10;
+      const isPlacement = placementEnabled && gamesPlayed < 10;
       
       return {
         player,
@@ -54,7 +55,7 @@ const AllPlayersView = () => {
         isPlacement,
       };
     }).sort((a, b) => b.currentMMR - a.currentMMR);
-  }, [allGames, currentSeason.id]);
+  }, [allGames, currentSeason.id, placementEnabled]);
 
   const anyInPlacement = playerStats.some(p => p.isPlacement);
 

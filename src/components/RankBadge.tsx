@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getRankFromMmr, getMmrProgressToNextRank, getNextRank, TIER_COLORS, TIER_BG_COLORS, Rank } from "@/lib/ranks";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface RankBadgeProps {
   mmr: number;
@@ -43,7 +44,8 @@ export function RankBadge({
   showProgress = false,
   animate = false,
 }: RankBadgeProps) {
-  const isUnranked = gamesPlayed < 10;
+  const { placementEnabled } = usePlacementEnabled();
+  const isUnranked = placementEnabled && gamesPlayed < 10;
   const rank = getRankFromMmr(mmr);
   const nextRank = getNextRank(rank);
   const progress = getMmrProgressToNextRank(mmr, rank);

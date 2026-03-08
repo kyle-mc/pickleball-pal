@@ -23,6 +23,7 @@ import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
 import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, Eye, EyeOff } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 type SortDirection = "asc" | "desc";
 
@@ -48,6 +49,7 @@ const Games = () => {
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
+  const { placementEnabled } = usePlacementEnabled();
 
   // Handle date filter from URL params (from Events page)
   useEffect(() => {
@@ -345,7 +347,7 @@ const Games = () => {
                             </TableHeader>
                             <TableBody>
                               {[...winners, ...losers].map((player, idx) => {
-                                const isUnranked = playerGamesCount[player.player] < 10;
+                                const isUnranked = placementEnabled && playerGamesCount[player.player] < 10;
                                 
                                 return (
                                   <TableRow key={idx} className="border-border">
