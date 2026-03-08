@@ -1,5 +1,6 @@
 import { RANKS, getRankFromMmr, TIER_COLORS, TIER_BG_COLORS } from "@/lib/ranks";
 import { cn } from "@/lib/utils";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface RankProgressBarProps {
   mmr: number;
