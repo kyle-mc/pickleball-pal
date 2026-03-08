@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { getCurrentSeason } from "@/lib/seasons";
 import { Loader2 } from "lucide-react";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
