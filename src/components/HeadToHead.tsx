@@ -32,6 +32,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
   const { data: players = [] } = usePlayers();
   const currentSeason = getCurrentSeason();
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
+  const { placementEnabled } = usePlacementEnabled();
 
   const matchupStats = useMemo(() => {
     if (!player1 || !player2 || player1 === player2) {

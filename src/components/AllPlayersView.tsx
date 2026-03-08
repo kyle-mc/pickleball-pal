@@ -43,7 +43,7 @@ const AllPlayersView = () => {
       const losses = games.filter(g => g.result === 'Loser').length;
       const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
       const gamesPlayed = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
-      const isPlacement = gamesPlayed < 10;
+      const isPlacement = placementEnabled && gamesPlayed < 10;
       
       return {
         player,
