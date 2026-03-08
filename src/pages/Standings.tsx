@@ -17,6 +17,7 @@ import PlayerComparisonView from "@/components/PlayerComparisonView";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints";
 type SortDir = "asc" | "desc";
