@@ -48,12 +48,6 @@ const Landing = () => {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border mb-8 animate-slide-up">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-sm text-muted-foreground">Private group-based pickleball tracking</span>
-            </div>
-
             {/* Main Headline */}
             <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-foreground mb-6 animate-slide-up animation-delay-200 leading-tight">
               YOUR GAME.
@@ -68,15 +62,11 @@ const Landing = () => {
               Track your MMR, compete with your group, and watch your pickleball game improve over time. Private, secure, and built for serious players.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up animation-delay-600">
-              <Button variant="hero" size="xl" onClick={() => openAuth("signup")}>
-                Create Your Group
-                <Users className="ml-2" size={20} />
-              </Button>
-              <Button variant="heroOutline" size="xl" onClick={() => openAuth("signin")}>
-                Join Existing Group
-                <ArrowRight className="ml-2" size={20} />
+            {/* CTA Button */}
+            <div className="flex items-center justify-center animate-slide-up animation-delay-600">
+              <Button variant="hero" size="xl" onClick={() => openAuth("signin")} className="text-lg px-12 py-6">
+                <LogIn className="mr-2" size={24} />
+                Login
               </Button>
             </div>
           </div>
