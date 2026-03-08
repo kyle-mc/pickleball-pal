@@ -168,7 +168,7 @@ export function AllPlayersRankChart({ players, highlightedPlayer, showPlacementM
             {sortedPlayers.map((player, index) => {
               const color = PLAYER_COLORS[index % PLAYER_COLORS.length];
               const isHighlighted = highlightedPlayer === player.name;
-              const isUnranked = player.gamesPlayed < 10;
+              const isUnranked = (player.isPlacement) && player.gamesPlayed < 10;
               
               return (
                 <div 

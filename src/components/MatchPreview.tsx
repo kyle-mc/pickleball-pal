@@ -50,7 +50,7 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
     const placementStatus = [...team1, ...team2].map(p => ({
       name: p,
       gamesPlayed: getPlayerSeasonGamesCount(p, allGames, currentSeason.id),
-      isPlacement: getPlayerSeasonGamesCount(p, allGames, currentSeason.id) < 10,
+      isPlacement: placementEnabled && getPlayerSeasonGamesCount(p, allGames, currentSeason.id) < 10,
     }));
     
     return {

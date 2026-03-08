@@ -42,7 +42,7 @@ const PlayerComparisonView = ({ selectedPlayers, showPlacementMMR = false }: Pla
       const losses = games.filter(g => g.result === 'Loser').length;
       const winRate = games.length > 0 ? Math.round((wins / games.length) * 100) : 0;
       const seasonGames = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
-      const isPlacement = seasonGames < 10;
+      const isPlacement = placementEnabled && seasonGames < 10;
       
       return {
         player,
