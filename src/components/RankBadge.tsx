@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { getRankFromMmr, getMmrProgressToNextRank, getNextRank, TIER_COLORS, TIER_BG_COLORS, Rank } from "@/lib/ranks";
+import { getRankFromMmr, getMmrProgressToNextRank, getNextRank, TIER_COLORS, TIER_BG_COLORS, TIER_ICONS } from "@/lib/ranks";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
@@ -23,17 +22,6 @@ const ICON_SIZES = {
   sm: "text-lg",
   md: "text-2xl",
   lg: "text-3xl",
-};
-
-const TIER_ICONS: Record<string, string> = {
-  bronze: "🥉",
-  silver: "🥈",
-  gold: "🥇",
-  platinum: "💎",
-  diamond: "💠",
-  champion: "🏆",
-  grand_champion: "👑",
-  supersonic_legend: "⚡",
 };
 
 export function RankBadge({ 
@@ -97,93 +85,6 @@ export function RankBadge({
           </div>
           <Progress value={progress} className="h-2" />
         </div>
-      )}
-    </div>
-  );
-}
-
-interface PlacementRevealProps {
-  mmr: number;
-  onComplete?: () => void;
-}
-
-export function PlacementReveal({ mmr, onComplete }: PlacementRevealProps) {
-  const [revealed, setRevealed] = useState(false);
-  const [displayedMmr, setDisplayedMmr] = useState(2000);
-  const rank = getRankFromMmr(mmr);
-
-  useEffect(() => {
-    // Start the reveal animation after a delay
-    const revealTimeout = setTimeout(() => {
-      setRevealed(true);
-      
-      // Animate MMR count-up
-      const startMmr = 2000;
-      const duration = 2000;
-      const startTime = Date.now();
-      
-      const animateMmr = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
-        
-        const currentMmr = Math.round(startMmr + (mmr - startMmr) * eased);
-        setDisplayedMmr(currentMmr);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animateMmr);
-        } else {
-          onComplete?.();
-        }
-      };
-      
-      requestAnimationFrame(animateMmr);
-    }, 500);
-
-    return () => clearTimeout(revealTimeout);
-  }, [mmr, onComplete]);
-
-  return (
-    <div className="relative flex flex-col items-center justify-center p-8 rounded-xl bg-card border border-border overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-      
-      {!revealed ? (
-        <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="text-6xl animate-pulse">❓</div>
-          <div className="text-lg text-muted-foreground">Rank Reveal...</div>
-          <div className="w-32 h-1 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary animate-pulse" style={{ width: '60%' }} />
-          </div>
-        </div>
-      ) : (
-        <div className="relative z-10 flex flex-col items-center gap-4 animate-scale-in">
-          <div className="text-6xl">
-            {TIER_ICONS[rank.tier]}
-          </div>
-          <div className={cn(
-            "text-2xl font-bold",
-            TIER_COLORS[rank.tier]
-          )}>
-            {rank.name}
-          </div>
-          <div className="text-4xl font-display text-foreground">
-            {displayedMmr} MMR
-          </div>
-          <div className="mt-4 text-sm text-muted-foreground">
-            Placements Complete!
-          </div>
-        </div>
-      )}
-      
-      {/* Sparkle effects when revealed */}
-      {revealed && (
-        <>
-          <div className="absolute top-4 left-4 text-yellow-400 animate-ping">✨</div>
-          <div className="absolute top-8 right-8 text-yellow-400 animate-ping delay-100">✨</div>
-          <div className="absolute bottom-8 left-8 text-yellow-400 animate-ping delay-200">✨</div>
-          <div className="absolute bottom-4 right-4 text-yellow-400 animate-ping delay-300">✨</div>
-        </>
       )}
     </div>
   );

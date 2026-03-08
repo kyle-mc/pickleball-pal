@@ -23,7 +23,7 @@ export const useOnboardingTour = () => {
           },
         },
         {
-          element: isMobile ? "[data-tour='nav-mymmr']" : "[data-tour='nav-my mmr']",
+          element: isMobile ? "[data-tour='mobile-nav-mymmr']" : "[data-tour='nav-my mmr']",
           popover: {
             title: "My MMR 📊",
             description: "This is your personal dashboard. See your stats, upcoming events, and quick links.",
@@ -32,7 +32,7 @@ export const useOnboardingTour = () => {
           },
         },
         {
-          element: "[data-tour='nav-stats']",
+          element: isMobile ? "[data-tour='mobile-nav-stats']" : "[data-tour='nav-stats']",
           popover: {
             title: "Stats & Leaderboard 🏆",
             description: "Compare yourself against other players. View the leaderboard, head-to-head stats, and MMR distribution across ranks.",
@@ -41,7 +41,7 @@ export const useOnboardingTour = () => {
           },
         },
         {
-          element: "[data-tour='nav-games']",
+          element: isMobile ? "[data-tour='mobile-nav-games']" : "[data-tour='nav-games']",
           popover: {
             title: "Games 🏓",
             description: "View all recorded games and how they affected MMR. You can also add new games here — just pick the winning and losing teams and enter the score!",
@@ -50,7 +50,7 @@ export const useOnboardingTour = () => {
           },
         },
         {
-          element: "[data-tour='nav-videos']",
+          element: isMobile ? "[data-tour='mobile-nav-videos']" : "[data-tour='nav-videos']",
           popover: {
             title: "Videos 🎬",
             description: "Watch game highlights and other pickleball content. You can upload YouTube links or record clips directly from your phone (max 60 seconds).",
@@ -59,7 +59,7 @@ export const useOnboardingTour = () => {
           },
         },
         {
-          element: "[data-tour='nav-events']",
+          element: isMobile ? "[data-tour='mobile-nav-events']" : "[data-tour='nav-events']",
           popover: {
             title: "Events 📅",
             description: "See upcoming and past events. RSVP to events, set reminders, and create your own recurring events for the group.",
@@ -74,7 +74,6 @@ export const useOnboardingTour = () => {
               <div style="text-align:left; line-height:1.6;">
                 <p>Your rank is based on your <strong>MMR</strong> (Matchmaking Rating), calculated using the Glicko-2 algorithm.</p>
                 <p style="margin-top:8px;"><strong>Ranks:</strong> Bronze → Silver → Gold → Platinum → Diamond → Champion → Grand Champion → Supersonic Legend</p>
-                <p style="margin-top:8px;"><strong>Placement:</strong> Your first 10 games are placement matches with a 2x MMR boost. Your rank is hidden until you complete them!</p>
                 <p style="margin-top:8px;"><strong>Victory Types:</strong> Bigger blowouts earn more MMR — a Golden Pickle (11-0) gives 1.5x, while a Squeaker (11-9) gives only 0.9x.</p>
               </div>
             `,

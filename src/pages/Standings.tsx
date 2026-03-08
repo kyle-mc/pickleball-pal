@@ -2,11 +2,10 @@ import { useState, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useSelectedPlayer } from "@/hooks/useSelectedPlayer";
-import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart, Eye, EyeOff } from "lucide-react";
+import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart } from "lucide-react";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { RankBadge } from "@/components/RankBadge";
 import { MmrDistributionChart } from "@/components/MmrDistributionChart";
@@ -18,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
+import { PlayerProfileDialog } from "@/components/PlayerProfileDialog";
 
 type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints";
 type SortDir = "asc" | "desc";
@@ -43,13 +43,13 @@ const Standings = () => {
   
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
   const { placementEnabled } = usePlacementEnabled();
 
   const [h2hPlayer1, setH2hPlayer1] = useState<string>("");
   const [h2hPlayer2, setH2hPlayer2] = useState<string>("");
 
   const [comparisonPlayers, setComparisonPlayers] = useState<string[]>([]);
+  const [profilePlayer, setProfilePlayer] = useState<string | null>(null);
 
   const toggleComparisonPlayer = (player: string) => {
     setComparisonPlayers(prev => 
@@ -134,8 +134,6 @@ const Standings = () => {
     });
   }, [allGames, sortField, sortDir, currentSeason.id, placementEnabled]);
 
-  const anyInPlacement = players.some(p => p.isPlacement);
-
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDir(prev => prev === "asc" ? "desc" : "asc");
@@ -181,23 +179,10 @@ const Standings = () => {
         <div className="container mx-auto px-4 max-w-full overflow-x-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <h1 className="font-display text-4xl md:text-5xl text-foreground">Stats</h1>
-            <div className="flex items-center gap-2">
-              <SeasonSelector 
-                selectedSeason={selectedSeason} 
-                onSeasonChange={setSelectedSeason} 
-              />
-              {anyInPlacement && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPlacementMMR(!showPlacementMMR)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  {showPlacementMMR ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                  {showPlacementMMR ? "Hide MMR" : "Peek at MMR"}
-                </Button>
-              )}
-            </div>
+            <SeasonSelector 
+              selectedSeason={selectedSeason} 
+              onSeasonChange={setSelectedSeason} 
+            />
           </div>
 
           {/* 1. Leaderboard Table */}
@@ -245,13 +230,18 @@ const Standings = () => {
                           <td className={`py-3 px-2 sm:px-4 font-medium whitespace-nowrap text-sm sticky left-8 sm:left-12 bg-card z-10 ${
                             isHighlighted ? 'text-primary' : 'text-foreground'
                           }`}>
-                            {player.name}
+                            <button 
+                              onClick={() => setProfilePlayer(player.name)}
+                              className="hover:text-primary hover:underline transition-colors"
+                            >
+                              {player.name}
+                            </button>
                             {isHighlighted && (
                               <span className="ml-1 text-xs text-primary/70">(You)</span>
                             )}
                           </td>
                           <td className="py-3 px-2 sm:px-4 whitespace-nowrap">
-                            {player.isPlacement && !showPlacementMMR ? (
+                            {player.isPlacement ? (
                               <span className="text-muted-foreground text-sm">Placing ({player.gamesPlayed}/10)</span>
                             ) : (
                               <RankBadge 
@@ -306,7 +296,7 @@ const Standings = () => {
               </div>
               
               {comparisonPlayers.length >= 2 ? (
-                <PlayerComparisonView selectedPlayers={comparisonPlayers} showPlacementMMR={showPlacementMMR} />
+                <PlayerComparisonView selectedPlayers={comparisonPlayers} />
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Select at least 2 players to compare their MMR over time
@@ -329,7 +319,6 @@ const Standings = () => {
           <AllPlayersRankChart 
             players={players}
             highlightedPlayer={selectedPlayer}
-            showPlacementMMR={showPlacementMMR}
           />
 
           {/* 5. MMR Distribution Chart */}
@@ -341,6 +330,12 @@ const Standings = () => {
       </div>
       <Footer />
       <MobileBottomNav />
+      
+      <PlayerProfileDialog 
+        playerName={profilePlayer}
+        open={!!profilePlayer}
+        onOpenChange={(open) => !open && setProfilePlayer(null)}
+      />
     </main>
   );
 };

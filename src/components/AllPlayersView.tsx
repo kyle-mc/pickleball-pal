@@ -1,12 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { getCurrentSeason } from "@/lib/seasons";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 const PLAYER_COLORS: Record<string, string> = {
@@ -24,7 +23,6 @@ const PLAYER_COLORS: Record<string, string> = {
 const AllPlayersView = () => {
   const { data: allGames = [], isLoading } = useGames();
   const currentSeason = getCurrentSeason();
-  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
   const { placementEnabled } = usePlacementEnabled();
   const playerStats = useMemo(() => {
     const uniquePlayers = [...new Set(allGames.map(g => g.player))];
@@ -45,44 +43,25 @@ const AllPlayersView = () => {
       const gamesPlayed = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
       const isPlacement = placementEnabled && gamesPlayed < 10;
       
-      return {
-        player,
-        currentMMR,
-        wins,
-        losses,
-        gamesPlayed: games.length,
-        winRate,
-        isPlacement,
-      };
+      return { player, currentMMR, wins, losses, gamesPlayed: games.length, winRate, isPlacement };
     }).sort((a, b) => b.currentMMR - a.currentMMR);
   }, [allGames, currentSeason.id, placementEnabled]);
 
-  const anyInPlacement = playerStats.some(p => p.isPlacement);
-
-  // Build MMR history data for chart
   const mmrHistory = useMemo(() => {
     const uniquePlayers = [...new Set(allGames.map(g => g.player))];
     const dataMap: Map<string, Record<string, number>> = new Map();
-    
     allGames.forEach(game => {
       const key = game.date;
-      if (!dataMap.has(key)) {
-        dataMap.set(key, { date: key } as any);
-      }
-      const entry = dataMap.get(key)!;
-      entry[game.player] = game.mmrAfter;
+      if (!dataMap.has(key)) dataMap.set(key, { date: key } as any);
+      dataMap.get(key)![game.player] = game.mmrAfter;
     });
-
     const sortedDates = [...dataMap.keys()].sort();
     const lastKnown: Record<string, number> = {};
     uniquePlayers.forEach(p => { lastKnown[p] = 2000; });
-
     return sortedDates.map(date => {
       const entry = dataMap.get(date)!;
       uniquePlayers.forEach(player => {
-        if (entry[player] !== undefined) {
-          lastKnown[player] = entry[player];
-        }
+        if (entry[player] !== undefined) lastKnown[player] = entry[player];
         entry[player] = lastKnown[player];
       });
       return entry;
@@ -92,11 +71,7 @@ const AllPlayersView = () => {
   const uniquePlayers = [...new Set(allGames.map(g => g.player))];
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -109,20 +84,7 @@ const AllPlayersView = () => {
       <TabsContent value="table">
         <Card className="bg-card/50 border-border overflow-hidden">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground">All Players MMR</CardTitle>
-              {anyInPlacement && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPlacementMMR(!showPlacementMMR)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  {showPlacementMMR ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                  {showPlacementMMR ? "Hide Placement MMR" : "Peek at Placement MMR"}
-                </Button>
-              )}
-            </div>
+            <CardTitle className="text-foreground">All Players MMR</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -153,18 +115,13 @@ const AllPlayersView = () => {
                       </TableCell>
                       <TableCell className="font-medium text-foreground whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0" 
-                            style={{ backgroundColor: PLAYER_COLORS[player.player] || '#888' }}
-                          />
+                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PLAYER_COLORS[player.player] || '#888' }} />
                           {player.player}
-                          {player.isPlacement && (
-                            <span className="text-xs text-muted-foreground">(Placing)</span>
-                          )}
+                          {player.isPlacement && <span className="text-xs text-muted-foreground">(Placing)</span>}
                         </div>
                       </TableCell>
                       <TableCell className="text-right text-primary font-display text-lg whitespace-nowrap">
-                        {player.isPlacement && !showPlacementMMR ? '???' : player.currentMMR.toLocaleString()}
+                        {player.isPlacement ? '???' : player.currentMMR.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.wins}</TableCell>
                       <TableCell className="text-right text-muted-foreground whitespace-nowrap">{player.losses}</TableCell>
@@ -189,35 +146,12 @@ const AllPlayersView = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={mmrHistory}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 12 }}
-                    domain={['auto', 'auto']}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} domain={['auto', 'auto']} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} labelStyle={{ color: 'hsl(var(--foreground))' }} />
                   <Legend />
                   {uniquePlayers.map(player => (
-                    <Line
-                      key={player}
-                      type="monotone"
-                      dataKey={player}
-                      stroke={PLAYER_COLORS[player] || '#888'}
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
+                    <Line key={player} type="monotone" dataKey={player} stroke={PLAYER_COLORS[player] || '#888'} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
