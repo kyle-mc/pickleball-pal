@@ -250,16 +250,6 @@ const Games = () => {
             {sortDirection === "desc" ? "Newest First" : "Oldest First"}
           </button>
           
-          {/* Peek at MMR for placement players */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowPlacementMMR(!showPlacementMMR)}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            {showPlacementMMR ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-            {showPlacementMMR ? "Hide Placement MMR" : "Peek at MMR"}
-          </Button>
         </div>
 
         {/* Games by Date */}
