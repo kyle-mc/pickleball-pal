@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getRankFromMmr, getMmrProgressToNextRank, getNextRank, TIER_COLORS, TIER_BG_COLORS, Rank } from "@/lib/ranks";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface RankBadgeProps {
   mmr: number;
