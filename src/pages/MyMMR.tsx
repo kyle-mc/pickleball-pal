@@ -28,6 +28,7 @@ const MyMMR = () => {
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
+  const { placementEnabled } = usePlacementEnabled();
   const { data: allGames = [], isLoading: gamesLoading } = useGames(selectedSeason);
   const { data: userPlayer, isLoading: playerLoading } = useCurrentUserPlayer();
   const { events, loading: eventsLoading } = useEvents();
