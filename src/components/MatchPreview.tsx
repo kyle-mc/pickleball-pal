@@ -8,6 +8,7 @@ import { VICTORY_TYPES, VictoryType } from "@/lib/victoryTypes";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ArrowLeftRight, BarChart3 } from "lucide-react";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface MatchPreviewProps {
   team1: string[];
