@@ -6,6 +6,7 @@ import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
 import { getCurrentSeason } from "@/lib/seasons";
 import { Loader2, Swords, Trophy, Target, Eye, EyeOff, TrendingUp, TrendingDown } from "lucide-react";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
