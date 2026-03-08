@@ -60,7 +60,7 @@ const MyMMR = () => {
     return { currentMMR, winRate, gamesPlayed: playerGames.length };
   }, [playerGames]);
 
-  const isPlacement = stats.gamesPlayed < 10;
+  const isPlacement = placementEnabled && stats.gamesPlayed < 10;
 
   const upcomingRsvpEvents = useMemo(() => {
     const today = new Date();

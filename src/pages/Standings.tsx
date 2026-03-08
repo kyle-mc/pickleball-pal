@@ -100,7 +100,7 @@ const Standings = () => {
         gamesPlayed,
         avgPointsScored,
         winPct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0,
-        isPlacement: seasonGames < 10,
+        isPlacement: placementEnabled && seasonGames < 10,
       };
     });
     
