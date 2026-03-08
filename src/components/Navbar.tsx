@@ -21,6 +21,16 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const { startTour } = useOnboardingTour();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin")
+        .then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
+    });
+  }, [user?.id]);
 
   const navLinks = [
     { href: "/", label: "My MMR", tourLabel: "my mmr" },
