@@ -55,7 +55,7 @@ const AllPlayersView = () => {
         isPlacement,
       };
     }).sort((a, b) => b.currentMMR - a.currentMMR);
-  }, [allGames, currentSeason.id]);
+  }, [allGames, currentSeason.id, placementEnabled]);
 
   const anyInPlacement = playerStats.some(p => p.isPlacement);
 
