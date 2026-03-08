@@ -22,6 +22,36 @@ const AdminSettings = () => {
   const { currentGroup } = useGroupContext();
   const { placementEnabled, loading } = usePlacementEnabled();
   const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
+  const [groupmeUrl, setGroupmeUrl] = useState("");
+  const [savingGroupme, setSavingGroupme] = useState(false);
+
+  // Fetch groupme_url
+  useEffect(() => {
+    if (!currentGroup?.id) return;
+    supabase
+      .from("groups")
+      .select("groupme_url")
+      .eq("id", currentGroup.id)
+      .single()
+      .then(({ data }) => {
+        setGroupmeUrl((data as any)?.groupme_url ?? "");
+      });
+  }, [currentGroup?.id]);
+
+  const handleSaveGroupmeUrl = async () => {
+    if (!currentGroup?.id) return;
+    setSavingGroupme(true);
+    const { error } = await supabase
+      .from("groups")
+      .update({ groupme_url: groupmeUrl || null } as any)
+      .eq("id", currentGroup.id);
+    setSavingGroupme(false);
+    if (error) {
+      toast({ title: "Error", description: "Failed to save GroupMe URL", variant: "destructive" });
+    } else {
+      toast({ title: "GroupMe URL saved" });
+    }
+  };
 
   useEffect(() => {
     setLocalPlacementEnabled(placementEnabled);
