@@ -368,7 +368,7 @@ const Games = () => {
                                       {isUnranked ? '???' : player.mmrBefore.toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-right text-foreground font-medium whitespace-nowrap">
-                                      {isUnranked && !showPlacementMMR ? '???' : player.mmrAfter.toLocaleString()}
+                                      {isUnranked ? '???' : player.mmrAfter.toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-right whitespace-nowrap">
                                       <MmrChangeTooltip
