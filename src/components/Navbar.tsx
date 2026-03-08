@@ -38,6 +38,7 @@ const Navbar = () => {
     { href: "/games", label: "Games", tourLabel: "games" },
     { href: "/videos", label: "Videos", tourLabel: "videos" },
     { href: "/schedule", label: "Events", tourLabel: "events" },
+    { href: "/chat", label: "Chat", tourLabel: "chat" },
   ];
 
   const isActive = (href: string) => location.pathname === href;

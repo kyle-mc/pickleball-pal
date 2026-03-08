@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Trophy, Calendar, Video } from "lucide-react";
+import { Home, Trophy, Calendar, Video, MessageCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Custom pickleball icon component - designed to look like an actual pickleball
@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { path: "/games", label: "Games", tourLabel: "games", icon: "pickleball" as const },
   { path: "/videos", label: "Videos", tourLabel: "videos", icon: Video },
   { path: "/schedule", label: "Events", tourLabel: "events", icon: Calendar },
+  { path: "/chat", label: "Chat", tourLabel: "chat", icon: MessageCircle },
 ];
 
 export const MobileBottomNav = () => {

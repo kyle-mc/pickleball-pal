@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, MessageCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useGroupContext } from "@/contexts/GroupContext";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
@@ -20,6 +22,36 @@ const AdminSettings = () => {
   const { currentGroup } = useGroupContext();
   const { placementEnabled, loading } = usePlacementEnabled();
   const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
+  const [groupmeUrl, setGroupmeUrl] = useState("");
+  const [savingGroupme, setSavingGroupme] = useState(false);
+
+  // Fetch groupme_url
+  useEffect(() => {
+    if (!currentGroup?.id) return;
+    supabase
+      .from("groups")
+      .select("groupme_url")
+      .eq("id", currentGroup.id)
+      .single()
+      .then(({ data }) => {
+        setGroupmeUrl((data as any)?.groupme_url ?? "");
+      });
+  }, [currentGroup?.id]);
+
+  const handleSaveGroupmeUrl = async () => {
+    if (!currentGroup?.id) return;
+    setSavingGroupme(true);
+    const { error } = await supabase
+      .from("groups")
+      .update({ groupme_url: groupmeUrl || null } as any)
+      .eq("id", currentGroup.id);
+    setSavingGroupme(false);
+    if (error) {
+      toast({ title: "Error", description: "Failed to save GroupMe URL", variant: "destructive" });
+    } else {
+      toast({ title: "GroupMe URL saved" });
+    }
+  };
 
   useEffect(() => {
     setLocalPlacementEnabled(placementEnabled);
@@ -86,6 +118,30 @@ const AdminSettings = () => {
                     checked={localPlacementEnabled}
                     onCheckedChange={handleTogglePlacement}
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/50 border-border border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                  GroupMe Chat Link
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Paste your GroupMe group link so members can open the chat from the Chat page.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://groupme.com/join_group/..."
+                    value={groupmeUrl}
+                    onChange={(e) => setGroupmeUrl(e.target.value)}
+                  />
+                  <Button onClick={handleSaveGroupmeUrl} disabled={savingGroupme}>
+                    {savingGroupme ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
