@@ -33,7 +33,8 @@ const TIERS = [
 const MAX_MMR = 3500;
 
 export function RankProgressBar({ mmr, gamesPlayed, hideMmr = false }: RankProgressBarProps) {
-  const isUnranked = gamesPlayed < 10;
+  const { placementEnabled } = usePlacementEnabled();
+  const isUnranked = placementEnabled && gamesPlayed < 10;
   const currentRank = getRankFromMmr(mmr);
   
   // Calculate position as percentage (clamp between 0 and 100)

@@ -44,7 +44,8 @@ export function RankBadge({
   showProgress = false,
   animate = false,
 }: RankBadgeProps) {
-  const isUnranked = gamesPlayed < 10;
+  const { placementEnabled } = usePlacementEnabled();
+  const isUnranked = placementEnabled && gamesPlayed < 10;
   const rank = getRankFromMmr(mmr);
   const nextRank = getNextRank(rank);
   const progress = getMmrProgressToNextRank(mmr, rank);
