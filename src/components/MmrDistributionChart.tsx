@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Label } from "recharts";
 import { RANKS, getRankFromMmr, TIER_COLORS } from "@/lib/ranks";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface PlayerStat {
   name: string;
