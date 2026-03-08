@@ -365,7 +365,7 @@ const Games = () => {
                                       </div>
                                     </TableCell>
                                     <TableCell className="text-right text-muted-foreground whitespace-nowrap">
-                                      {isUnranked && !showPlacementMMR ? '???' : player.mmrBefore.toLocaleString()}
+                                      {isUnranked ? '???' : player.mmrBefore.toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-right text-foreground font-medium whitespace-nowrap">
                                       {isUnranked && !showPlacementMMR ? '???' : player.mmrAfter.toLocaleString()}
