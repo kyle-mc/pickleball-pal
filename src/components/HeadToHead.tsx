@@ -94,8 +94,8 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
     };
   }, [player1, player2, allGames]);
 
-  const p1InPlacement = player1 ? getPlayerSeasonGamesCount(player1, allGames, currentSeason.id) < 10 : false;
-  const p2InPlacement = player2 ? getPlayerSeasonGamesCount(player2, allGames, currentSeason.id) < 10 : false;
+  const p1InPlacement = placementEnabled && player1 ? getPlayerSeasonGamesCount(player1, allGames, currentSeason.id) < 10 : false;
+  const p2InPlacement = placementEnabled && player2 ? getPlayerSeasonGamesCount(player2, allGames, currentSeason.id) < 10 : false;
   const anyInPlacement = p1InPlacement || p2InPlacement;
 
   if (isLoading) {
