@@ -65,7 +65,7 @@ export function MmrDistributionChart({ players, highlightedPlayer }: MmrDistribu
   const highlightedPlayerMmr = useMemo(() => {
     if (!highlightedPlayer || highlightedPlayer === "all") return null;
     const player = players.find(p => p.name === highlightedPlayer);
-    if (!player || player.gamesPlayed < 10) return null;
+    if (!player || (placementEnabled && player.gamesPlayed < 10)) return null;
     return player.mmr;
   }, [players, highlightedPlayer]);
   
