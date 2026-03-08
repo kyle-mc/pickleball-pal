@@ -25,7 +25,7 @@ const AllPlayersView = () => {
   const { data: allGames = [], isLoading } = useGames();
   const currentSeason = getCurrentSeason();
   const [showPlacementMMR, setShowPlacementMMR] = useState(false);
-
+  const { placementEnabled } = usePlacementEnabled();
   const playerStats = useMemo(() => {
     const uniquePlayers = [...new Set(allGames.map(g => g.player))];
     
