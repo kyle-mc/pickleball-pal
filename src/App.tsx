@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 import Landing from "./pages/Landing";
 import ProfileSetup from "./pages/ProfileSetup";
 import Profile from "./pages/Profile";
+import AdminSettings from "./pages/AdminSettings";
 import MyMMR from "./pages/MyMMR";
 import Standings from "./pages/Standings";
 import Schedule from "./pages/Schedule";
@@ -144,6 +145,11 @@ const AppRoutes = () => {
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <AdminSettings />
         </ProtectedRoute>
       } />
 

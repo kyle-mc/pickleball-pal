@@ -1,5 +1,5 @@
-import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail, Map } from "lucide-react";
-import { useState } from "react";
+import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail, Map, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,16 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const { startTour } = useOnboardingTour();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin")
+        .then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
+    });
+  }, [user?.id]);
 
   const navLinks = [
     { href: "/", label: "My MMR", tourLabel: "my mmr" },
@@ -81,6 +91,14 @@ const Navbar = () => {
                         My Profile
                       </Link>
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link to="/admin">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Admin Settings
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={startTour} className="cursor-pointer">
                       <Map className="w-4 h-4 mr-2" />
                       App Tour
@@ -115,6 +133,14 @@ const Navbar = () => {
                         My Profile
                       </Link>
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link to="/admin">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Admin Settings
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={startTour} className="cursor-pointer">
                       <Map className="w-4 h-4 mr-2" />
                       App Tour
