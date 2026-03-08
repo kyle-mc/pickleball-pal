@@ -61,6 +61,9 @@ const US_STATES = [
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isAdmin = useIsAdmin();
+  const { currentGroup } = useGroupContext();
+  const { placementEnabled } = usePlacementEnabled();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,6 +71,7 @@ const Profile = () => {
   const [groups, setGroups] = useState<GroupMembership[]>([]);
   const [newPaddle, setNewPaddle] = useState("");
   const [newAward, setNewAward] = useState("");
+  const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
 
   useEffect(() => {
     const fetchProfile = async () => {
