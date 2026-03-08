@@ -48,7 +48,6 @@ const Games = () => {
   // State for add video dialog
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
-  const [showPlacementMMR, setShowPlacementMMR] = useState(false);
   const { placementEnabled } = usePlacementEnabled();
 
   // Handle date filter from URL params (from Events page)
