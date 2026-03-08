@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getVictoryTypeById, VICTORY_TYPES } from "@/lib/victoryTypes";
+import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
 interface MmrChangeTooltipProps {
   mmrChange: number;
