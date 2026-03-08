@@ -91,6 +91,14 @@ const Navbar = () => {
                         My Profile
                       </Link>
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link to="/admin">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Admin Settings
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={startTour} className="cursor-pointer">
                       <Map className="w-4 h-4 mr-2" />
                       App Tour
