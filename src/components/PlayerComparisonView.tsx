@@ -26,6 +26,7 @@ interface PlayerComparisonViewProps {
 const PlayerComparisonView = ({ selectedPlayers, showPlacementMMR = false }: PlayerComparisonViewProps) => {
   const { data: allGames = [], isLoading } = useGames();
   const currentSeason = getCurrentSeason();
+  const { placementEnabled } = usePlacementEnabled();
 
   const playerStats = useMemo(() => {
     return selectedPlayers.map(player => {

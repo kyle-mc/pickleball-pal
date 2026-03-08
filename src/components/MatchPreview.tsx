@@ -20,6 +20,7 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
   const currentSeason = getCurrentSeason();
   const { data: allGames = [] } = useGames("all");
   const { data: avatarMap } = usePlayerAvatars();
+  const { placementEnabled } = usePlacementEnabled();
   
   const preview = useMemo(() => {
     if (team1.length !== 2 || team2.length !== 2) return null;
