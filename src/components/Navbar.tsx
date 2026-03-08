@@ -1,4 +1,4 @@
-import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail, Map } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail, Map, Settings } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
