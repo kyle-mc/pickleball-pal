@@ -27,6 +27,7 @@ const TIER_HEX_COLORS: Record<string, string> = {
 };
 
 export function MmrDistributionChart({ players, highlightedPlayer }: MmrDistributionChartProps) {
+  const { placementEnabled } = usePlacementEnabled();
   const chartData = useMemo(() => {
     // Create buckets of 100 MMR each from 1000 to 3500
     const buckets: Record<number, { count: number; players: string[] }> = {};
