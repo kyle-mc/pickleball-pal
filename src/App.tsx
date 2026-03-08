@@ -147,6 +147,11 @@ const AppRoutes = () => {
           <Profile />
         </ProtectedRoute>
       } />
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <AdminSettings />
+        </ProtectedRoute>
+      } />
 
       {/* Catch-all: redirect to landing for unknown routes */}
       <Route path="*" element={<Navigate to="/landing" replace />} />
