@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MapPin, Users, Trophy, TrendingUp, Shield, Calendar } from "lucide-react";
+import { LogIn, MapPin, Users, Trophy, TrendingUp, Shield, Calendar } from "lucide-react";
 import logo from "@/assets/logo.png";
 import AuthDialog from "@/components/AuthDialog";
 
