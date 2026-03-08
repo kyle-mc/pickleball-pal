@@ -143,6 +143,11 @@ const AppRoutes = () => {
           <Games />
         </ProtectedRoute>
       } />
+      <Route path="/chat" element={
+        <ProtectedRoute>
+          <Chat />
+        </ProtectedRoute>
+      } />
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />

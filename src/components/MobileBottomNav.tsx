@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { path: "/games", label: "Games", tourLabel: "games", icon: "pickleball" as const },
   { path: "/videos", label: "Videos", tourLabel: "videos", icon: Video },
   { path: "/schedule", label: "Events", tourLabel: "events", icon: Calendar },
+  { path: "/chat", label: "Chat", tourLabel: "chat", icon: MessageCircle },
 ];
 
 export const MobileBottomNav = () => {

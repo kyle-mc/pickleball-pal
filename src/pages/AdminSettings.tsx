@@ -121,6 +121,30 @@ const AdminSettings = () => {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="bg-card/50 border-border border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                  GroupMe Chat Link
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Paste your GroupMe group link so members can open the chat from the Chat page.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://groupme.com/join_group/..."
+                    value={groupmeUrl}
+                    onChange={(e) => setGroupmeUrl(e.target.value)}
+                  />
+                  <Button onClick={handleSaveGroupmeUrl} disabled={savingGroupme}>
+                    {savingGroupme ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
