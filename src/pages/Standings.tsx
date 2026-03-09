@@ -20,7 +20,7 @@ import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { PlayerProfileDialog } from "@/components/PlayerProfileDialog";
 import { calculateStreaks } from "@/lib/streaks";
 
-type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints";
+type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints" | "streak";
 type SortDir = "asc" | "desc";
 
 const PLAYER_COLORS: Record<string, string> = {
