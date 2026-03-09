@@ -6,7 +6,8 @@ import { RankBadge } from "@/components/RankBadge";
 import { useGames } from "@/hooks/useGames";
 import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, Trophy, Calendar, Link as LinkIcon } from "lucide-react";
+import { Loader2, MapPin, Trophy, Calendar, Link as LinkIcon, Flame } from "lucide-react";
+import { calculateStreaks } from "@/lib/streaks";
 
 interface PlayerProfileDialogProps {
   playerName: string | null;
