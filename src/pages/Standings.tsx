@@ -132,6 +132,11 @@ const Standings = () => {
         case "avgPoints":
           comparison = b.avgPointsScored - a.avgPointsScored;
           break;
+        case "streak":
+          const aStreak = a.streaks.currentWinStreak || -a.streaks.currentLoseStreak;
+          const bStreak = b.streaks.currentWinStreak || -b.streaks.currentLoseStreak;
+          comparison = bStreak - aStreak;
+          break;
       }
       return sortDir === "asc" ? comparison : -comparison;
     });
