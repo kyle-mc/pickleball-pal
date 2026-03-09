@@ -210,6 +210,7 @@ const Standings = () => {
                       <SortableHeader field="losses">L</SortableHeader>
                       <SortableHeader field="winPct">Win %</SortableHeader>
                       <SortableHeader field="avgPoints">Avg Pts</SortableHeader>
+                      <SortableHeader field="streak">Streak</SortableHeader>
                     </tr>
                   </thead>
                   <tbody>
