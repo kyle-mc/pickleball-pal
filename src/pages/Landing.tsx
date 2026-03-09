@@ -44,8 +44,7 @@ const features = [
     icon: <Calendar className="w-5 h-5" />,
     title: "Event Scheduling",
     shortDesc: "RSVPs and session management",
-    fullDesc: "Never miss a game session. Create and join events, RSVP to upcoming matches, and see who else is playing. Perfect for organizing regular play sessions.",
-    videoPlaceholder: "Check out the schedule view where you can see upcoming events and manage your RSVPs.",
+    videoSrc: eventSchedulingVideo,
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
