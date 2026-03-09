@@ -54,12 +54,13 @@ const MyMMR = () => {
 
   const stats = useMemo(() => {
     if (playerGames.length === 0) {
-      return { currentMMR: 2000, winRate: 0, gamesPlayed: 0 };
+      return { currentMMR: 2000, winRate: 0, gamesPlayed: 0, streaks: { currentWinStreak: 0, currentLoseStreak: 0, longestWinStreak: 0, longestLoseStreak: 0 } };
     }
     const currentMMR = playerGames[0]?.mmrAfter || 2000;
     const wins = playerGames.filter(g => g.result === 'Winner').length;
     const winRate = Math.round((wins / playerGames.length) * 100);
-    return { currentMMR, winRate, gamesPlayed: playerGames.length };
+    const streaks = calculateStreaks(playerGames);
+    return { currentMMR, winRate, gamesPlayed: playerGames.length, streaks };
   }, [playerGames]);
 
   const isPlacement = placementEnabled && stats.gamesPlayed < 10;
