@@ -26,8 +26,7 @@ const features = [
     icon: <Trophy className="w-5 h-5" />,
     title: "MMR Tracking",
     shortDesc: "Glicko-2 rating system",
-    fullDesc: "Track your rating over time with our advanced Glicko-2 algorithm. Every game you play affects your MMR, and you can see exactly how your rating changes after each match.",
-    videoPlaceholder: "See how your MMR updates after each game, with detailed breakdowns of rating changes.",
+    videoSrc: mmrTrackingVideo,
   },
   {
     icon: <TrendingUp className="w-5 h-5" />,
