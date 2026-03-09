@@ -68,12 +68,12 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
   }, [playerName, open]);
 
   const playerGames = allGames.filter(g => g.player === playerName);
-  const currentMMR = playerGames.length > 0 
-    ? playerGames.sort((a, b) => b.date.localeCompare(a.date) || b.game - a.game)[0]?.mmrAfter || 2000 
-    : 2000;
+  const sortedGames = [...playerGames].sort((a, b) => b.date.localeCompare(a.date) || b.game - a.game);
+  const currentMMR = sortedGames.length > 0 ? sortedGames[0]?.mmrAfter || 2000 : 2000;
   const wins = playerGames.filter(g => g.result === "Winner").length;
   const losses = playerGames.filter(g => g.result === "Loser").length;
   const winRate = playerGames.length > 0 ? Math.round((wins / playerGames.length) * 100) : 0;
+  const streaks = calculateStreaks(playerGames);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
