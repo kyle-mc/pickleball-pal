@@ -56,8 +56,7 @@ const features = [
     icon: <Shield className="w-5 h-5" />,
     title: "Claim Your Stats",
     shortDesc: "Link to existing records",
-    fullDesc: "Already have games in the system? Link your account to your existing player record and claim all your historical stats. Your complete game history, all in one place.",
-    videoPlaceholder: "Walk through the profile setup process where you can link your account to existing game records.",
+    videoSrc: claimStatsVideo,
   },
 ];
 
