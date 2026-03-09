@@ -92,6 +92,7 @@ const Standings = () => {
       
       const avgPointsScored = scoredGames > 0 ? totalPoints / scoredGames : 0;
       const seasonGames = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
+      const streaks = calculateStreaks(games);
       
       return {
         name: player,
@@ -102,6 +103,7 @@ const Standings = () => {
         avgPointsScored,
         winPct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0,
         isPlacement: placementEnabled && seasonGames < 10,
+        streaks,
       };
     });
     
