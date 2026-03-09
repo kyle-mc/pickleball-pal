@@ -1,4 +1,4 @@
-import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail, Map, Settings } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User, HelpCircle, FileText, Shield, Mail, Map, Settings, Smartphone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import AuthDialog from "@/components/AuthDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { AddToHomeScreenDialog } from "@/components/AddToHomeScreenDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,6 +105,9 @@ const Navbar = () => {
                       <Map className="w-4 h-4 mr-2" />
                       App Tour
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                      <AddToHomeScreenDialog />
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
@@ -145,6 +149,9 @@ const Navbar = () => {
                     <DropdownMenuItem onClick={startTour} className="cursor-pointer">
                       <Map className="w-4 h-4 mr-2" />
                       App Tour
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                      <AddToHomeScreenDialog />
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild className="cursor-pointer">

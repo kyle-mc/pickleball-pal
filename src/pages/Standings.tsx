@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useSelectedPlayer } from "@/hooks/useSelectedPlayer";
-import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart } from "lucide-react";
+import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart, Flame } from "lucide-react";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { RankBadge } from "@/components/RankBadge";
 import { MmrDistributionChart } from "@/components/MmrDistributionChart";
@@ -18,8 +18,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { PlayerProfileDialog } from "@/components/PlayerProfileDialog";
+import { calculateStreaks } from "@/lib/streaks";
 
-type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints";
+type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints" | "streak";
 type SortDir = "asc" | "desc";
 
 const PLAYER_COLORS: Record<string, string> = {
@@ -91,6 +92,7 @@ const Standings = () => {
       
       const avgPointsScored = scoredGames > 0 ? totalPoints / scoredGames : 0;
       const seasonGames = getPlayerSeasonGamesCount(player, allGames, currentSeason.id);
+      const streaks = calculateStreaks(games);
       
       return {
         name: player,
@@ -101,6 +103,7 @@ const Standings = () => {
         avgPointsScored,
         winPct: wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0,
         isPlacement: placementEnabled && seasonGames < 10,
+        streaks,
       };
     });
     
@@ -128,6 +131,11 @@ const Standings = () => {
           break;
         case "avgPoints":
           comparison = b.avgPointsScored - a.avgPointsScored;
+          break;
+        case "streak":
+          const aStreak = a.streaks.currentWinStreak || -a.streaks.currentLoseStreak;
+          const bStreak = b.streaks.currentWinStreak || -b.streaks.currentLoseStreak;
+          comparison = bStreak - aStreak;
           break;
       }
       return sortDir === "asc" ? comparison : -comparison;
@@ -202,6 +210,7 @@ const Standings = () => {
                       <SortableHeader field="losses">L</SortableHeader>
                       <SortableHeader field="winPct">Win %</SortableHeader>
                       <SortableHeader field="avgPoints">Avg Pts</SortableHeader>
+                      <SortableHeader field="streak">Streak</SortableHeader>
                     </tr>
                   </thead>
                   <tbody>
@@ -259,6 +268,20 @@ const Standings = () => {
                           </td>
                           <td className="py-3 px-2 sm:px-4 text-muted-foreground whitespace-nowrap text-sm">
                             {player.avgPointsScored > 0 ? player.avgPointsScored.toFixed(1) : '—'}
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 whitespace-nowrap text-sm">
+                            {player.streaks.currentWinStreak > 0 ? (
+                              <span className="text-primary font-medium flex items-center gap-0.5">
+                                <Flame className="w-3 h-3" />
+                                {player.streaks.currentWinStreak}W
+                              </span>
+                            ) : player.streaks.currentLoseStreak > 0 ? (
+                              <span className="text-destructive font-medium">
+                                {player.streaks.currentLoseStreak}L
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </td>
                         </tr>
                       );

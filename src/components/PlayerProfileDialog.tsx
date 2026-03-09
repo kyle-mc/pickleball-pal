@@ -6,7 +6,8 @@ import { RankBadge } from "@/components/RankBadge";
 import { useGames } from "@/hooks/useGames";
 import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, Trophy, Calendar, Link as LinkIcon } from "lucide-react";
+import { Loader2, MapPin, Trophy, Calendar, Link as LinkIcon, Flame } from "lucide-react";
+import { calculateStreaks } from "@/lib/streaks";
 
 interface PlayerProfileDialogProps {
   playerName: string | null;
@@ -67,12 +68,12 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
   }, [playerName, open]);
 
   const playerGames = allGames.filter(g => g.player === playerName);
-  const currentMMR = playerGames.length > 0 
-    ? playerGames.sort((a, b) => b.date.localeCompare(a.date) || b.game - a.game)[0]?.mmrAfter || 2000 
-    : 2000;
+  const sortedGames = [...playerGames].sort((a, b) => b.date.localeCompare(a.date) || b.game - a.game);
+  const currentMMR = sortedGames.length > 0 ? sortedGames[0]?.mmrAfter || 2000 : 2000;
   const wins = playerGames.filter(g => g.result === "Winner").length;
   const losses = playerGames.filter(g => g.result === "Loser").length;
   const winRate = playerGames.length > 0 ? Math.round((wins / playerGames.length) * 100) : 0;
+  const streaks = calculateStreaks(playerGames);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,11 +126,23 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
               </div>
             </div>
 
-            {/* Record */}
-            <div className="text-center text-sm text-muted-foreground">
-              <span className="text-primary font-medium">{wins}W</span>
-              {" — "}
-              <span className="text-destructive font-medium">{losses}L</span>
+            {/* Record & Streaks */}
+            <div className="text-center text-sm text-muted-foreground space-y-1">
+              <div>
+                <span className="text-primary font-medium">{wins}W</span>
+                {" — "}
+                <span className="text-destructive font-medium">{losses}L</span>
+              </div>
+              <div className="flex justify-center gap-4 text-xs">
+                <span>
+                  Current: {streaks.currentWinStreak > 0 ? (
+                    <span className="text-primary font-medium">{streaks.currentWinStreak}W 🔥</span>
+                  ) : streaks.currentLoseStreak > 0 ? (
+                    <span className="text-destructive font-medium">{streaks.currentLoseStreak}L</span>
+                  ) : '—'}
+                </span>
+                <span>Best: <span className="text-primary font-medium">{streaks.longestWinStreak}W</span></span>
+              </div>
             </div>
 
             {/* Profile info */}
