@@ -269,6 +269,21 @@ const Standings = () => {
                           <td className="py-3 px-2 sm:px-4 text-muted-foreground whitespace-nowrap text-sm">
                             {player.avgPointsScored > 0 ? player.avgPointsScored.toFixed(1) : '—'}
                           </td>
+                          <td className="py-3 px-2 sm:px-4 whitespace-nowrap text-sm">
+                            {player.streaks.currentWinStreak > 0 ? (
+                              <span className="text-primary font-medium flex items-center gap-0.5">
+                                <Flame className="w-3 h-3" />
+                                {player.streaks.currentWinStreak}W
+                              </span>
+                            ) : player.streaks.currentLoseStreak > 0 ? (
+                              <span className="text-destructive font-medium">
+                                {player.streaks.currentLoseStreak}L
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          </td>
                         </tr>
                       );
                     })}
