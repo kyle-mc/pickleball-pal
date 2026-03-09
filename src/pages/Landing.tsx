@@ -50,8 +50,7 @@ const features = [
     icon: <BarChart3 className="w-5 h-5" />,
     title: "Head-to-Head Records",
     shortDesc: "Detailed matchup analysis",
-    fullDesc: "Compare your performance against any other player. See your win/loss record, average point differential, and recent match history against specific opponents.",
-    videoPlaceholder: "Use the head-to-head comparison tool to analyze your matchups with other players.",
+    videoSrc: headToHeadVideo,
   },
   {
     icon: <Shield className="w-5 h-5" />,
