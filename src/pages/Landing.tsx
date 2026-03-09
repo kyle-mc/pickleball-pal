@@ -26,37 +26,37 @@ const features = [
     icon: <Trophy className="w-5 h-5" />,
     title: "MMR Tracking",
     shortDesc: "Glicko-2 rating system",
-    videoSrc: mmrTrackingVideo,
+    screenshot: mmrTrackingImg,
   },
   {
     icon: <TrendingUp className="w-5 h-5" />,
     title: "Track Your Progress",
     shortDesc: "Win rates, streaks, trends",
-    videoSrc: trackProgressVideo,
+    screenshot: trackProgressImg,
   },
   {
     icon: <Users className="w-5 h-5" />,
     title: "Group Leaderboard",
     shortDesc: "Private to KC Pickleballers",
-    videoSrc: groupLeaderboardVideo,
+    screenshot: groupLeaderboardImg,
   },
   {
     icon: <Calendar className="w-5 h-5" />,
     title: "Event Scheduling",
     shortDesc: "RSVPs and session management",
-    videoSrc: eventSchedulingVideo,
+    screenshot: eventSchedulingImg,
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
     title: "Head-to-Head Records",
     shortDesc: "Detailed matchup analysis",
-    videoSrc: headToHeadVideo,
+    screenshot: headToHeadImg,
   },
   {
     icon: <Shield className="w-5 h-5" />,
     title: "Claim Your Stats",
     shortDesc: "Link to existing records",
-    videoSrc: claimStatsVideo,
+    screenshot: claimStatsImg,
   },
 ];
 
@@ -84,15 +84,12 @@ const FeatureDialog = ({ feature, open, onClose }: FeatureDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         
-        {/* Video walkthrough */}
+        {/* Screenshot */}
         <div className="mt-4 rounded-xl bg-muted/50 border border-border overflow-hidden">
-          <video
+          <img
             className="w-full aspect-video object-cover"
-            src={feature.videoSrc}
-            autoPlay
-            loop
-            muted
-            playsInline
+            src={feature.screenshot}
+            alt={`${feature.title} screenshot`}
           />
         </div>
       </DialogContent>
