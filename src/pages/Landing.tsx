@@ -5,6 +5,12 @@ import {
   BarChart3, Star, Play, X,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
+import mmrTrackingVideo from "@/assets/videos/mmr-tracking.mp4";
+import trackProgressVideo from "@/assets/videos/track-progress.mp4";
+import groupLeaderboardVideo from "@/assets/videos/group-leaderboard.mp4";
+import eventSchedulingVideo from "@/assets/videos/event-scheduling.mp4";
+import headToHeadVideo from "@/assets/videos/head-to-head.mp4";
+import claimStatsVideo from "@/assets/videos/claim-stats.mp4";
 import AuthDialog from "@/components/AuthDialog";
 import {
   Dialog,
