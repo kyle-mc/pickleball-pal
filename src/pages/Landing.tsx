@@ -80,21 +80,20 @@ const FeatureDialog = ({ feature, open, onClose }: FeatureDialogProps) => {
             <DialogTitle className="font-display text-2xl">{feature.title}</DialogTitle>
           </div>
           <DialogDescription className="text-base leading-relaxed">
-            {feature.fullDesc}
+            {feature.shortDesc}
           </DialogDescription>
         </DialogHeader>
         
-        {/* Video placeholder */}
+        {/* Video walkthrough */}
         <div className="mt-4 rounded-xl bg-muted/50 border border-border overflow-hidden">
-          <div className="aspect-video flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Play className="w-8 h-8 text-primary ml-1" />
-            </div>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              {feature.videoPlaceholder}
-            </p>
-            <span className="text-xs text-muted-foreground/60 mt-2">Video walkthrough coming soon</span>
-          </div>
+          <video
+            className="w-full aspect-video object-cover"
+            src={feature.videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
         </div>
       </DialogContent>
     </Dialog>
