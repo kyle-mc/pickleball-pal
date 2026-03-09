@@ -283,7 +283,6 @@ const Standings = () => {
                               <span className="text-muted-foreground">—</span>
                             )}
                           </td>
-                          </td>
                         </tr>
                       );
                     })}
