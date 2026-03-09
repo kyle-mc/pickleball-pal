@@ -32,8 +32,7 @@ const features = [
     icon: <TrendingUp className="w-5 h-5" />,
     title: "Track Your Progress",
     shortDesc: "Win rates, streaks, trends",
-    fullDesc: "Watch your performance improve over time with detailed analytics. View your win rate, current streak, and historical trends to understand your growth as a player.",
-    videoPlaceholder: "Explore your personal dashboard with charts showing your rating history and performance metrics.",
+    videoSrc: trackProgressVideo,
   },
   {
     icon: <Users className="w-5 h-5" />,
