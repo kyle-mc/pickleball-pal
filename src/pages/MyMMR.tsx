@@ -192,7 +192,7 @@ const MyMMR = () => {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-4">
             <Card className="bg-card/50 border-border">
               <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
                 <div className="text-3xl font-display text-foreground">
@@ -213,6 +213,33 @@ const MyMMR = () => {
               <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
                 <div className="text-3xl font-display text-foreground">{stats.gamesPlayed}</div>
                 <div className="text-xs text-muted-foreground mt-1">Games</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Streaks */}
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <Card className="bg-card/50 border-border">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-xs text-muted-foreground mb-2">Current Streak</div>
+                <div className="text-2xl font-display">
+                  {stats.streaks.currentWinStreak > 0 ? (
+                    <span className="text-primary">{stats.streaks.currentWinStreak}W 🔥</span>
+                  ) : stats.streaks.currentLoseStreak > 0 ? (
+                    <span className="text-destructive">{stats.streaks.currentLoseStreak}L</span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/50 border-border">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-xs text-muted-foreground mb-2">Best / Worst Streak</div>
+                <div className="text-sm font-medium space-y-1">
+                  <div className="text-primary">{stats.streaks.longestWinStreak}W best</div>
+                  <div className="text-destructive">{stats.streaks.longestLoseStreak}L worst</div>
+                </div>
               </CardContent>
             </Card>
           </div>

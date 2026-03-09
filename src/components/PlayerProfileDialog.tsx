@@ -126,11 +126,23 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
               </div>
             </div>
 
-            {/* Record */}
-            <div className="text-center text-sm text-muted-foreground">
-              <span className="text-primary font-medium">{wins}W</span>
-              {" — "}
-              <span className="text-destructive font-medium">{losses}L</span>
+            {/* Record & Streaks */}
+            <div className="text-center text-sm text-muted-foreground space-y-1">
+              <div>
+                <span className="text-primary font-medium">{wins}W</span>
+                {" — "}
+                <span className="text-destructive font-medium">{losses}L</span>
+              </div>
+              <div className="flex justify-center gap-4 text-xs">
+                <span>
+                  Current: {streaks.currentWinStreak > 0 ? (
+                    <span className="text-primary font-medium">{streaks.currentWinStreak}W 🔥</span>
+                  ) : streaks.currentLoseStreak > 0 ? (
+                    <span className="text-destructive font-medium">{streaks.currentLoseStreak}L</span>
+                  ) : '—'}
+                </span>
+                <span>Best: <span className="text-primary font-medium">{streaks.longestWinStreak}W</span></span>
+              </div>
             </div>
 
             {/* Profile info */}
