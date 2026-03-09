@@ -38,8 +38,7 @@ const features = [
     icon: <Users className="w-5 h-5" />,
     title: "Group Leaderboard",
     shortDesc: "Private to KC Pickleballers",
-    fullDesc: "See where you rank among all KC Pickleballers members. The leaderboard updates in real-time and shows everyone's current MMR, rank tier, and recent form.",
-    videoPlaceholder: "Browse the standings page to see all players ranked by MMR with their tier badges.",
+    videoSrc: groupLeaderboardVideo,
   },
   {
     icon: <Calendar className="w-5 h-5" />,
