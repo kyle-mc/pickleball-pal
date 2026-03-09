@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useSelectedPlayer } from "@/hooks/useSelectedPlayer";
-import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart } from "lucide-react";
+import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, LineChart, Flame } from "lucide-react";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { RankBadge } from "@/components/RankBadge";
 import { MmrDistributionChart } from "@/components/MmrDistributionChart";
@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { PlayerProfileDialog } from "@/components/PlayerProfileDialog";
+import { calculateStreaks } from "@/lib/streaks";
 
 type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints";
 type SortDir = "asc" | "desc";
