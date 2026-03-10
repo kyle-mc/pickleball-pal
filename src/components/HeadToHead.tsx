@@ -1,9 +1,13 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGames } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
-import { Loader2, Swords, Trophy, Target, TrendingUp, TrendingDown } from "lucide-react";
+import { Swords, Trophy, TrendingUp, TrendingDown, Gamepad2 } from "lucide-react";
+import { VICTORY_TYPES } from "@/lib/victoryTypes";
+import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 
 const PLAYER_COLORS: Record<string, string> = {
   "Kyle": "#22c55e",
@@ -27,6 +31,7 @@ interface HeadToHeadProps {
 const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: HeadToHeadProps) => {
   const { data: allGames = [], isLoading } = useGames();
   const { data: players = [] } = usePlayers();
+  const navigate = useNavigate();
 
   const matchupStats = useMemo(() => {
     if (!player1 || !player2 || player1 === player2) return null;
@@ -38,43 +43,85 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
       return acc;
     }, {} as Record<string, typeof allGames>);
 
-    let p1Wins = 0, p2Wins = 0, p1PointsFor = 0, p2PointsFor = 0;
+    let p1Wins = 0, p2Wins = 0, p1PointsFor = 0, p2PointsFor = 0, p1PointsAgainst = 0, p2PointsAgainst = 0;
     let p1MmrCausedToP2 = 0, p2MmrCausedToP1 = 0;
+    const p1VictoryTypes: Record<string, number> = {};
+    const p2VictoryTypes: Record<string, number> = {};
 
     Object.values(gamesByDateAndNumber).forEach(gameRecords => {
       const p1Record = gameRecords.find(g => g.player === player1);
       const p2Record = gameRecords.find(g => g.player === player2);
       if (p1Record && p2Record && p1Record.result !== p2Record.result) {
-        if (p1Record.result === 'Winner') p1Wins++;
-        else p2Wins++;
+        if (p1Record.result === 'Winner') {
+          p1Wins++;
+          const vt = p1Record.victoryType || 'standard';
+          p1VictoryTypes[vt] = (p1VictoryTypes[vt] || 0) + 1;
+        } else {
+          p2Wins++;
+          const vt = p2Record.victoryType || 'standard';
+          p2VictoryTypes[vt] = (p2VictoryTypes[vt] || 0) + 1;
+        }
         p2MmrCausedToP1 += p1Record.mmrChange;
         p1MmrCausedToP2 += p2Record.mmrChange;
-        const score = p1Record.score || '';
+        
+        const score = p1Record.score || p2Record.score || '';
         const scoreParts = score.split('-').map(s => parseInt(s.trim()));
         if (scoreParts.length === 2 && !isNaN(scoreParts[0]) && !isNaN(scoreParts[1])) {
+          const winScore = scoreParts[0];
+          const loseScore = scoreParts[1];
           if (p1Record.result === 'Winner') {
-            p1PointsFor += scoreParts[0]; p2PointsFor += scoreParts[1];
+            p1PointsFor += winScore;
+            p1PointsAgainst += loseScore;
+            p2PointsFor += loseScore;
+            p2PointsAgainst += winScore;
           } else {
-            p1PointsFor += scoreParts[1]; p2PointsFor += scoreParts[0];
+            p1PointsFor += loseScore;
+            p1PointsAgainst += winScore;
+            p2PointsFor += winScore;
+            p2PointsAgainst += loseScore;
           }
         }
       }
     });
 
-    return { p1Wins, p2Wins, p1PointsFor, p2PointsFor, p1MmrCausedToP2, p2MmrCausedToP1, totalGames: p1Wins + p2Wins };
+    const totalGames = p1Wins + p2Wins;
+    return {
+      p1Wins, p2Wins, totalGames,
+      p1PointsFor, p2PointsFor, p1PointsAgainst, p2PointsAgainst,
+      p1MmrCausedToP2, p2MmrCausedToP1,
+      p1WinPct: totalGames > 0 ? Math.round((p1Wins / totalGames) * 100) : 0,
+      p2WinPct: totalGames > 0 ? Math.round((p2Wins / totalGames) * 100) : 0,
+      p1VictoryTypes, p2VictoryTypes,
+    };
   }, [player1, player2, allGames]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+    return <div className="flex items-center justify-center py-8"><span className="text-muted-foreground">Loading...</span></div>;
   }
 
-  const renderMmrImpact = (value: number) => {
-    const isPositive = value > 0;
+  const renderMmrImpact = (value: number) => (
+    <span className={`font-medium ${value > 0 ? 'text-primary' : 'text-destructive'}`}>
+      {value > 0 ? '+' : ''}{value}
+    </span>
+  );
+
+  const renderVictoryTypes = (vtCounts: Record<string, number>) => {
+    const entries = Object.entries(vtCounts).filter(([, count]) => count > 0);
+    if (entries.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
     return (
-      <span className={`font-medium ${isPositive ? 'text-primary' : 'text-destructive'}`}>
-        {isPositive ? '+' : ''}{value}
-      </span>
+      <div className="flex flex-wrap gap-1">
+        {entries.map(([vtId, count]) => (
+          <span key={vtId} className="inline-flex items-center gap-0.5 text-xs">
+            <VictoryTypeBadge victoryTypeId={vtId} size="sm" />
+            <span className="text-muted-foreground">×{count}</span>
+          </span>
+        ))}
+      </div>
     );
+  };
+
+  const handleViewGames = () => {
+    navigate(`/games?players=${encodeURIComponent(player1)},${encodeURIComponent(player2)}`);
   };
 
   return (
@@ -123,76 +170,91 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
 
             {player1 && player2 && player1 !== player2 && matchupStats && (
               <>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
+                {/* Main stats grid */}
+                <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-6">
+                  {/* Player 1 */}
                   <div className="text-center">
                     <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-3xl font-display mb-3 shadow-lg"
                       style={{ backgroundColor: `${PLAYER_COLORS[player1] || '#888'}20`, border: `3px solid ${PLAYER_COLORS[player1] || '#888'}`, boxShadow: `0 0 20px ${PLAYER_COLORS[player1] || '#888'}40` }}>
                       {player1.charAt(0)}
                     </div>
-                    <h3 className="font-display text-xl text-foreground mb-2">{player1}</h3>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-2">
-                        <Trophy className="w-4 h-4 text-primary" />
-                        <span className="text-2xl font-display text-primary">{matchupStats.p1Wins}</span>
-                        <span className="text-muted-foreground text-sm">wins</span>
-                      </div>
-                      <div className="flex items-center justify-center gap-2">
-                        <Target className="w-4 h-4 text-accent" />
-                        <span className="text-lg font-medium text-foreground">{matchupStats.p1PointsFor}</span>
-                        <span className="text-muted-foreground text-sm">pts</span>
-                      </div>
+                    <h3 className="font-display text-xl text-foreground mb-1">{player1}</h3>
+                    <div className="text-3xl font-display text-primary mb-1">{matchupStats.p1Wins}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {matchupStats.p1WinPct}% W · {matchupStats.p1Wins}-{matchupStats.p2Wins}
                     </div>
                   </div>
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-16 h-16 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center animate-pulse-glow">
-                      <span className="text-2xl">🥒</span>
-                    </div>
+                  
+                  {/* Center stats */}
+                  <div className="flex flex-col items-center gap-3 pt-4">
                     <div className="text-center">
-                      <div className="text-sm text-muted-foreground">Games Played</div>
-                      <div className="text-lg font-display text-foreground">{matchupStats.totalGames}</div>
+                      <div className="text-3xl font-display text-foreground">{matchupStats.totalGames}</div>
+                      <div className="text-xs text-muted-foreground">Games Played</div>
                     </div>
                   </div>
+                  
+                  {/* Player 2 */}
                   <div className="text-center">
                     <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-3xl font-display mb-3 shadow-lg"
                       style={{ backgroundColor: `${PLAYER_COLORS[player2] || '#888'}20`, border: `3px solid ${PLAYER_COLORS[player2] || '#888'}`, boxShadow: `0 0 20px ${PLAYER_COLORS[player2] || '#888'}40` }}>
                       {player2.charAt(0)}
                     </div>
-                    <h3 className="font-display text-xl text-foreground mb-2">{player2}</h3>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-2">
-                        <Trophy className="w-4 h-4 text-primary" />
-                        <span className="text-2xl font-display text-primary">{matchupStats.p2Wins}</span>
-                        <span className="text-muted-foreground text-sm">wins</span>
-                      </div>
-                      <div className="flex items-center justify-center gap-2">
-                        <Target className="w-4 h-4 text-accent" />
-                        <span className="text-lg font-medium text-foreground">{matchupStats.p2PointsFor}</span>
-                        <span className="text-muted-foreground text-sm">pts</span>
-                      </div>
+                    <h3 className="font-display text-xl text-foreground mb-1">{player2}</h3>
+                    <div className="text-3xl font-display text-primary mb-1">{matchupStats.p2Wins}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {matchupStats.p2WinPct}% W · {matchupStats.p2Wins}-{matchupStats.p1Wins}
                     </div>
                   </div>
                 </div>
 
                 {matchupStats.totalGames > 0 && (
-                  <div className="mt-6 p-4 rounded-lg bg-muted/30 border border-border">
-                    <div className="text-center text-sm font-medium text-muted-foreground mb-3">MMR Impact</div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground mb-1">{player1} caused {player2}</div>
-                        <div className="flex items-center justify-center gap-1">
-                          {matchupStats.p1MmrCausedToP2 > 0 ? <TrendingUp className="w-4 h-4 text-primary" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
-                          {renderMmrImpact(matchupStats.p1MmrCausedToP2)}
+                  <>
+                    {/* Points For/Against */}
+                    <div className="mt-6 p-4 rounded-lg bg-muted/30 border border-border">
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{matchupStats.p1PointsFor}-{matchupStats.p1PointsAgainst}</div>
+                          <div className="text-xs text-muted-foreground">PF-PA</div>
                         </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground mb-1">{player2} caused {player1}</div>
-                        <div className="flex items-center justify-center gap-1">
-                          {matchupStats.p2MmrCausedToP1 > 0 ? <TrendingUp className="w-4 h-4 text-primary" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
-                          {renderMmrImpact(matchupStats.p2MmrCausedToP1)}
+                        <div>
+                          <div className="text-xs text-muted-foreground font-medium mb-1">MMR Impact</div>
+                          <div className="flex items-center justify-center gap-2 text-xs">
+                            <span>{player1}: {renderMmrImpact(matchupStats.p1MmrCausedToP2)}</span>
+                          </div>
+                          <div className="flex items-center justify-center gap-2 text-xs">
+                            <span>{player2}: {renderMmrImpact(matchupStats.p2MmrCausedToP1)}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{matchupStats.p2PointsFor}-{matchupStats.p2PointsAgainst}</div>
+                          <div className="text-xs text-muted-foreground">PF-PA</div>
                         </div>
                       </div>
                     </div>
-                  </div>
+
+                    {/* Victory Types */}
+                    <div className="mt-4 p-4 rounded-lg bg-muted/30 border border-border">
+                      <div className="text-center text-xs font-medium text-muted-foreground mb-3">Victory Types Won</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground mb-1">{player1}</div>
+                          {renderVictoryTypes(matchupStats.p1VictoryTypes)}
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground mb-1">{player2}</div>
+                          {renderVictoryTypes(matchupStats.p2VictoryTypes)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* View Games shortcut */}
+                    <div className="mt-4 text-center">
+                      <Button variant="outline" size="sm" onClick={handleViewGames} className="gap-2">
+                        <Gamepad2 className="w-4 h-4" />
+                        View Head-to-Head Games
+                      </Button>
+                    </div>
+                  </>
                 )}
               </>
             )}

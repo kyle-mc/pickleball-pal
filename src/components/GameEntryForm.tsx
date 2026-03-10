@@ -184,6 +184,14 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       return;
     }
 
+    // Warn if winning score is less than 11
+    if (wScore < 11) {
+      const confirmShort = window.confirm(
+        `The winning score is ${wScore}, which is less than the standard 11. This typically means the game was cut short. Are you sure you want to record this game?`
+      );
+      if (!confirmShort) return;
+    }
+
     if (!isCurrentSeason) {
       setPendingSubmit(true);
       setShowSeasonConfirm(true);

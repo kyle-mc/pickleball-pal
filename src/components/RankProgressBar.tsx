@@ -18,6 +18,25 @@ export function RankProgressBar({ mmr, gamesPlayed, hideMmr = false }: RankProgr
 
   return (
     <div className="w-full space-y-3">
+      {/* Rank name and MMR displayed above the chart */}
+      <div className="text-center mb-4">
+        {isUnranked ? (
+          <div className="text-muted-foreground">
+            <span className="font-medium text-lg">Unranked</span>
+            <span className="text-sm ml-2">({gamesPlayed}/10 placement games)</span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            <div className={cn("text-2xl font-display", TIER_COLORS[currentRank.tier])}>
+              {TIER_ICONS[currentRank.tier]} {currentRank.name}
+            </div>
+            {!hideMmr && (
+              <div className="text-3xl font-display text-foreground">{mmr}</div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="relative">
         <div className="flex h-4 rounded-full overflow-hidden bg-muted/30 border border-border">
           {TIERS.map((tier, index) => {
@@ -42,22 +61,16 @@ export function RankProgressBar({ mmr, gamesPlayed, hideMmr = false }: RankProgr
 
         {!hideMmr && (
           <div className="absolute top-1/2 -translate-y-1/2 transform transition-all duration-500" style={{ left: `${positionPercent}%`, transform: `translateX(-50%) translateY(-50%)` }}>
-            <div className="relative flex flex-col items-center">
-              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-lg border-2",
-                isUnranked ? "bg-muted border-border" : cn(TIER_BG_COLORS[currentRank.tier], "border-current"),
-                !isUnranked && TIER_COLORS[currentRank.tier])}>
-                {isUnranked ? "❓" : TIER_ICONS[currentRank.tier]}
-              </div>
-              <div className={cn("absolute -bottom-6 text-xs font-bold whitespace-nowrap px-1.5 py-0.5 rounded",
-                isUnranked ? "text-muted-foreground bg-muted" : cn(TIER_COLORS[currentRank.tier], TIER_BG_COLORS[currentRank.tier]))}>
-                {mmr}
-              </div>
+            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-lg border-2",
+              isUnranked ? "bg-muted border-border" : cn(TIER_BG_COLORS[currentRank.tier], "border-current"),
+              !isUnranked && TIER_COLORS[currentRank.tier])}>
+              {isUnranked ? "❓" : TIER_ICONS[currentRank.tier]}
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex text-[9px] sm:text-[10px] text-muted-foreground mt-6">
+      <div className="flex text-[9px] sm:text-[10px] text-muted-foreground mt-2">
         {TIERS.map((tier) => {
           const width = ((tier.maxMmr - tier.minMmr + 1) / MAX_MMR) * 100;
           const isCurrentTier = !isUnranked && !hideMmr && currentRank.tier === tier.tier;
@@ -68,19 +81,6 @@ export function RankProgressBar({ mmr, gamesPlayed, hideMmr = false }: RankProgr
             </div>
           );
         })}
-      </div>
-
-      <div className="text-center mt-2">
-        {isUnranked ? (
-          <div className="text-muted-foreground">
-            <span className="font-medium">Unranked</span>
-            <span className="text-sm ml-2">({gamesPlayed}/10 placement games)</span>
-          </div>
-        ) : (
-          <div className={cn("font-medium", TIER_COLORS[currentRank.tier])}>
-            {TIER_ICONS[currentRank.tier]} {currentRank.name}
-          </div>
-        )}
       </div>
     </div>
   );

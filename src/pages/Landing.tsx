@@ -228,7 +228,7 @@ const Landing = () => {
       </section>
 
       <footer className="py-8 border-t border-border text-center text-sm text-muted-foreground">
-        © 2024 PicklePlay · Built for KC Pickleballers
+        © 2026 PicklePlay · Built for KC Pickleballers
       </footer>
 
       <AuthDialog

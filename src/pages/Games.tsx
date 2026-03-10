@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
 import { useRealtimeGames } from "@/hooks/useRealtime";
 import { useGameVideos } from "@/hooks/useVideos";
@@ -21,7 +23,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
@@ -31,7 +33,7 @@ const ITEMS_PER_PAGE = 5;
 
 const Games = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const currentSeason = getCurrentSeason();
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
   const { data: allGames = [], isLoading } = useGames(selectedSeason);
@@ -39,36 +41,36 @@ const Games = () => {
   const { hasVideoForGame, getVideoForGame } = useGameVideos();
   const { data: avatarMap } = usePlayerAvatars();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [playerFilter, setPlayerFilter] = useState<string>("all");
+  const [playerFilters, setPlayerFilters] = useState<string[]>([]);
   const [victoryTypeFilter, setVictoryTypeFilter] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
-  // State for add video dialog
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
   const { placementEnabled } = usePlacementEnabled();
 
-  // Handle date filter from URL params (from Events page)
+  // Handle URL params
   useEffect(() => {
     const dateParam = searchParams.get('date');
-    if (dateParam) {
-      setSelectedDate(dateParam);
+    if (dateParam) setSelectedDate(dateParam);
+    
+    const playersParam = searchParams.get('players');
+    if (playersParam) {
+      setPlayerFilters(playersParam.split(',').map(p => decodeURIComponent(p)));
+      setSearchParams({}, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams]);
 
-  // Get unique dates for filtering - fix timezone issue by parsing as local date
   const uniqueDates = useMemo(() => 
     [...new Set(allGames.map(g => g.date))].sort((a, b) => 
       new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime()
     ), [allGames]);
 
-  // Get unique players for filtering
   const uniquePlayers = useMemo(() => 
     [...new Set(allGames.map(g => g.player))].sort(), [allGames]);
 
-  // Get player games count cache for unranked check
   const playerGamesCount = useMemo(() => {
     const counts: Record<string, number> = {};
     const season = selectedSeason === "all" ? currentSeason.id : selectedSeason;
@@ -78,7 +80,12 @@ const Games = () => {
     return counts;
   }, [allGames, uniquePlayers, selectedSeason, currentSeason.id]);
 
-  // Filter games by date, player, and victory type
+  const togglePlayerFilter = (player: string) => {
+    setPlayerFilters(prev => 
+      prev.includes(player) ? prev.filter(p => p !== player) : [...prev, player]
+    );
+  };
+
   const filteredGames = useMemo(() => {
     let games = [...allGames];
     
@@ -86,13 +93,22 @@ const Games = () => {
       games = games.filter(g => g.date === selectedDate);
     }
     
-    if (playerFilter !== "all") {
-      const playerGameKeys = new Set(
-        games
-          .filter(g => g.player === playerFilter)
-          .map(g => `${g.date}-${g.game}`)
-      );
-      games = games.filter(g => playerGameKeys.has(`${g.date}-${g.game}`));
+    if (playerFilters.length > 0) {
+      // Find games where ALL selected players participated
+      const gameKeys = new Map<string, Set<string>>();
+      games.forEach(g => {
+        const key = `${g.date}-${g.game}`;
+        if (!gameKeys.has(key)) gameKeys.set(key, new Set());
+        gameKeys.get(key)!.add(g.player);
+      });
+      
+      const validKeys = new Set<string>();
+      for (const [key, gamePlayers] of gameKeys) {
+        if (playerFilters.every(p => gamePlayers.has(p))) {
+          validKeys.add(key);
+        }
+      }
+      games = games.filter(g => validKeys.has(`${g.date}-${g.game}`));
     }
 
     if (victoryTypeFilter !== "all") {
@@ -100,33 +116,31 @@ const Games = () => {
     }
     
     return games;
-  }, [selectedDate, playerFilter, victoryTypeFilter, allGames]);
+  }, [selectedDate, playerFilters, victoryTypeFilter, allGames]);
 
-  // Group by date, then by game number
   const groupedByDate = useMemo(() => {
-    const grouped = filteredGames.reduce((acc, game) => {
+    return filteredGames.reduce((acc, game) => {
       if (!acc[game.date]) acc[game.date] = {};
       if (!acc[game.date][game.game]) acc[game.date][game.game] = [];
       acc[game.date][game.game].push(game);
       return acc;
     }, {} as Record<string, Record<number, typeof allGames>>);
-    
-    return grouped;
   }, [filteredGames]);
 
   const sortedDates = useMemo(() => {
     const dates = Object.keys(groupedByDate);
     return dates.sort((a, b) => {
-      if (sortDirection === "desc") {
-        return new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime();
-      }
+      if (sortDirection === "desc") return new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime();
       return new Date(a + 'T00:00:00').getTime() - new Date(b + 'T00:00:00').getTime();
     });
   }, [groupedByDate, sortDirection]);
 
+  const totalFilteredGames = useMemo(() => {
+    return Object.values(groupedByDate).reduce((sum, dateGames) => sum + Object.keys(dateGames).length, 0);
+  }, [groupedByDate]);
+
   const displayedDates = sortedDates.slice(0, displayCount);
 
-  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
@@ -136,31 +150,24 @@ const Games = () => {
       },
       { threshold: 0.1 }
     );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
+    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
   }, [displayCount, sortedDates.length]);
 
-  // Reset display count when filters change
   useEffect(() => {
     setDisplayCount(ITEMS_PER_PAGE);
-  }, [selectedDate, playerFilter, victoryTypeFilter, sortDirection]);
+  }, [selectedDate, playerFilters, victoryTypeFilter, sortDirection]);
 
-  const toggleSort = () => {
-    setSortDirection(prev => prev === "desc" ? "asc" : "desc");
-  };
+  const toggleSort = () => setSortDirection(prev => prev === "desc" ? "asc" : "desc");
 
   const handleAddVideo = (gameId: string) => {
     setSelectedGameForVideo(gameId);
     setIsAddVideoOpen(true);
   };
 
-  const handleWatchVideo = (videoId: string) => {
-    navigate(`/videos?play=${videoId}`);
-  };
+  const handleWatchVideo = (videoId: string) => navigate(`/videos?play=${videoId}`);
+
+  const hasActiveFilters = selectedDate || playerFilters.length > 0 || victoryTypeFilter !== "all";
 
   if (isLoading) {
     return (
@@ -180,8 +187,11 @@ const Games = () => {
       <main className="container mx-auto px-4 pt-24 pb-24 md:pb-20 max-w-full overflow-x-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-display text-foreground mb-2">Games</h1>
-            <p className="text-muted-foreground">All pickleball games and MMR changes</p>
+            <h1 className="text-4xl font-display text-foreground mb-1">Games</h1>
+            <p className="text-muted-foreground text-sm">
+              {totalFilteredGames} game{totalFilteredGames !== 1 ? 's' : ''}
+              {hasActiveFilters ? ' (filtered)' : ''}
+            </p>
           </div>
           <div className="flex gap-3 flex-shrink-0">
             <DataExportPanel />
@@ -189,14 +199,13 @@ const Games = () => {
           </div>
         </div>
 
-        {/* Filters - All in dropdown/select format */}
+        {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
           <SeasonSelector 
             selectedSeason={selectedSeason} 
             onSeasonChange={setSelectedSeason} 
           />
 
-          {/* Date Filter - now as a dropdown */}
           <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>
             <SelectTrigger className="w-[180px] bg-card border-border">
               <Calendar className="w-4 h-4 mr-2" />
@@ -212,18 +221,33 @@ const Games = () => {
             </SelectContent>
           </Select>
 
-          <Select value={playerFilter} onValueChange={setPlayerFilter}>
-            <SelectTrigger className="w-[180px] bg-card border-border">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filter by player" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50">
-              <SelectItem value="all">All Players</SelectItem>
-              {uniquePlayers.map(player => (
-                <SelectItem key={player} value={player}>{player}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Multi-player filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[180px] bg-card border-border justify-start gap-2">
+                <Filter className="w-4 h-4" />
+                {playerFilters.length > 0 ? `${playerFilters.length} player${playerFilters.length > 1 ? 's' : ''}` : "All Players"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-2 bg-card border-border" align="start">
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {uniquePlayers.map(player => (
+                  <label key={player} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer text-sm">
+                    <Checkbox 
+                      checked={playerFilters.includes(player)} 
+                      onCheckedChange={() => togglePlayerFilter(player)} 
+                    />
+                    <span className="text-foreground">{player}</span>
+                  </label>
+                ))}
+              </div>
+              {playerFilters.length > 0 && (
+                <Button variant="ghost" size="sm" className="w-full mt-2" onClick={() => setPlayerFilters([])}>
+                  <X className="w-3 h-3 mr-1" /> Clear
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
 
           <Select value={victoryTypeFilter} onValueChange={setVictoryTypeFilter}>
             <SelectTrigger className="w-[200px] bg-card border-border">
@@ -249,7 +273,6 @@ const Games = () => {
             <ArrowUpDown className="w-4 h-4" />
             {sortDirection === "desc" ? "Newest First" : "Oldest First"}
           </button>
-          
         </div>
 
         {/* Games by Date */}
@@ -279,44 +302,27 @@ const Games = () => {
                             {score && <span className="text-muted-foreground text-sm font-normal">({score})</span>}
                             {victoryType && <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />}
                             
-                            {/* Video actions */}
                             <div className="ml-auto flex items-center gap-2">
                               {hasVideo && video ? (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-primary hover:text-primary hover:bg-primary/10"
-                                        onClick={() => handleWatchVideo(video.id)}
-                                      >
-                                        <Video className="w-4 h-4 mr-1" />
-                                        Watch
+                                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10" onClick={() => handleWatchVideo(video.id)}>
+                                        <Video className="w-4 h-4 mr-1" />Watch
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Watch video highlight</p>
-                                    </TooltipContent>
+                                    <TooltipContent><p>Watch video highlight</p></TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               ) : (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-muted-foreground hover:text-foreground"
-                                        onClick={() => handleAddVideo(gameKey)}
-                                      >
-                                        <Plus className="w-4 h-4 mr-1" />
-                                        <Video className="w-4 h-4" />
+                                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleAddVideo(gameKey)}>
+                                        <Plus className="w-4 h-4 mr-1" /><Video className="w-4 h-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Add video for this game</p>
-                                    </TooltipContent>
+                                    <TooltipContent><p>Add video for this game</p></TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
@@ -349,7 +355,7 @@ const Games = () => {
                                         {player.result === 'Winner' ? 'W' : 'L'}
                                       </span>
                                     </TableCell>
-                                    <TableCell className={`font-medium whitespace-nowrap ${playerFilter === player.player ? 'text-primary' : 'text-foreground'}`}>
+                                    <TableCell className={`font-medium whitespace-nowrap ${playerFilters.includes(player.player) ? 'text-primary' : 'text-foreground'}`}>
                                       <div className="flex items-center gap-2">
                                         <PlayerAvatar 
                                           name={player.player} 
@@ -412,7 +418,6 @@ const Games = () => {
           </div>
         )}
 
-        {/* Add Video Dialog */}
         <AddVideoDialog
           open={isAddVideoOpen}
           onOpenChange={(open) => {
