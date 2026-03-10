@@ -18,7 +18,7 @@ const features = [
   {
     icon: <Zap className="w-5 h-5" />,
     title: "Victory Types",
-    shortDesc: Object.values(VICTORY_TYPES).map(v => `${v.emoji} ${v.name}`).join(", "),
+    shortDesc: "Earn bonus MMR for dominant wins like 🥒 Golden Pickle (11-0) or 🔥 Clutch God (OT win)",
   },
   {
     icon: <Users className="w-5 h-5" />,
