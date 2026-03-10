@@ -23,7 +23,7 @@ const features = [
   {
     icon: <Users className="w-5 h-5" />,
     title: "Group Leaderboard",
-    shortDesc: "Standings, streaks, points scored, game history",
+    shortDesc: "Standings, streaks, game history",
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
