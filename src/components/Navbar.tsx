@@ -154,31 +154,6 @@ const Navbar = () => {
                       <AddToHomeScreenDialog />
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <a href="#">
-                        <HelpCircle className="w-4 h-4 mr-2" />
-                        Help Center
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <a href="#">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Contact Us
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <a href="#">
-                        <Shield className="w-4 h-4 mr-2" />
-                        Privacy Policy
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <a href="#">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Terms of Service
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
