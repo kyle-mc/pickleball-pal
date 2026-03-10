@@ -208,9 +208,6 @@ const Landing = () => {
               })}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            8 rank tiers across 22 divisions based on your MMR. Climb the ladder!
-          </p>
         </div>
       </section>
 
