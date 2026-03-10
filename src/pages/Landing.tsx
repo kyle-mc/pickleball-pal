@@ -18,12 +18,12 @@ const features = [
   {
     icon: <Zap className="w-5 h-5" />,
     title: "Victory Types",
-    shortDesc: Object.values(VICTORY_TYPES).map(v => `${v.emoji} ${v.name}`).join(", "),
+    shortDesc: "Earn bonus MMR for dominant wins like 🥒 Golden Pickle (11-0) or 🔥 Clutch God (OT win)",
   },
   {
     icon: <Users className="w-5 h-5" />,
     title: "Group Leaderboard",
-    shortDesc: "Standings, streaks, points scored, game history",
+    shortDesc: "Standings, streaks, game history",
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
@@ -208,9 +208,6 @@ const Landing = () => {
               })}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            8 rank tiers across 22 divisions based on your MMR. Climb the ladder!
-          </p>
         </div>
       </section>
 
@@ -231,7 +228,7 @@ const Landing = () => {
       </section>
 
       <footer className="py-8 border-t border-border text-center text-sm text-muted-foreground">
-        © 2024 PicklePlay · Built for KC Pickleballers
+        © 2026 PicklePlay · Built for KC Pickleballers
       </footer>
 
       <AuthDialog

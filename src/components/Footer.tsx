@@ -72,7 +72,7 @@ const Footer = () => {
 
         <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-muted-foreground text-sm">
-            © 2024 PicklePlay. All rights reserved.
+            © 2026 PicklePlay. All rights reserved.
           </p>
           <p className="text-muted-foreground text-sm">
             Made with 💚 for pickleball enthusiasts everywhere

@@ -84,9 +84,9 @@ const AuthDialog = ({ open, onOpenChange, defaultMode = "signin" }: AuthDialogPr
         </DialogHeader>
         
         <Tabs defaultValue={defaultMode === "signup" ? "signup" : "login"} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-muted">
+            <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Login</TabsTrigger>
+            <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Sign Up</TabsTrigger>
           </TabsList>
           
           <TabsContent value="login" className="space-y-4 pt-4">

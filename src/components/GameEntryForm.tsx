@@ -175,10 +175,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       toast({ title: "Invalid Scores", description: "Winning team score must be higher.", variant: "destructive" });
       return;
     }
-    if (wScore < 11) {
-      toast({ title: "Invalid Scores", description: "Winning score must be at least 11.", variant: "destructive" });
-      return;
-    }
     if (wScore - lScore < 2) {
       toast({ title: "Invalid Scores", description: "Winning team must win by at least 2.", variant: "destructive" });
       return;
@@ -186,6 +182,14 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
     if (wScore > 11 && wScore - lScore !== 2) {
       toast({ title: "Invalid Scores", description: "For scores above 11, margin must be exactly 2.", variant: "destructive" });
       return;
+    }
+
+    // Warn if winning score is less than 11
+    if (wScore < 11) {
+      const confirmShort = window.confirm(
+        `The winning score is ${wScore}, which is less than the standard 11. This typically means the game was cut short. Are you sure you want to record this game?`
+      );
+      if (!confirmShort) return;
     }
 
     if (!isCurrentSeason) {
