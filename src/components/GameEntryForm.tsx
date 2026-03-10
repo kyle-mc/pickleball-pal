@@ -175,10 +175,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
       toast({ title: "Invalid Scores", description: "Winning team score must be higher.", variant: "destructive" });
       return;
     }
-    if (wScore < 11) {
-      toast({ title: "Invalid Scores", description: "Winning score must be at least 11.", variant: "destructive" });
-      return;
-    }
     if (wScore - lScore < 2) {
       toast({ title: "Invalid Scores", description: "Winning team must win by at least 2.", variant: "destructive" });
       return;
