@@ -41,9 +41,9 @@ interface PlayerRating {
   gamesThisSeason: number;
 }
 
-function getVictoryType(winningScore: number, losingScore: number): string {
+function getVictoryType(winningScore: number, losingScore: number, neverServed?: boolean): string {
   if (winningScore === 11 && losingScore === 0) {
-    return 'golden_pickle';
+    return neverServed ? 'golden_pickle' : 'pickled';
   }
   if (winningScore === 11 && losingScore >= 1 && losingScore <= 4) {
     return 'steamroller';
