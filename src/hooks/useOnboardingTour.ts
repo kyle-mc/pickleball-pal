@@ -68,13 +68,28 @@ export const useOnboardingTour = () => {
           },
         },
         {
+          element: isMobile ? "[data-tour='mobile-nav-chat']" : "[data-tour='nav-chat']",
+          popover: {
+            title: "Group Chat 💬",
+            description: "Jump into the group chat to coordinate games, talk trash, and stay connected with the crew.",
+            side: isMobile ? "top" : "bottom",
+            align: "center",
+          },
+        },
+        {
           popover: {
             title: "The Ranking System 🎖️",
             description: `
-              <div style="text-align:left; line-height:1.6;">
+              <div style="text-align:left; line-height:1.8; font-size: 14px;">
                 <p>Your rank is based on your <strong>MMR</strong> (Matchmaking Rating), calculated using the Glicko-2 algorithm.</p>
                 <p style="margin-top:8px;"><strong>Ranks:</strong> Bronze → Silver → Gold → Platinum → Diamond → Champion → Grand Champion → Supersonic Legend</p>
-                <p style="margin-top:8px;"><strong>Victory Types:</strong> Bigger blowouts earn more MMR — a Golden Pickle (11-0) gives 1.5x, while a Squeaker (11-9) gives only 0.9x.</p>
+                <p style="margin-top:8px;"><strong>Victory Types:</strong></p>
+                <ul style="margin-top:4px; padding-left:16px;">
+                  <li>🥒 <strong>Pickled</strong> (11-0) → 1.5x MMR</li>
+                  <li>🏆🥒 <strong>Golden Pickle</strong> (11-0, opponent never served) → 2x MMR</li>
+                  <li>🐁 <strong>Squeaker</strong> (11-9) → 0.9x MMR</li>
+                  <li>🔥 <strong>Clutch God</strong> (OT win) → +2pt bonus</li>
+                </ul>
               </div>
             `,
           },

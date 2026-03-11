@@ -14,13 +14,23 @@ export interface VictoryType {
 export const VICTORY_TYPES: Record<string, VictoryType> = {
   golden_pickle: {
     id: 'golden_pickle',
-    name: 'The Golden Pickle',
+    name: 'Golden Pickle',
+    description: '11-0 and losing team never served',
+    emoji: '🏆🥒',
+    multiplier: 2.0,
+    bonus: 0,
+    color: 'text-amber-300',
+    bgColor: 'bg-amber-300/20',
+  },
+  pickled: {
+    id: 'pickled',
+    name: 'Pickled',
     description: '11-0 shutout',
     emoji: '🥒',
     multiplier: 1.5,
     bonus: 0,
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-400/20',
+    color: 'text-green-400',
+    bgColor: 'bg-green-400/20',
   },
   steamroller: {
     id: 'steamroller',
@@ -64,9 +74,9 @@ export const VICTORY_TYPES: Record<string, VictoryType> = {
   },
 };
 
-export function getVictoryTypeFromScore(winningScore: number, losingScore: number): VictoryType {
+export function getVictoryTypeFromScore(winningScore: number, losingScore: number, neverServed?: boolean): VictoryType {
   if (winningScore === 11 && losingScore === 0) {
-    return VICTORY_TYPES.golden_pickle;
+    return neverServed ? VICTORY_TYPES.golden_pickle : VICTORY_TYPES.pickled;
   }
   if (winningScore === 11 && losingScore >= 1 && losingScore <= 4) {
     return VICTORY_TYPES.steamroller;

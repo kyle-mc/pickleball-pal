@@ -81,6 +81,7 @@ export const useSubmitGame = () => {
       date: string;
       groupId?: string;
       eventId?: string;
+      neverServed?: boolean;
     }) => {
       const { data, error } = await supabase.functions.invoke('calculate-mmr', {
         body: gameData,

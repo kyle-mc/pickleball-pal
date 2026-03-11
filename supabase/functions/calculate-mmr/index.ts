@@ -15,11 +15,12 @@ const GLICKO_SCALE = 173.7178; // Scaling factor for Glicko-2
 
 // Victory type multipliers
 const VICTORY_MULTIPLIERS: Record<string, { multiplier: number; bonus: number }> = {
-  'golden_pickle': { multiplier: 1.5, bonus: 0 },      // 11-0
-  'steamroller': { multiplier: 1.2, bonus: 0 },        // 11-1 to 11-4
-  'standard': { multiplier: 1.0, bonus: 0 },           // 11-5 to 11-8
-  'squeaker': { multiplier: 0.9, bonus: 0 },           // 11-9
-  'clutch_god': { multiplier: 1.0, bonus: 2 },         // 12+ with margin of 2
+  'golden_pickle': { multiplier: 2.0, bonus: 0 },      // 11-0, opponent never served
+  'pickled': { multiplier: 1.5, bonus: 0 },             // 11-0 shutout
+  'steamroller': { multiplier: 1.2, bonus: 0 },         // 11-1 to 11-4
+  'standard': { multiplier: 1.0, bonus: 0 },            // 11-5 to 11-8
+  'squeaker': { multiplier: 0.9, bonus: 0 },            // 11-9
+  'clutch_god': { multiplier: 1.0, bonus: 2 },          // 12+ with margin of 2
 };
 
 interface GameInput {
@@ -30,6 +31,7 @@ interface GameInput {
   date: string;
   groupId?: string;
   eventId?: string;
+  neverServed?: boolean;
 }
 
 interface PlayerRating {
@@ -39,9 +41,9 @@ interface PlayerRating {
   gamesThisSeason: number;
 }
 
-function getVictoryType(winningScore: number, losingScore: number): string {
+function getVictoryType(winningScore: number, losingScore: number, neverServed?: boolean): string {
   if (winningScore === 11 && losingScore === 0) {
-    return 'golden_pickle';
+    return neverServed ? 'golden_pickle' : 'pickled';
   }
   if (winningScore === 11 && losingScore >= 1 && losingScore <= 4) {
     return 'steamroller';
@@ -260,12 +262,12 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const gameInput: GameInput = await req.json();
-    const { winningPlayers, losingPlayers, winningScore, losingScore, date, groupId, eventId } = gameInput;
+    const { winningPlayers, losingPlayers, winningScore, losingScore, date, groupId, eventId, neverServed } = gameInput;
 
-    console.log('Processing game:', { winningPlayers, losingPlayers, score: `${winningScore}-${losingScore}`, date });
+    console.log('Processing game:', { winningPlayers, losingPlayers, score: `${winningScore}-${losingScore}`, date, neverServed });
 
     const currentSeason = getSeasonFromDate(date);
-    const victoryType = getVictoryType(winningScore, losingScore);
+    const victoryType = getVictoryType(winningScore, losingScore, neverServed);
     const { multiplier, bonus } = VICTORY_MULTIPLIERS[victoryType];
 
     console.log('Victory type:', victoryType, 'Multiplier:', multiplier, 'Bonus:', bonus);

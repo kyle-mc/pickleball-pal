@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGames } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
-import { Swords, Trophy, TrendingUp, TrendingDown, Gamepad2 } from "lucide-react";
-import { VICTORY_TYPES } from "@/lib/victoryTypes";
+import { Swords, Gamepad2 } from "lucide-react";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 
 const PLAYER_COLORS: Record<string, string> = {
@@ -44,7 +43,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
     }, {} as Record<string, typeof allGames>);
 
     let p1Wins = 0, p2Wins = 0, p1PointsFor = 0, p2PointsFor = 0, p1PointsAgainst = 0, p2PointsAgainst = 0;
-    let p1MmrCausedToP2 = 0, p2MmrCausedToP1 = 0;
+    let p1NetMmr = 0, p2NetMmr = 0;
     const p1VictoryTypes: Record<string, number> = {};
     const p2VictoryTypes: Record<string, number> = {};
 
@@ -61,8 +60,9 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
           const vt = p2Record.victoryType || 'standard';
           p2VictoryTypes[vt] = (p2VictoryTypes[vt] || 0) + 1;
         }
-        p2MmrCausedToP1 += p1Record.mmrChange;
-        p1MmrCausedToP2 += p2Record.mmrChange;
+        // Each player's net MMR from games against each other
+        p1NetMmr += p1Record.mmrChange;
+        p2NetMmr += p2Record.mmrChange;
         
         const score = p1Record.score || p2Record.score || '';
         const scoreParts = score.split('-').map(s => parseInt(s.trim()));
@@ -88,7 +88,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
     return {
       p1Wins, p2Wins, totalGames,
       p1PointsFor, p2PointsFor, p1PointsAgainst, p2PointsAgainst,
-      p1MmrCausedToP2, p2MmrCausedToP1,
+      p1NetMmr, p2NetMmr,
       p1WinPct: totalGames > 0 ? Math.round((p1Wins / totalGames) * 100) : 0,
       p2WinPct: totalGames > 0 ? Math.round((p2Wins / totalGames) * 100) : 0,
       p1VictoryTypes, p2VictoryTypes,
@@ -100,7 +100,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
   }
 
   const renderMmrImpact = (value: number) => (
-    <span className={`font-medium ${value > 0 ? 'text-primary' : 'text-destructive'}`}>
+    <span className={`font-medium ${value > 0 ? 'text-primary' : value < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
       {value > 0 ? '+' : ''}{value}
     </span>
   );
@@ -179,9 +179,11 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                       {player1.charAt(0)}
                     </div>
                     <h3 className="font-display text-xl text-foreground mb-1">{player1}</h3>
-                    <div className="text-3xl font-display text-primary mb-1">{matchupStats.p1Wins}</div>
+                    <div className="text-2xl font-display text-foreground mb-1">
+                      {matchupStats.p1Wins}-{matchupStats.p2Wins}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      {matchupStats.p1WinPct}% W · {matchupStats.p1Wins}-{matchupStats.p2Wins}
+                      {matchupStats.p1WinPct}% Win Rate
                     </div>
                   </div>
                   
@@ -189,7 +191,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                   <div className="flex flex-col items-center gap-3 pt-4">
                     <div className="text-center">
                       <div className="text-3xl font-display text-foreground">{matchupStats.totalGames}</div>
-                      <div className="text-xs text-muted-foreground">Games Played</div>
+                      <div className="text-xs text-muted-foreground">Games</div>
                     </div>
                   </div>
                   
@@ -200,34 +202,36 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                       {player2.charAt(0)}
                     </div>
                     <h3 className="font-display text-xl text-foreground mb-1">{player2}</h3>
-                    <div className="text-3xl font-display text-primary mb-1">{matchupStats.p2Wins}</div>
+                    <div className="text-2xl font-display text-foreground mb-1">
+                      {matchupStats.p2Wins}-{matchupStats.p1Wins}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      {matchupStats.p2WinPct}% W · {matchupStats.p2Wins}-{matchupStats.p1Wins}
+                      {matchupStats.p2WinPct}% Win Rate
                     </div>
                   </div>
                 </div>
 
                 {matchupStats.totalGames > 0 && (
                   <>
-                    {/* Points For/Against */}
+                    {/* Detailed Stats */}
                     <div className="mt-6 p-4 rounded-lg bg-muted/30 border border-border">
                       <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                           <div className="text-sm font-medium text-foreground">{matchupStats.p1PointsFor}-{matchupStats.p1PointsAgainst}</div>
                           <div className="text-xs text-muted-foreground">PF-PA</div>
+                          <div className="text-xs text-muted-foreground mt-1">{matchupStats.p1WinPct}% W</div>
                         </div>
                         <div>
-                          <div className="text-xs text-muted-foreground font-medium mb-1">MMR Impact</div>
-                          <div className="flex items-center justify-center gap-2 text-xs">
-                            <span>{player1}: {renderMmrImpact(matchupStats.p1MmrCausedToP2)}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-2 text-xs">
-                            <span>{player2}: {renderMmrImpact(matchupStats.p2MmrCausedToP1)}</span>
+                          <div className="text-xs text-muted-foreground font-medium mb-1">Net MMR</div>
+                          <div className="flex flex-col items-center gap-1 text-xs">
+                            <span>{player1}: {renderMmrImpact(matchupStats.p1NetMmr)}</span>
+                            <span>{player2}: {renderMmrImpact(matchupStats.p2NetMmr)}</span>
                           </div>
                         </div>
                         <div>
                           <div className="text-sm font-medium text-foreground">{matchupStats.p2PointsFor}-{matchupStats.p2PointsAgainst}</div>
                           <div className="text-xs text-muted-foreground">PF-PA</div>
+                          <div className="text-xs text-muted-foreground mt-1">{matchupStats.p2WinPct}% W</div>
                         </div>
                       </div>
                     </div>
