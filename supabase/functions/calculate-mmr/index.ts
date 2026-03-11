@@ -15,11 +15,12 @@ const GLICKO_SCALE = 173.7178; // Scaling factor for Glicko-2
 
 // Victory type multipliers
 const VICTORY_MULTIPLIERS: Record<string, { multiplier: number; bonus: number }> = {
-  'golden_pickle': { multiplier: 1.5, bonus: 0 },      // 11-0
-  'steamroller': { multiplier: 1.2, bonus: 0 },        // 11-1 to 11-4
-  'standard': { multiplier: 1.0, bonus: 0 },           // 11-5 to 11-8
-  'squeaker': { multiplier: 0.9, bonus: 0 },           // 11-9
-  'clutch_god': { multiplier: 1.0, bonus: 2 },         // 12+ with margin of 2
+  'golden_pickle': { multiplier: 2.0, bonus: 0 },      // 11-0, opponent never served
+  'pickled': { multiplier: 1.5, bonus: 0 },             // 11-0 shutout
+  'steamroller': { multiplier: 1.2, bonus: 0 },         // 11-1 to 11-4
+  'standard': { multiplier: 1.0, bonus: 0 },            // 11-5 to 11-8
+  'squeaker': { multiplier: 0.9, bonus: 0 },            // 11-9
+  'clutch_god': { multiplier: 1.0, bonus: 2 },          // 12+ with margin of 2
 };
 
 interface GameInput {
