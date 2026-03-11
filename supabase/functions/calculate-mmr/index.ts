@@ -31,6 +31,7 @@ interface GameInput {
   date: string;
   groupId?: string;
   eventId?: string;
+  neverServed?: boolean;
 }
 
 interface PlayerRating {
