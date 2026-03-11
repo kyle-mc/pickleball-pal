@@ -284,7 +284,7 @@ const Games = () => {
               </h2>
               <div className="grid gap-4">
                 {Object.entries(groupedByDate[date])
-                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .sort(([a], [b]) => sortDirection === "desc" ? Number(b) - Number(a) : Number(a) - Number(b))
                   .map(([gameNum, players]) => {
                     const winners = players.filter(p => p.result === 'Winner');
                     const losers = players.filter(p => p.result === 'Loser');

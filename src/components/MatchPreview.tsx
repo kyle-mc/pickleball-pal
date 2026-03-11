@@ -84,7 +84,7 @@ export function MatchPreview({ team1, team2, onSwapTeams }: MatchPreviewProps) {
             Match Preview
           </CardTitle>
           {onSwapTeams && (
-            <Button variant="ghost" size="sm" onClick={onSwapTeams} className="text-muted-foreground hover:text-foreground h-7 text-xs">
+            <Button variant="default" size="sm" onClick={onSwapTeams} className="bg-primary text-primary-foreground hover:bg-primary/90 h-7 text-xs">
               <ArrowLeftRight className="w-3 h-3 mr-1" />
               Swap Teams
             </Button>
