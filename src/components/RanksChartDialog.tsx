@@ -97,7 +97,7 @@ export function RanksChartDialog({ currentMmr, trigger }: RanksChartDialogProps)
 
                 {isCurrentTier && currentMmr !== undefined && (
                   <div className="mt-2 text-center">
-                    <span className="text-xs text-primary font-medium">← You are here ({currentMmr} MMR)</span>
+                    <span className="text-xs text-primary font-medium">You are here ({currentMmr} MMR)</span>
                   </div>
                 )}
               </div>

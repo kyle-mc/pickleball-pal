@@ -185,9 +185,9 @@ const Standings = () => {
       <Navbar />
       <div className="pt-24 pb-24 md:pb-20">
         <div className="container mx-auto px-4 max-w-full overflow-x-hidden">
-          <div className="sticky top-16 z-40 bg-background py-4 -mx-4 px-4 border-b border-border mb-8">
+          <div className="sticky top-16 z-40 bg-background py-4 -mx-4 px-4 border-b border-border mb-8" style={{ position: 'sticky', top: '64px' }}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h1 className="font-display text-4xl md:text-5xl text-foreground">Stats</h1>
+              <h1 className="font-display text-4xl md:text-5xl text-foreground leading-none">Stats</h1>
               <SeasonSelector 
                 selectedSeason={selectedSeason} 
                 onSeasonChange={setSelectedSeason} 
