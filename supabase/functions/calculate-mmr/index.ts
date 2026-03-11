@@ -262,12 +262,12 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const gameInput: GameInput = await req.json();
-    const { winningPlayers, losingPlayers, winningScore, losingScore, date, groupId, eventId } = gameInput;
+    const { winningPlayers, losingPlayers, winningScore, losingScore, date, groupId, eventId, neverServed } = gameInput;
 
-    console.log('Processing game:', { winningPlayers, losingPlayers, score: `${winningScore}-${losingScore}`, date });
+    console.log('Processing game:', { winningPlayers, losingPlayers, score: `${winningScore}-${losingScore}`, date, neverServed });
 
     const currentSeason = getSeasonFromDate(date);
-    const victoryType = getVictoryType(winningScore, losingScore);
+    const victoryType = getVictoryType(winningScore, losingScore, neverServed);
     const { multiplier, bonus } = VICTORY_MULTIPLIERS[victoryType];
 
     console.log('Victory type:', victoryType, 'Multiplier:', multiplier, 'Bonus:', bonus);
