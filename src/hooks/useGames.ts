@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface GameRecord {
+  id?: string;
   game: number;
   result: 'Winner' | 'Loser';
   player: string;
@@ -17,6 +18,7 @@ export interface GameRecord {
   rdAfter?: number;
   volatilityAfter?: number;
   victoryType?: string;
+  playedAt?: string;
 }
 
 // Fetch all games from database with optional season filter
@@ -39,6 +41,7 @@ export const useGames = (season?: number | "all") => {
       if (error) throw error;
       
       const dbGames: GameRecord[] = (data || []).map(g => ({
+        id: g.id,
         game: g.game_number,
         result: g.result as 'Winner' | 'Loser',
         player: g.player,
@@ -54,6 +57,7 @@ export const useGames = (season?: number | "all") => {
         rdAfter: g.rd_after ? Number(g.rd_after) : undefined,
         volatilityAfter: g.volatility_after ? Number(g.volatility_after) : undefined,
         victoryType: g.victory_type || undefined,
+        playedAt: (g as any).played_at || undefined,
       }));
       
       return dbGames;
