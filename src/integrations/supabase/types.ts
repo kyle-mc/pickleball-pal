@@ -111,6 +111,7 @@ export type Database = {
           mmr_after: number
           mmr_before: number
           mmr_change: number
+          played_at: string | null
           player: string
           rd_after: number | null
           result: string
@@ -131,6 +132,7 @@ export type Database = {
           mmr_after: number
           mmr_before: number
           mmr_change: number
+          played_at?: string | null
           player: string
           rd_after?: number | null
           result: string
@@ -151,6 +153,7 @@ export type Database = {
           mmr_after?: number
           mmr_before?: number
           mmr_change?: number
+          played_at?: string | null
           player?: string
           rd_after?: number | null
           result?: string
