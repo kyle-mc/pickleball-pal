@@ -23,7 +23,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
@@ -45,6 +45,7 @@ const Games = () => {
   const [victoryTypeFilter, setVictoryTypeFilter] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
+  const [compactView, setCompactView] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
@@ -94,7 +95,6 @@ const Games = () => {
     }
     
     if (playerFilters.length > 0) {
-      // Find games where ALL selected players participated
       const gameKeys = new Map<string, Set<string>>();
       games.forEach(g => {
         const key = `${g.date}-${g.game}`;
@@ -169,11 +169,21 @@ const Games = () => {
 
   const hasActiveFilters = selectedDate || playerFilters.length > 0 || victoryTypeFilter !== "all";
 
+  const formatPlayedAt = (playedAt?: string) => {
+    if (!playedAt) return null;
+    try {
+      const d = new Date(playedAt);
+      return format(d, 'h:mm a');
+    } catch {
+      return null;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="container mx-auto px-4 pt-24 pb-24 md:pb-20 flex items-center justify-center">
+        <main className="container mx-auto px-4 pt-24 pb-32 md:pb-20 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </main>
         <MobileBottomNav />
@@ -184,95 +194,112 @@ const Games = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
-      <main className="container mx-auto px-4 pt-24 pb-24 md:pb-20 max-w-full overflow-x-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-display text-foreground mb-1">Games</h1>
-            <p className="text-muted-foreground text-sm">
-              {totalFilteredGames} game{totalFilteredGames !== 1 ? 's' : ''}
-              {hasActiveFilters ? ' (filtered)' : ''}
-            </p>
+      <main className="container mx-auto px-4 pt-24 pb-32 md:pb-20 max-w-full overflow-x-hidden">
+        {/* Sticky header */}
+        <div className="sticky top-16 z-30 bg-background pb-4 -mx-4 px-4 border-b border-border mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-display text-foreground mb-0.5 leading-none">Games</h1>
+              <p className="text-muted-foreground text-sm">
+                {totalFilteredGames} game{totalFilteredGames !== 1 ? 's' : ''}
+                {hasActiveFilters ? ' (filtered)' : ''}
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0 items-center">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCompactView(!compactView)}
+                      className="h-9 w-9"
+                    >
+                      {compactView ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{compactView ? 'Expanded view' : 'Compact view'}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <DataExportPanel />
+              <GameEntryForm />
+            </div>
           </div>
-          <div className="flex gap-3 flex-shrink-0">
-            <DataExportPanel />
-            <GameEntryForm />
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <SeasonSelector 
-            selectedSeason={selectedSeason} 
-            onSeasonChange={setSelectedSeason} 
-          />
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3">
+            <SeasonSelector 
+              selectedSeason={selectedSeason} 
+              onSeasonChange={setSelectedSeason} 
+            />
 
-          <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>
-            <SelectTrigger className="w-[180px] bg-card border-border">
-              <Calendar className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filter by date" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50 max-h-60">
-              <SelectItem value="all">All Dates</SelectItem>
-              {uniqueDates.map(date => (
-                <SelectItem key={date} value={date}>
-                  {format(parseISO(date), 'MMM d, yyyy')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Multi-player filter */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[180px] bg-card border-border justify-start gap-2">
-                <Filter className="w-4 h-4" />
-                {playerFilters.length > 0 ? `${playerFilters.length} player${playerFilters.length > 1 ? 's' : ''}` : "All Players"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-2 bg-card border-border" align="start">
-              <div className="space-y-1 max-h-60 overflow-y-auto">
-                {uniquePlayers.map(player => (
-                  <label key={player} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer text-sm">
-                    <Checkbox 
-                      checked={playerFilters.includes(player)} 
-                      onCheckedChange={() => togglePlayerFilter(player)} 
-                    />
-                    <span className="text-foreground">{player}</span>
-                  </label>
+            <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>
+              <SelectTrigger className="w-[160px] bg-card border-border h-9 text-sm">
+                <Calendar className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Filter by date" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border z-50 max-h-60">
+                <SelectItem value="all">All Dates</SelectItem>
+                {uniqueDates.map(date => (
+                  <SelectItem key={date} value={date}>
+                    {format(parseISO(date), 'MMM d, yyyy')}
+                  </SelectItem>
                 ))}
-              </div>
-              {playerFilters.length > 0 && (
-                <Button variant="ghost" size="sm" className="w-full mt-2" onClick={() => setPlayerFilters([])}>
-                  <X className="w-3 h-3 mr-1" /> Clear
+              </SelectContent>
+            </Select>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[160px] bg-card border-border justify-start gap-2 h-9 text-sm">
+                  <Filter className="w-4 h-4" />
+                  {playerFilters.length > 0 ? `${playerFilters.length} player${playerFilters.length > 1 ? 's' : ''}` : "All Players"}
                 </Button>
-              )}
-            </PopoverContent>
-          </Popover>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-2 bg-card border-border" align="start">
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {uniquePlayers.map(player => (
+                    <label key={player} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer text-sm">
+                      <Checkbox 
+                        checked={playerFilters.includes(player)} 
+                        onCheckedChange={() => togglePlayerFilter(player)} 
+                      />
+                      <span className="text-foreground">{player}</span>
+                    </label>
+                  ))}
+                </div>
+                {playerFilters.length > 0 && (
+                  <Button variant="ghost" size="sm" className="w-full mt-2" onClick={() => setPlayerFilters([])}>
+                    <X className="w-3 h-3 mr-1" /> Clear
+                  </Button>
+                )}
+              </PopoverContent>
+            </Popover>
 
-          <Select value={victoryTypeFilter} onValueChange={setVictoryTypeFilter}>
-            <SelectTrigger className="w-[200px] bg-card border-border">
-              <SelectValue placeholder="Victory Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50">
-              <SelectItem value="all">All Victory Types</SelectItem>
-              {Object.values(VICTORY_TYPES).map(vt => (
-                <SelectItem key={vt.id} value={vt.id}>
-                  <span className="flex items-center gap-2">
-                    <span>{vt.emoji}</span>
-                    <span>{vt.name}</span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={victoryTypeFilter} onValueChange={setVictoryTypeFilter}>
+              <SelectTrigger className="w-[170px] bg-card border-border h-9 text-sm">
+                <SelectValue placeholder="Victory Type" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border z-50">
+                <SelectItem value="all">All Victory Types</SelectItem>
+                {Object.values(VICTORY_TYPES).map(vt => (
+                  <SelectItem key={vt.id} value={vt.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{vt.emoji}</span>
+                      <span>{vt.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <button
-            onClick={toggleSort}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
-          >
-            <ArrowUpDown className="w-4 h-4" />
-            {sortDirection === "desc" ? "Newest First" : "Oldest First"}
-          </button>
+            <button
+              onClick={toggleSort}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors text-sm h-9"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              {sortDirection === "desc" ? "Newest" : "Oldest"}
+            </button>
+          </div>
         </div>
 
         {/* Games by Date */}
@@ -290,15 +317,39 @@ const Games = () => {
                     const losers = players.filter(p => p.result === 'Loser');
                     const score = players[0]?.score;
                     const victoryType = players[0]?.victoryType;
+                    const playedAtStr = formatPlayedAt(players[0]?.playedAt);
                     const gameKey = `${date}-${gameNum}`;
                     const video = getVideoForGame(gameKey);
                     const hasVideo = hasVideoForGame(gameKey);
                     
+                    if (compactView) {
+                      return (
+                        <div key={gameNum} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border text-sm">
+                          <span className="text-muted-foreground font-medium w-14 shrink-0">G{gameNum}</span>
+                          {playedAtStr && <span className="text-muted-foreground text-xs w-16 shrink-0">{playedAtStr}</span>}
+                          <div className="flex items-center gap-1 flex-1 min-w-0">
+                            <span className="text-primary font-medium truncate">
+                              {winners.map(w => w.player).join(' & ')}
+                            </span>
+                            <span className="text-muted-foreground mx-1">vs</span>
+                            <span className="text-destructive/80 truncate">
+                              {losers.map(l => l.player).join(' & ')}
+                            </span>
+                          </div>
+                          {score && <span className="text-muted-foreground text-xs shrink-0">{score}</span>}
+                          {victoryType && victoryType !== 'standard' && (
+                            <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />
+                          )}
+                        </div>
+                      );
+                    }
+
                     return (
                       <Card key={gameNum} className="bg-card border-border overflow-hidden">
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg font-medium flex items-center gap-3 flex-wrap">
                             <span>Game {gameNum}</span>
+                            {playedAtStr && <span className="text-muted-foreground text-xs font-normal">{playedAtStr}</span>}
                             {score && <span className="text-muted-foreground text-sm font-normal">({score})</span>}
                             {victoryType && <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />}
                             

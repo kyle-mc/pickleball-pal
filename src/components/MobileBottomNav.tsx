@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Trophy, Calendar, Video, MessageCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Custom pickleball icon component - designed to look like an actual pickleball
+// Custom pickleball icon component
 const PickleballIcon = ({ className }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
@@ -71,6 +71,8 @@ export const MobileBottomNav = () => {
           );
         })}
       </div>
+      {/* Extra padding to clear the Lovable badge */}
+      <div className="h-6" />
     </nav>
   );
 };

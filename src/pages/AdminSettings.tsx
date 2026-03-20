@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Loader2, MessageCircle } from "lucide-react";
+import { Shield, Loader2, MessageCircle, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useGroupContext } from "@/contexts/GroupContext";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
@@ -24,8 +25,9 @@ const AdminSettings = () => {
   const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
   const [groupmeUrl, setGroupmeUrl] = useState("");
   const [savingGroupme, setSavingGroupme] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+  const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
 
-  // Fetch groupme_url
   useEffect(() => {
     if (!currentGroup?.id) return;
     supabase
@@ -57,7 +59,6 @@ const AdminSettings = () => {
     setLocalPlacementEnabled(placementEnabled);
   }, [placementEnabled]);
 
-  // Redirect non-admins
   useEffect(() => {
     if (!loading && !isAdmin) {
       navigate("/profile");
@@ -79,11 +80,31 @@ const AdminSettings = () => {
     }
   };
 
+  const handleRecalculateMMR = async () => {
+    setShowRecalcConfirm(false);
+    setRecalculating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('recalculate-mmr', {
+        body: { groupId: currentGroup?.id || null },
+      });
+      if (error) throw error;
+      toast({ 
+        title: "MMR Recalculated", 
+        description: `Processed ${data.gamesProcessed} games, updated ${data.recordsUpdated} records.` 
+      });
+    } catch (error) {
+      console.error("Recalculation failed:", error);
+      toast({ title: "Error", description: "Failed to recalculate MMR. Please try again.", variant: "destructive" });
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-background">
         <Navbar />
-        <div className="pt-24 pb-20 flex items-center justify-center">
+        <div className="pt-24 pb-32 md:pb-20 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
         <Footer />
@@ -94,7 +115,7 @@ const AdminSettings = () => {
   return (
     <main className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
-      <div className="pt-24 pb-24 md:pb-20">
+      <div className="pt-24 pb-32 md:pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           <h1 className="font-display text-4xl md:text-5xl text-foreground mb-8 flex items-center gap-3">
             <Shield className="w-8 h-8 text-primary" />
@@ -125,6 +146,33 @@ const AdminSettings = () => {
             <Card className="bg-card/50 border-border border-primary/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-primary" />
+                  MMR Recalculation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Replays all games in chronological order and recalculates every player's MMR from scratch. 
+                  Use this after editing or deleting games, or reordering game sequences.
+                </p>
+                <Button 
+                  onClick={() => setShowRecalcConfirm(true)} 
+                  disabled={recalculating}
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  {recalculating ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Recalculating...</>
+                  ) : (
+                    <><RefreshCw className="w-4 h-4 mr-2" />Recalculate All MMR</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/50 border-border border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <MessageCircle className="w-5 h-5 text-primary" />
                   GroupMe Chat Link
                 </CardTitle>
@@ -148,6 +196,25 @@ const AdminSettings = () => {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showRecalcConfirm} onOpenChange={setShowRecalcConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recalculate All MMR?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replay every game in order and recalculate all player MMR ratings from scratch. 
+              This may take a moment depending on the number of games.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRecalculateMMR} className="bg-primary text-primary-foreground">
+              Recalculate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Footer />
       <MobileBottomNav />
     </main>
