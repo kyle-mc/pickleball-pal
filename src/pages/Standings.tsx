@@ -181,16 +181,18 @@ const Standings = () => {
   }
 
   return (
-    <main className="min-h-screen bg-background overflow-x-hidden">
+    <main className="min-h-screen bg-background">
       <Navbar />
       <div className="pt-24 pb-24 md:pb-20">
-        <div className="container mx-auto px-4 max-w-full overflow-x-hidden">
-          <div className="sticky top-16 z-40 bg-background py-4 -mx-4 px-4 border-b border-border mb-8" style={{ position: 'sticky', top: '64px' }}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h1 className="font-display text-4xl md:text-5xl text-foreground leading-none">Stats</h1>
+        <div className="container mx-auto px-4 max-w-full">
+          <div className="sticky top-16 z-40 bg-background/95 backdrop-blur py-3 -mx-4 px-4 border-b border-border mb-8">
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-foreground leading-none">Stats</h1>
               <SeasonSelector 
                 selectedSeason={selectedSeason} 
                 onSeasonChange={setSelectedSeason} 
+                className="ml-auto shrink-0"
+                triggerClassName="w-[146px] h-9 text-sm"
               />
             </div>
           </div>

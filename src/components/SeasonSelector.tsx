@@ -7,23 +7,27 @@ interface SeasonSelectorProps {
   selectedSeason: number | "all";
   onSeasonChange: (season: number | "all") => void;
   showCurrentBadge?: boolean;
+  className?: string;
+  triggerClassName?: string;
 }
 
 export function SeasonSelector({ 
   selectedSeason, 
   onSeasonChange,
   showCurrentBadge = true,
+  className,
+  triggerClassName,
 }: SeasonSelectorProps) {
   const currentSeason = getCurrentSeason();
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex items-center gap-2 ${className ?? ""}`}>
       <Calendar className="w-4 h-4 text-muted-foreground" />
       <Select
         value={String(selectedSeason)}
         onValueChange={(value) => onSeasonChange(value === "all" ? "all" : parseInt(value))}
       >
-        <SelectTrigger className="w-[180px] bg-card border-border">
+        <SelectTrigger className={`w-[180px] bg-card border-border ${triggerClassName ?? ""}`}>
           <SelectValue placeholder="Select season" />
         </SelectTrigger>
         <SelectContent className="bg-card border-border z-50">

@@ -485,24 +485,40 @@ const Schedule = () => {
               </span>
             </div>
             {!isPast && (
-              <Button 
-                variant={userRsvps.has(event.id) ? "heroOutline" : "hero"}
-                size="sm" 
-                className="w-full mt-2"
-                onClick={(e) => { e.stopPropagation(); handleRSVP(event.id); }}
-                disabled={isFull && !userRsvps.has(event.id)}
-              >
-                {userRsvps.has(event.id) ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    RSVP'd
-                  </>
-                ) : isFull ? (
-                  "Event Full"
-                ) : (
-                  "Join"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                <Button 
+                  variant={userRsvps.has(event.id) ? "heroOutline" : "hero"}
+                  size="sm" 
+                  className="w-full"
+                  onClick={(e) => { e.stopPropagation(); handleRSVP(event.id); }}
+                  disabled={isFull && !userRsvps.has(event.id)}
+                >
+                  {userRsvps.has(event.id) ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      RSVP'd
+                    </>
+                  ) : isFull ? (
+                    "Event Full"
+                  ) : (
+                    "Join"
+                  )}
+                </Button>
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditDialog(event);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Event
+                  </Button>
                 )}
-              </Button>
+              </div>
             )}
             {isPast && (
               <Button 

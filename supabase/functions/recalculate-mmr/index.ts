@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Glicko-2 constants (mirrored from calculate-mmr)
@@ -112,14 +112,15 @@ Deno.serve(async (req) => {
     }
     const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
-    if (claimsError || !claimsData?.user) {
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Check admin role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: adminCheck } = await supabase.from('user_roles').select('role').eq('user_id', claimsData.user.id).eq('role', 'admin');
+    const userId = claimsData.claims.sub;
+    const { data: adminCheck } = await supabase.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin');
     if (!adminCheck || adminCheck.length === 0) {
       return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -128,7 +129,12 @@ Deno.serve(async (req) => {
     console.log('Recalculating all MMR for group:', groupId);
 
     // Fetch ALL games ordered chronologically
-    let query = supabase.from('games').select('*').order('date', { ascending: true }).order('game_number', { ascending: true });
+    let query = supabase
+      .from('games')
+      .select('*')
+      .order('date', { ascending: true })
+      .order('played_at', { ascending: true })
+      .order('game_number', { ascending: true });
     if (groupId) query = query.eq('group_id', groupId);
     else query = query.is('group_id', null);
     const { data: allGames, error: fetchError } = await query;
@@ -158,8 +164,8 @@ Deno.serve(async (req) => {
     const playerRatings: Record<string, Record<number, PlayerRating>> = {}; // player -> season -> rating
     const seasonGameCounts: Record<string, Record<number, number>> = {};
 
-    function getSeasonFromDate(dateStr: string): number {
-      return parseInt(dateStr.split('-')[0]) >= 2026 ? 2 : 1;
+    function getSeason(game: any): number {
+      return game.season ?? 1;
     }
 
     function getOrInitRating(player: string, season: number): PlayerRating {
@@ -191,7 +197,7 @@ Deno.serve(async (req) => {
 
     for (const key of sortedKeys) {
       const rows = gameGroups[key];
-      const season = getSeasonFromDate(rows[0].date);
+        const season = getSeason(rows[0]);
       const victoryType = rows[0].victory_type || 'standard';
       const { multiplier, bonus } = VICTORY_MULTIPLIERS[victoryType] || VICTORY_MULTIPLIERS['standard'];
 
@@ -291,7 +297,7 @@ Deno.serve(async (req) => {
         // Find first game MMR for starting_mmr
         const firstGameKey = sortedKeys.find(k => {
           const rows = gameGroups[k];
-          return getSeasonFromDate(rows[0].date) === season && rows.some((r: any) => r.player === player);
+           return getSeason(rows[0]) === season && rows.some((r: any) => r.player === player);
         });
         
         const startingMmr = firstGameKey 
@@ -301,7 +307,7 @@ Deno.serve(async (req) => {
         const gamesPlayed = seasonGameCounts[player]?.[season] || 0;
         const wins = sortedKeys.reduce((count, k) => {
           const rows = gameGroups[k];
-          if (getSeasonFromDate(rows[0].date) !== season) return count;
+          if (getSeason(rows[0]) !== season) return count;
           return count + rows.filter((r: any) => r.player === player && r.result === 'Winner').length;
         }, 0);
 
