@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useGames, getPlayerSeasonGamesCount } from "@/hooks/useGames";
+import { useGames, getPlayerSeasonGamesCount, type GameRecord } from "@/hooks/useGames";
 import { useRealtimeGames } from "@/hooks/useRealtime";
 import { useGameVideos } from "@/hooks/useVideos";
 import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import GameEntryForm from "@/components/GameEntryForm";
+import GameEditDialog from "@/components/GameEditDialog";
 import DataExportPanel from "@/components/DataExportPanel";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
@@ -23,7 +24,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid, Pencil } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 
@@ -47,6 +48,7 @@ const Games = () => {
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const [compactView, setCompactView] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [editingGameRows, setEditingGameRows] = useState<GameRecord[] | null>(null);
   
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
@@ -192,11 +194,11 @@ const Games = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container mx-auto px-4 pt-24 pb-32 md:pb-20 max-w-full overflow-x-hidden">
+      <main className="container mx-auto px-4 pt-24 pb-32 md:pb-20 max-w-full">
         {/* Sticky header */}
-        <div className="sticky top-16 z-30 bg-background pb-4 -mx-4 px-4 border-b border-border mb-6">
+        <div className="sticky top-16 z-40 bg-background/95 backdrop-blur pb-4 -mx-4 px-4 border-b border-border mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
             <div>
               <h1 className="text-3xl sm:text-4xl font-display text-foreground mb-0.5 leading-none">Games</h1>
@@ -211,11 +213,11 @@ const Games = () => {
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
-                      size="icon"
                       onClick={() => setCompactView(!compactView)}
-                      className="h-9 w-9"
+                      className="h-9 min-w-[110px] justify-center gap-2 px-3"
                     >
                       {compactView ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                      <span>{compactView ? "Expanded" : "Compact"}</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>{compactView ? 'Expanded view' : 'Compact view'}</TooltipContent>
@@ -231,10 +233,11 @@ const Games = () => {
             <SeasonSelector 
               selectedSeason={selectedSeason} 
               onSeasonChange={setSelectedSeason} 
+              triggerClassName="w-[142px] h-9 text-sm"
             />
 
             <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>
-              <SelectTrigger className="w-[160px] bg-card border-border h-9 text-sm">
+              <SelectTrigger className="w-[142px] bg-card border-border h-9 text-sm">
                 <Calendar className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Filter by date" />
               </SelectTrigger>
@@ -250,7 +253,7 @@ const Games = () => {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[160px] bg-card border-border justify-start gap-2 h-9 text-sm">
+                <Button variant="outline" className="w-[142px] bg-card border-border justify-start gap-2 h-9 text-sm">
                   <Filter className="w-4 h-4" />
                   {playerFilters.length > 0 ? `${playerFilters.length} player${playerFilters.length > 1 ? 's' : ''}` : "All Players"}
                 </Button>
@@ -276,7 +279,7 @@ const Games = () => {
             </Popover>
 
             <Select value={victoryTypeFilter} onValueChange={setVictoryTypeFilter}>
-              <SelectTrigger className="w-[170px] bg-card border-border h-9 text-sm">
+              <SelectTrigger className="w-[148px] bg-card border-border h-9 text-sm">
                 <SelectValue placeholder="Victory Type" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border z-50">
@@ -340,6 +343,10 @@ const Games = () => {
                           {victoryType && victoryType !== 'standard' && (
                             <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />
                           )}
+                            <Button variant="ghost" size="sm" className="h-7 px-2 shrink-0" onClick={() => setEditingGameRows(players)}>
+                              <Pencil className="w-3.5 h-3.5 mr-1" />
+                              Edit
+                            </Button>
                         </div>
                       );
                     }
@@ -354,6 +361,10 @@ const Games = () => {
                             {victoryType && <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />}
                             
                             <div className="ml-auto flex items-center gap-2">
+                              <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10" onClick={() => setEditingGameRows(players)}>
+                                <Pencil className="w-4 h-4 mr-1" />
+                                Edit Game
+                              </Button>
                               {hasVideo && video ? (
                                 <TooltipProvider>
                                   <Tooltip>
@@ -380,7 +391,59 @@ const Games = () => {
                             </div>
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="overflow-x-auto">
+                        <CardContent>
+                          <div className="sm:hidden space-y-2">
+                            {[...winners, ...losers].map((player, idx) => {
+                              const isUnranked = placementEnabled && playerGamesCount[player.player] < 10;
+
+                              return (
+                                <div key={idx} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <PlayerAvatar 
+                                        name={player.player} 
+                                        avatarUrl={getPlayerAvatar(player.player, avatarMap)}
+                                        size="xs"
+                                      />
+                                      <span className={`font-medium truncate ${playerFilters.includes(player.player) ? 'text-primary' : 'text-foreground'}`}>
+                                        {player.player}
+                                      </span>
+                                    </div>
+                                    <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-medium shrink-0 ${
+                                      player.result === 'Winner' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'
+                                    }`}>
+                                      {player.result === 'Winner' ? 'W' : 'L'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                                    <div>
+                                      <div className="text-muted-foreground">Before</div>
+                                      <div className="font-medium text-foreground">{isUnranked ? '???' : player.mmrBefore.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-muted-foreground">After</div>
+                                      <div className="font-medium text-foreground">{isUnranked ? '???' : player.mmrAfter.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-muted-foreground">Change</div>
+                                      <MmrChangeTooltip
+                                        mmrChange={player.mmrChange}
+                                        victoryType={player.victoryType}
+                                        isWinner={player.result === 'Winner'}
+                                        gamesPlayed={playerGamesCount[player.player]}
+                                      >
+                                        <span className={`font-medium cursor-help ${player.mmrChange > 0 ? 'text-primary' : 'text-destructive'}`}>
+                                          {isUnranked ? '???' : <>{player.mmrChange > 0 ? '▲' : '▼'}{Math.abs(player.mmrChange)}</>}
+                                        </span>
+                                      </MmrChangeTooltip>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="hidden sm:block">
                           <Table>
                             <TableHeader>
                               <TableRow className="border-border">
@@ -448,6 +511,7 @@ const Games = () => {
                               })}
                             </TableBody>
                           </Table>
+                          </div>
                         </CardContent>
                       </Card>
                     );
@@ -477,6 +541,13 @@ const Games = () => {
           }}
           defaultGameId={selectedGameForVideo}
           defaultVideoType="highlight"
+        />
+        <GameEditDialog
+          open={Boolean(editingGameRows)}
+          onOpenChange={(open) => {
+            if (!open) setEditingGameRows(null);
+          }}
+          gameRows={editingGameRows}
         />
       <Footer />
       <MobileBottomNav />

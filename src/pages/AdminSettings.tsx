@@ -90,11 +90,15 @@ const AdminSettings = () => {
       if (error) throw error;
       toast({ 
         title: "MMR Recalculated", 
-        description: `Processed ${data.gamesProcessed} games, updated ${data.recordsUpdated} records.` 
+        description: `Processed ${data.gamesProcessed ?? 0} games, updated ${data.recordsUpdated ?? 0} records.` 
       });
     } catch (error) {
       console.error("Recalculation failed:", error);
-      toast({ title: "Error", description: "Failed to recalculate MMR. Please try again.", variant: "destructive" });
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to recalculate MMR. Please try again.", 
+        variant: "destructive" 
+      });
     } finally {
       setRecalculating(false);
     }
@@ -153,7 +157,7 @@ const AdminSettings = () => {
               <CardContent className="space-y-4">
                 <p className="text-xs text-muted-foreground">
                   Replays all games in chronological order and recalculates every player's MMR from scratch. 
-                  Use this after editing or deleting games, or reordering game sequences.
+                  Use this after editing or deleting games, or reordering game sequences. Edits do not auto-recalculate.
                 </p>
                 <Button 
                   onClick={() => setShowRecalcConfirm(true)} 

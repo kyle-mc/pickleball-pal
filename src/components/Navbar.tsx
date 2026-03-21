@@ -1,6 +1,6 @@
 import { LogIn, LogOut, User, Map, Settings, Smartphone } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 const Navbar = () => {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const { startTour } = useOnboardingTour();
@@ -46,6 +47,10 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleMenuNavigate = (path: string) => () => {
+    navigate(path);
   };
 
   return (
@@ -87,18 +92,14 @@ const Navbar = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-card border-border">
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link to="/profile">
+                    <DropdownMenuItem className="cursor-pointer" onSelect={handleMenuNavigate("/profile")}>
                         <User className="w-4 h-4 mr-2" />
                         My Profile
-                      </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
-                      <DropdownMenuItem asChild className="cursor-pointer">
-                        <Link to="/admin">
+                      <DropdownMenuItem className="cursor-pointer" onSelect={handleMenuNavigate("/admin")}>
                           <Settings className="w-4 h-4 mr-2" />
                           Admin Settings
-                        </Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={startTour} className="cursor-pointer">
@@ -132,18 +133,14 @@ const Navbar = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-card border-border w-56">
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link to="/profile">
+                    <DropdownMenuItem className="cursor-pointer" onSelect={handleMenuNavigate("/profile")}>
                         <User className="w-4 h-4 mr-2" />
                         My Profile
-                      </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
-                      <DropdownMenuItem asChild className="cursor-pointer">
-                        <Link to="/admin">
+                      <DropdownMenuItem className="cursor-pointer" onSelect={handleMenuNavigate("/admin")}>
                           <Settings className="w-4 h-4 mr-2" />
                           Admin Settings
-                        </Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={startTour} className="cursor-pointer">
