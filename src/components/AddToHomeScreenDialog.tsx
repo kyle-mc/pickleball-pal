@@ -9,12 +9,18 @@ import { Smartphone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function AddToHomeScreenDialog() {
+  // Hide if running as installed PWA
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+    || (window.navigator as any).standalone === true;
+  
+  if (isStandalone) return null;
+
   return (
     <Dialog>
       <DialogTrigger asChild>
         <button className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full">
           <Smartphone className="w-4 h-4" />
-          Add to Home Screen
+          Install App
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">

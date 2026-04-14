@@ -46,7 +46,7 @@ const Games = () => {
   const [victoryTypeFilter, setVictoryTypeFilter] = useState<string>("all");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
-  const [compactView, setCompactView] = useState(false);
+  const [compactView, setCompactView] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [editingGameRows, setEditingGameRows] = useState<GameRecord[] | null>(null);
   
@@ -216,8 +216,8 @@ const Games = () => {
                       onClick={() => setCompactView(!compactView)}
                       className="h-9 min-w-[110px] justify-center gap-2 px-3"
                     >
-                      {compactView ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
-                      <span>{compactView ? "Expanded" : "Compact"}</span>
+                      {compactView ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+                      <span>{compactView ? "Compact" : "Expanded"}</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>{compactView ? 'Expanded view' : 'Compact view'}</TooltipContent>
@@ -233,7 +233,7 @@ const Games = () => {
             <SeasonSelector 
               selectedSeason={selectedSeason} 
               onSeasonChange={setSelectedSeason} 
-              triggerClassName="w-[142px] h-9 text-sm"
+              triggerClassName="w-[130px] h-9 text-sm whitespace-nowrap"
             />
 
             <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>
@@ -327,26 +327,23 @@ const Games = () => {
                     
                     if (compactView) {
                       return (
-                        <div key={gameNum} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border text-sm">
-                          <span className="text-muted-foreground font-medium w-14 shrink-0">G{gameNum}</span>
-                          {playedAtStr && <span className="text-muted-foreground text-xs w-16 shrink-0">{playedAtStr}</span>}
-                          <div className="flex items-center gap-1 flex-1 min-w-0">
-                            <span className="text-primary font-medium truncate">
+                        <div key={gameNum} className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border text-xs sm:text-sm">
+                          <span className="text-muted-foreground font-medium w-7 sm:w-10 shrink-0 text-center">G{gameNum}</span>
+                          {playedAtStr && <span className="text-muted-foreground text-[10px] sm:text-xs w-14 sm:w-16 shrink-0 hidden sm:inline">{playedAtStr}</span>}
+                          <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
+                            <span className="text-primary font-medium truncate max-w-[40%]">
                               {winners.map(w => w.player).join(' & ')}
                             </span>
-                            <span className="text-muted-foreground mx-1">vs</span>
-                            <span className="text-destructive/80 truncate">
+                            <span className="text-muted-foreground mx-0.5">v</span>
+                            <span className="text-destructive/80 truncate max-w-[40%]">
                               {losers.map(l => l.player).join(' & ')}
                             </span>
                           </div>
-                          {score && <span className="text-muted-foreground text-xs shrink-0">{score}</span>}
-                          {victoryType && victoryType !== 'standard' && (
-                            <VictoryTypeBadge victoryTypeId={victoryType} size="sm" />
-                          )}
-                            <Button variant="ghost" size="sm" className="h-7 px-2 shrink-0" onClick={() => setEditingGameRows(players)}>
-                              <Pencil className="w-3.5 h-3.5 mr-1" />
-                              Edit
-                            </Button>
+                          {score && <span className="text-muted-foreground text-[10px] sm:text-xs shrink-0">{score}</span>}
+                          <VictoryTypeBadge victoryTypeId={victoryType || 'standard'} size="sm" />
+                          <button className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground" onClick={() => setEditingGameRows(players)}>
+                            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          </button>
                         </div>
                       );
                     }
