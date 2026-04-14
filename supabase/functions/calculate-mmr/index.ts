@@ -479,6 +479,7 @@ Deno.serve(async (req) => {
         victory_type: victoryType,
         group_id: groupId || null,
         event_id: eventId || null,
+        game_mode: gameMode || 'doubles',
       });
     }
 
@@ -513,6 +514,7 @@ Deno.serve(async (req) => {
         victory_type: victoryType,
         group_id: groupId || null,
         event_id: eventId || null,
+        game_mode: gameMode || 'doubles',
       });
     }
 
