@@ -37,7 +37,8 @@ const Games = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentSeason = getCurrentSeason();
   const [selectedSeason, setSelectedSeason] = useState<number | "all">(currentSeason.id);
-  const { data: allGames = [], isLoading } = useGames(selectedSeason);
+  const [gameMode, setGameMode] = useState<'doubles' | 'singles'>('doubles');
+  const { data: allGames = [], isLoading } = useGames(selectedSeason, gameMode);
   useRealtimeGames();
   const { hasVideoForGame, getVideoForGame } = useGameVideos();
   const { data: avatarMap } = usePlayerAvatars();
@@ -229,7 +230,22 @@ const Games = () => {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
+            {/* Doubles / Singles toggle */}
+            <div className="flex rounded-lg border border-border overflow-hidden h-9 text-sm">
+              <button
+                onClick={() => setGameMode('doubles')}
+                className={`px-3 transition-colors ${gameMode === 'doubles' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
+              >
+                Doubles
+              </button>
+              <button
+                onClick={() => setGameMode('singles')}
+                className={`px-3 transition-colors ${gameMode === 'singles' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
+              >
+                Singles
+              </button>
+            </div>
             <SeasonSelector 
               selectedSeason={selectedSeason} 
               onSeasonChange={setSelectedSeason} 
