@@ -94,6 +94,7 @@ export const useSubmitGame = () => {
       groupId?: string;
       eventId?: string;
       neverServed?: boolean;
+      gameMode?: 'doubles' | 'singles';
     }) => {
       const { data, error } = await supabase.functions.invoke('calculate-mmr', {
         body: gameData,
