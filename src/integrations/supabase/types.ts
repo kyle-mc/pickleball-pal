@@ -602,6 +602,7 @@ export type Database = {
           players: string[] | null
           thumbnail_url: string | null
           title: string
+          transcript: string | null
           video_date: string | null
           video_type: string | null
           views: number | null
@@ -617,6 +618,7 @@ export type Database = {
           players?: string[] | null
           thumbnail_url?: string | null
           title: string
+          transcript?: string | null
           video_date?: string | null
           video_type?: string | null
           views?: number | null
@@ -632,6 +634,7 @@ export type Database = {
           players?: string[] | null
           thumbnail_url?: string | null
           title?: string
+          transcript?: string | null
           video_date?: string | null
           video_type?: string | null
           views?: number | null
