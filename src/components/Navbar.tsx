@@ -108,6 +108,9 @@ const Navbar = () => {
                       App Tour
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                      <FeedbackDialog />
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
                       <AddToHomeScreenDialog />
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
@@ -147,6 +150,9 @@ const Navbar = () => {
                     <DropdownMenuItem onClick={startTour} className="cursor-pointer">
                       <Map className="w-4 h-4 mr-2" />
                       App Tour
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                      <FeedbackDialog />
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
                       <AddToHomeScreenDialog />
