@@ -406,7 +406,7 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
                     onCheckedChange={(checked) => setNeverServed(!!checked)} 
                   />
                   <label htmlFor="neverServed" className="text-xs text-amber-300 cursor-pointer">
-                    🏆🥒 Losing team never got to serve (Golden Pickle)
+                    🏆 Losing team never got to serve (Golden Pickle)
                   </label>
                 </div>
               )}
