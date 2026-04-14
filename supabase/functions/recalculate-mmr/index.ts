@@ -5,22 +5,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Glicko-2 constants (mirrored from calculate-mmr)
-const TAU = 0.5;
-const EPSILON = 0.000001;
-const DEFAULT_MMR = 2000;
-const DEFAULT_RD = 350;
-const DEFAULT_VOLATILITY = 0.06;
-const GLICKO_SCALE = 173.7178;
+interface MmrConfig {
+  defaultMmr: number;
+  defaultRd: number;
+  tau: number;
+  placementMultiplier: number;
+  placementGames: number;
+  softResetFactor: number;
+  goldenPickleMultiplier: number;
+  pickledMultiplier: number;
+  steamrollerMultiplier: number;
+  standardMultiplier: number;
+  squeakerMultiplier: number;
+  clutchGodMultiplier: number;
+  clutchGodBonus: number;
+}
 
-const VICTORY_MULTIPLIERS: Record<string, { multiplier: number; bonus: number }> = {
-  'golden_pickle': { multiplier: 2.0, bonus: 0 },
-  'pickled': { multiplier: 1.5, bonus: 0 },
-  'steamroller': { multiplier: 1.2, bonus: 0 },
-  'standard': { multiplier: 1.0, bonus: 0 },
-  'squeaker': { multiplier: 0.9, bonus: 0 },
-  'clutch_god': { multiplier: 1.0, bonus: 2 },
+const DEFAULT_CONFIG: MmrConfig = {
+  defaultMmr: 2000,
+  defaultRd: 350,
+  tau: 0.5,
+  placementMultiplier: 2,
+  placementGames: 10,
+  softResetFactor: 0.5,
+  goldenPickleMultiplier: 2.0,
+  pickledMultiplier: 1.5,
+  steamrollerMultiplier: 1.2,
+  standardMultiplier: 1.0,
+  squeakerMultiplier: 0.9,
+  clutchGodMultiplier: 1.0,
+  clutchGodBonus: 2,
 };
+
+const EPSILON = 0.000001;
+const GLICKO_SCALE = 173.7178;
 
 interface PlayerRating {
   mmr: number;
@@ -45,7 +63,7 @@ function E(mu: number, muOpp: number, phiOpp: number): number {
   return 1 / (1 + Math.exp(-g(phiOpp) * (mu - muOpp)));
 }
 
-function calculateNewVolatility(sigma: number, phi: number, delta: number, v: number): number {
+function calculateNewVolatility(sigma: number, phi: number, delta: number, v: number, TAU: number): number {
   const a = Math.log(sigma * sigma);
   const deltaSq = delta * delta;
   const phiSq = phi * phi;
@@ -69,7 +87,7 @@ function calculateNewVolatility(sigma: number, phi: number, delta: number, v: nu
 
 function calculateGlickoUpdate(
   playerRating: PlayerRating, opponentRatings: PlayerRating[], scores: number[],
-  victoryMultiplier: number, victoryBonus: number, isPlacement: boolean
+  victoryMultiplier: number, victoryBonus: number, isPlacement: boolean, config: MmrConfig
 ) {
   const player = toGlicko2(playerRating.mmr, playerRating.rd);
   let vInverse = 0, delta = 0;
@@ -81,7 +99,7 @@ function calculateGlickoUpdate(
   }
   const v = 1 / vInverse;
   delta = v * delta;
-  const newSigma = calculateNewVolatility(playerRating.volatility, player.phi, delta, v);
+  const newSigma = calculateNewVolatility(playerRating.volatility, player.phi, delta, v, config.tau);
   const phiStar = Math.sqrt(player.phi * player.phi + newSigma * newSigma);
   const newPhi = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
   const newMu = player.mu + newPhi * newPhi * delta / v;
@@ -89,12 +107,19 @@ function calculateGlickoUpdate(
   let mmrChange = result.mmr - playerRating.mmr;
   mmrChange = Math.round(mmrChange * victoryMultiplier);
   if (mmrChange > 0) mmrChange += victoryBonus;
-  if (isPlacement) mmrChange = Math.round(mmrChange * 2);
+  if (isPlacement) mmrChange = Math.round(mmrChange * config.placementMultiplier);
   return { newMmr: playerRating.mmr + mmrChange, newRd: result.rd, newVolatility: newSigma, mmrChange };
 }
 
-function getSoftResetMmr(lastMmr: number): number {
-  return Math.round(2000 + ((lastMmr - 2000) * 0.5));
+function getVictoryMultipliers(config: MmrConfig): Record<string, { multiplier: number; bonus: number }> {
+  return {
+    'golden_pickle': { multiplier: config.goldenPickleMultiplier, bonus: 0 },
+    'pickled': { multiplier: config.pickledMultiplier, bonus: 0 },
+    'steamroller': { multiplier: config.steamrollerMultiplier, bonus: 0 },
+    'standard': { multiplier: config.standardMultiplier, bonus: 0 },
+    'squeaker': { multiplier: config.squeakerMultiplier, bonus: 0 },
+    'clutch_god': { multiplier: config.clutchGodMultiplier, bonus: config.clutchGodBonus },
+  };
 }
 
 Deno.serve(async (req) => {
@@ -105,28 +130,30 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Validate JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     const authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
+    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+    if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Check admin role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
     const { data: adminCheck } = await supabase.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin');
     if (!adminCheck || adminCheck.length === 0) {
       return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const { groupId } = await req.json();
-    console.log('Recalculating all MMR for group:', groupId);
+    const { groupId, mmrConfig: userConfig, season: filterSeason, fromDate } = await req.json();
+    const config: MmrConfig = { ...DEFAULT_CONFIG, ...(userConfig || {}) };
+    const VICTORY_MULTIPLIERS = getVictoryMultipliers(config);
+    const DEFAULT_VOLATILITY = 0.06;
+
+    console.log('Recalculating MMR with config:', config, 'groupId:', groupId, 'filterSeason:', filterSeason, 'fromDate:', fromDate);
 
     // Fetch ALL games ordered chronologically
     let query = supabase
@@ -137,14 +164,18 @@ Deno.serve(async (req) => {
       .order('game_number', { ascending: true });
     if (groupId) query = query.eq('group_id', groupId);
     else query = query.is('group_id', null);
+    
+    // Only filter doubles games for recalculation (singles have separate tracking)
+    query = query.eq('game_mode', 'doubles');
+
     const { data: allGames, error: fetchError } = await query;
     if (fetchError) throw fetchError;
 
     if (!allGames || allGames.length === 0) {
-      return new Response(JSON.stringify({ success: true, gamesProcessed: 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true, gamesProcessed: 0, recordsUpdated: 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Group games by date+game_number (4 rows per game)
+    // Group games by date+game_number
     const gameGroups: Record<string, any[]> = {};
     allGames.forEach(g => {
       const key = `${g.date}-${g.game_number}`;
@@ -152,7 +183,6 @@ Deno.serve(async (req) => {
       gameGroups[key].push(g);
     });
 
-    // Sort game keys chronologically
     const sortedKeys = Object.keys(gameGroups).sort((a, b) => {
       const [dateA, numA] = [a.substring(0, 10), parseInt(a.split('-').pop()!)];
       const [dateB, numB] = [b.substring(0, 10), parseInt(b.split('-').pop()!)];
@@ -160,8 +190,7 @@ Deno.serve(async (req) => {
       return numA - numB;
     });
 
-    // Reset all player ratings and season stats
-    const playerRatings: Record<string, Record<number, PlayerRating>> = {}; // player -> season -> rating
+    const playerRatings: Record<string, Record<number, PlayerRating>> = {};
     const seasonGameCounts: Record<string, Record<number, number>> = {};
 
     function getSeason(game: any): number {
@@ -173,18 +202,17 @@ Deno.serve(async (req) => {
       if (!seasonGameCounts[player]) seasonGameCounts[player] = {};
       
       if (!playerRatings[player][season]) {
-        // Check previous season
         if (season > 1 && playerRatings[player][season - 1]) {
           const prev = playerRatings[player][season - 1];
           playerRatings[player][season] = {
-            mmr: getSoftResetMmr(prev.mmr),
-            rd: DEFAULT_RD,
+            mmr: Math.round(config.defaultMmr + ((prev.mmr - config.defaultMmr) * config.softResetFactor)),
+            rd: config.defaultRd,
             volatility: DEFAULT_VOLATILITY,
             gamesThisSeason: 0,
           };
         } else {
           playerRatings[player][season] = {
-            mmr: DEFAULT_MMR, rd: DEFAULT_RD, volatility: DEFAULT_VOLATILITY, gamesThisSeason: 0,
+            mmr: config.defaultMmr, rd: config.defaultRd, volatility: DEFAULT_VOLATILITY, gamesThisSeason: 0,
           };
         }
         seasonGameCounts[player][season] = 0;
@@ -192,12 +220,17 @@ Deno.serve(async (req) => {
       return playerRatings[player][season];
     }
 
-    // Process each game in order, recalculate MMR
     const updates: { id: string; mmr_before: number; mmr_after: number; mmr_change: number; rd_after: number; volatility_after: number; team_mmr: number; team_mmr_diff: number }[] = [];
 
     for (const key of sortedKeys) {
       const rows = gameGroups[key];
-        const season = getSeason(rows[0]);
+      const season = getSeason(rows[0]);
+      
+      // Skip if filtering by season and doesn't match
+      if (filterSeason && season !== filterSeason) continue;
+      // Skip if filtering by date and before that date
+      if (fromDate && rows[0].date < fromDate) continue;
+
       const victoryType = rows[0].victory_type || 'standard';
       const { multiplier, bonus } = VICTORY_MULTIPLIERS[victoryType] || VICTORY_MULTIPLIERS['standard'];
 
@@ -209,7 +242,6 @@ Deno.serve(async (req) => {
       const winnerNames = winners.map((w: any) => w.player);
       const loserNames = losers.map((l: any) => l.player);
 
-      // Init ratings
       winnerNames.forEach((p: string) => getOrInitRating(p, season));
       loserNames.forEach((p: string) => getOrInitRating(p, season));
 
@@ -217,22 +249,15 @@ Deno.serve(async (req) => {
       const loseTeamMmr = loserNames.reduce((s: number, p: string) => s + playerRatings[p][season].mmr, 0);
       const mmrDiff = winTeamMmr - loseTeamMmr;
 
-      // Calculate for winners
       for (const w of winners) {
         const rating = playerRatings[w.player][season];
         const oppRatings = loserNames.map((p: string) => playerRatings[p][season]);
-        const isPlacement = rating.gamesThisSeason < 10;
-        const result = calculateGlickoUpdate(rating, oppRatings, [1, 1], multiplier, bonus, isPlacement);
+        const isPlacement = rating.gamesThisSeason < config.placementGames;
+        const result = calculateGlickoUpdate(rating, oppRatings, [1, 1], multiplier, bonus, isPlacement, config);
         
         updates.push({
-          id: w.id,
-          mmr_before: rating.mmr,
-          mmr_after: result.newMmr,
-          mmr_change: result.mmrChange,
-          rd_after: result.newRd,
-          volatility_after: result.newVolatility,
-          team_mmr: winTeamMmr,
-          team_mmr_diff: mmrDiff,
+          id: w.id, mmr_before: rating.mmr, mmr_after: result.newMmr, mmr_change: result.mmrChange,
+          rd_after: result.newRd, volatility_after: result.newVolatility, team_mmr: winTeamMmr, team_mmr_diff: mmrDiff,
         });
 
         playerRatings[w.player][season] = {
@@ -242,22 +267,15 @@ Deno.serve(async (req) => {
         seasonGameCounts[w.player][season] = (seasonGameCounts[w.player][season] || 0) + 1;
       }
 
-      // Calculate for losers
       for (const l of losers) {
         const rating = playerRatings[l.player][season];
         const oppRatings = winnerNames.map((p: string) => playerRatings[p][season]);
-        const isPlacement = rating.gamesThisSeason < 10;
-        const result = calculateGlickoUpdate(rating, oppRatings, [0, 0], multiplier, 0, isPlacement);
+        const isPlacement = rating.gamesThisSeason < config.placementGames;
+        const result = calculateGlickoUpdate(rating, oppRatings, [0, 0], multiplier, 0, isPlacement, config);
 
         updates.push({
-          id: l.id,
-          mmr_before: rating.mmr,
-          mmr_after: result.newMmr,
-          mmr_change: result.mmrChange,
-          rd_after: result.newRd,
-          volatility_after: result.newVolatility,
-          team_mmr: loseTeamMmr,
-          team_mmr_diff: -mmrDiff,
+          id: l.id, mmr_before: rating.mmr, mmr_after: result.newMmr, mmr_change: result.mmrChange,
+          rd_after: result.newRd, volatility_after: result.newVolatility, team_mmr: loseTeamMmr, team_mmr_diff: -mmrDiff,
         });
 
         playerRatings[l.player][season] = {
@@ -268,41 +286,34 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Batch update all games
     console.log(`Updating ${updates.length} game records...`);
     for (const u of updates) {
       const { error: updateError } = await supabase.from('games').update({
-        mmr_before: u.mmr_before,
-        mmr_after: u.mmr_after,
-        mmr_change: u.mmr_change,
-        rd_after: u.rd_after,
-        volatility_after: u.volatility_after,
-        team_mmr: u.team_mmr,
-        team_mmr_diff: u.team_mmr_diff,
+        mmr_before: u.mmr_before, mmr_after: u.mmr_after, mmr_change: u.mmr_change,
+        rd_after: u.rd_after, volatility_after: u.volatility_after,
+        team_mmr: u.team_mmr, team_mmr_diff: u.team_mmr_diff,
       }).eq('id', u.id);
       if (updateError) console.error('Update error for', u.id, updateError);
     }
 
     // Rebuild player_season_stats
-    // Delete existing and recreate
     if (groupId) {
-      await supabase.from('player_season_stats').delete().eq('group_id', groupId);
+      await supabase.from('player_season_stats').delete().eq('group_id', groupId).eq('game_mode', 'doubles');
     } else {
-      await supabase.from('player_season_stats').delete().is('group_id', null);
+      await supabase.from('player_season_stats').delete().is('group_id', null).eq('game_mode', 'doubles');
     }
 
     for (const [player, seasons] of Object.entries(playerRatings)) {
       for (const [seasonStr, rating] of Object.entries(seasons)) {
         const season = parseInt(seasonStr);
-        // Find first game MMR for starting_mmr
         const firstGameKey = sortedKeys.find(k => {
           const rows = gameGroups[k];
-           return getSeason(rows[0]) === season && rows.some((r: any) => r.player === player);
+          return getSeason(rows[0]) === season && rows.some((r: any) => r.player === player);
         });
         
         const startingMmr = firstGameKey 
-          ? updates.find(u => u.id === gameGroups[firstGameKey].find((r: any) => r.player === player)?.id)?.mmr_before || DEFAULT_MMR
-          : DEFAULT_MMR;
+          ? updates.find(u => u.id === gameGroups[firstGameKey].find((r: any) => r.player === player)?.id)?.mmr_before || config.defaultMmr
+          : config.defaultMmr;
 
         const gamesPlayed = seasonGameCounts[player]?.[season] || 0;
         const wins = sortedKeys.reduce((count, k) => {
@@ -312,17 +323,10 @@ Deno.serve(async (req) => {
         }, 0);
 
         await supabase.from('player_season_stats').insert({
-          player,
-          season,
-          group_id: groupId || null,
-          starting_mmr: startingMmr,
-          ending_mmr: rating.mmr,
-          ending_rd: rating.rd,
-          starting_rd: DEFAULT_RD,
-          starting_volatility: DEFAULT_VOLATILITY,
-          games_played: gamesPlayed,
-          wins,
-          losses: gamesPlayed - wins,
+          player, season, group_id: groupId || null, game_mode: 'doubles',
+          starting_mmr: startingMmr, ending_mmr: rating.mmr, ending_rd: rating.rd,
+          starting_rd: config.defaultRd, starting_volatility: DEFAULT_VOLATILITY,
+          games_played: gamesPlayed, wins, losses: gamesPlayed - wins,
         });
       }
     }
