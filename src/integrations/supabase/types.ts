@@ -100,11 +100,83 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_comments: {
+        Row: {
+          content: string
+          created_at: string
+          feedback_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          feedback_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          feedback_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_comments_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_requests: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          screenshot_url: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          screenshot_url?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          screenshot_url?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           created_at: string
           date: string
           event_id: string | null
+          game_mode: string
           game_number: number
           group_id: string | null
           id: string
@@ -126,6 +198,7 @@ export type Database = {
           created_at?: string
           date: string
           event_id?: string | null
+          game_mode?: string
           game_number: number
           group_id?: string | null
           id?: string
@@ -147,6 +220,7 @@ export type Database = {
           created_at?: string
           date?: string
           event_id?: string | null
+          game_mode?: string
           game_number?: number
           group_id?: string | null
           id?: string
@@ -261,6 +335,7 @@ export type Database = {
           created_at: string
           ending_mmr: number | null
           ending_rd: number | null
+          game_mode: string
           games_played: number
           group_id: string | null
           id: string
@@ -277,6 +352,7 @@ export type Database = {
           created_at?: string
           ending_mmr?: number | null
           ending_rd?: number | null
+          game_mode?: string
           games_played?: number
           group_id?: string | null
           id?: string
@@ -293,6 +369,7 @@ export type Database = {
           created_at?: string
           ending_mmr?: number | null
           ending_rd?: number | null
+          game_mode?: string
           games_played?: number
           group_id?: string | null
           id?: string
@@ -525,6 +602,7 @@ export type Database = {
           players: string[] | null
           thumbnail_url: string | null
           title: string
+          transcript: string | null
           video_date: string | null
           video_type: string | null
           views: number | null
@@ -540,6 +618,7 @@ export type Database = {
           players?: string[] | null
           thumbnail_url?: string | null
           title: string
+          transcript?: string | null
           video_date?: string | null
           video_type?: string | null
           views?: number | null
@@ -555,6 +634,7 @@ export type Database = {
           players?: string[] | null
           thumbnail_url?: string | null
           title?: string
+          transcript?: string | null
           video_date?: string | null
           video_type?: string | null
           views?: number | null

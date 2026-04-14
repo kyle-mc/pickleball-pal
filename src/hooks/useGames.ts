@@ -19,12 +19,13 @@ export interface GameRecord {
   volatilityAfter?: number;
   victoryType?: string;
   playedAt?: string;
+  gameMode?: 'doubles' | 'singles';
 }
 
-// Fetch all games from database with optional season filter
-export const useGames = (season?: number | "all") => {
+// Fetch all games from database with optional season and mode filter
+export const useGames = (season?: number | "all", gameMode?: 'doubles' | 'singles' | 'all') => {
   return useQuery({
-    queryKey: ["games", season],
+    queryKey: ["games", season, gameMode],
     queryFn: async () => {
       let query = supabase
         .from("games")
@@ -34,6 +35,12 @@ export const useGames = (season?: number | "all") => {
       
       if (season && season !== "all") {
         query = query.eq("season", season);
+      }
+
+      if (gameMode && gameMode !== 'all') {
+        query = query.eq("game_mode", gameMode);
+      } else if (!gameMode) {
+        query = query.eq("game_mode", "doubles");
       }
       
       const { data, error } = await query;
@@ -58,6 +65,7 @@ export const useGames = (season?: number | "all") => {
         volatilityAfter: g.volatility_after ? Number(g.volatility_after) : undefined,
         victoryType: g.victory_type || undefined,
         playedAt: (g as any).played_at || undefined,
+        gameMode: ((g as any).game_mode || 'doubles') as 'doubles' | 'singles',
       }));
       
       return dbGames;
@@ -86,6 +94,7 @@ export const useSubmitGame = () => {
       groupId?: string;
       eventId?: string;
       neverServed?: boolean;
+      gameMode?: 'doubles' | 'singles';
     }) => {
       const { data, error } = await supabase.functions.invoke('calculate-mmr', {
         body: gameData,

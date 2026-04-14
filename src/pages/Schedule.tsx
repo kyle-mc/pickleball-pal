@@ -199,7 +199,8 @@ const Schedule = () => {
   const canEditEvent = (event: any): boolean => {
     if (!user) return false;
     if (event.isRecurringInstance) return false; // Can't edit instances, only the original
-    if (event.date < todayStr) return false; // Past events are locked
+    // Allow editing events up to and including today (the original event.date check was too strict for same-day)
+    if (event.date < todayStr && !event.recurrence_type) return false; // Past non-recurring events are locked
     if (!event.owner_id) return true; // No owner = anyone can edit
     if (event.owner_id === user.id) return true;
     if (event.host_ids?.includes(user.id)) return true;

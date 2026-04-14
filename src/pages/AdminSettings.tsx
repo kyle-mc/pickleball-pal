@@ -8,13 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Loader2, MessageCircle, RefreshCw } from "lucide-react";
+import { Shield, Loader2, MessageCircle, RefreshCw, Sliders, Users, Trash2, Ban, CheckCircle, Merge, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useGroupContext } from "@/contexts/GroupContext";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
+import { usePlayers } from "@/hooks/usePlayers";
+import { getCurrentSeason } from "@/lib/seasons";
 
 const AdminSettings = () => {
   const { toast } = useToast();
@@ -22,11 +28,45 @@ const AdminSettings = () => {
   const navigate = useNavigate();
   const { currentGroup } = useGroupContext();
   const { placementEnabled, loading } = usePlacementEnabled();
+  const { data: players = [] } = usePlayers();
   const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
   const [groupmeUrl, setGroupmeUrl] = useState("");
   const [savingGroupme, setSavingGroupme] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
+
+  // MMR config state
+  const [mmrConfig, setMmrConfig] = useState({
+    defaultMmr: 2000,
+    defaultRd: 350,
+    tau: 0.5,
+    placementMultiplier: 2,
+    placementGames: 10,
+    softResetFactor: 0.5,
+    goldenPickleMultiplier: 2.0,
+    pickledMultiplier: 1.5,
+    steamrollerMultiplier: 1.2,
+    standardMultiplier: 1.0,
+    squeakerMultiplier: 0.9,
+    clutchGodMultiplier: 1.0,
+    clutchGodBonus: 2,
+  });
+
+  // Recalc options
+  const currentSeason = getCurrentSeason();
+  const [recalcMode, setRecalcMode] = useState<'all' | 'season' | 'from_date'>('all');
+  const [recalcSeason, setRecalcSeason] = useState(currentSeason.id.toString());
+  const [recalcFromDate, setRecalcFromDate] = useState('');
+
+  // User management state
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [playerLinks, setPlayerLinks] = useState<Record<string, string>>({});
+
+  // Player merge state
+  const [mergeFrom, setMergeFrom] = useState('');
+  const [mergeInto, setMergeInto] = useState('');
+  const [showMergeConfirm, setShowMergeConfirm] = useState(false);
 
   useEffect(() => {
     if (!currentGroup?.id) return;
@@ -39,6 +79,36 @@ const AdminSettings = () => {
         setGroupmeUrl((data as any)?.groupme_url ?? "");
       });
   }, [currentGroup?.id]);
+
+  useEffect(() => {
+    setLocalPlacementEnabled(placementEnabled);
+  }, [placementEnabled]);
+
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      navigate("/profile");
+    }
+  }, [isAdmin, loading, navigate]);
+
+  // Load users
+  useEffect(() => {
+    if (!isAdmin) return;
+    setLoadingUsers(true);
+    supabase
+      .from("profiles")
+      .select("user_id, display_name, linked_player_id, avatar_url, created_at, players!profiles_linked_player_id_fkey(name)")
+      .then(({ data }) => {
+        setAllUsers(data || []);
+        const links: Record<string, string> = {};
+        data?.forEach((u: any) => {
+          if (u.linked_player_id) {
+            links[u.user_id] = u.linked_player_id;
+          }
+        });
+        setPlayerLinks(links);
+        setLoadingUsers(false);
+      });
+  }, [isAdmin]);
 
   const handleSaveGroupmeUrl = async () => {
     if (!currentGroup?.id) return;
@@ -54,16 +124,6 @@ const AdminSettings = () => {
       toast({ title: "GroupMe URL saved" });
     }
   };
-
-  useEffect(() => {
-    setLocalPlacementEnabled(placementEnabled);
-  }, [placementEnabled]);
-
-  useEffect(() => {
-    if (!loading && !isAdmin) {
-      navigate("/profile");
-    }
-  }, [isAdmin, loading, navigate]);
 
   const handleTogglePlacement = async (enabled: boolean) => {
     if (!currentGroup?.id) return;
@@ -84,9 +144,16 @@ const AdminSettings = () => {
     setShowRecalcConfirm(false);
     setRecalculating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('recalculate-mmr', {
-        body: { groupId: currentGroup?.id || null },
-      });
+      const body: any = { groupId: currentGroup?.id || null };
+      if (recalcMode === 'season') {
+        body.season = parseInt(recalcSeason);
+      } else if (recalcMode === 'from_date') {
+        body.fromDate = recalcFromDate;
+      }
+      // Pass MMR config overrides
+      body.mmrConfig = mmrConfig;
+
+      const { data, error } = await supabase.functions.invoke('recalculate-mmr', { body });
       if (error) throw error;
       toast({ 
         title: "MMR Recalculated", 
@@ -101,6 +168,64 @@ const AdminSettings = () => {
       });
     } finally {
       setRecalculating(false);
+    }
+  };
+
+  const handleAssignRole = async (userId: string, role: 'admin' | 'user') => {
+    if (role === 'admin') {
+      const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' });
+      if (error && error.code !== '23505') {
+        toast({ title: "Error", description: "Failed to assign admin role", variant: "destructive" });
+        return;
+      }
+    } else {
+      await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin');
+    }
+    toast({ title: role === 'admin' ? "Admin role assigned" : "Admin role removed" });
+  };
+
+  const handleLinkPlayer = async (userId: string, playerName: string) => {
+    // Find player ID by name
+    const { data: player } = await supabase.from('players').select('id').eq('name', playerName).single();
+    if (!player) {
+      toast({ title: "Error", description: "Player not found", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from('profiles').update({ linked_player_id: player.id }).eq('user_id', userId);
+    if (error) {
+      toast({ title: "Error", description: "Failed to link player", variant: "destructive" });
+    } else {
+      setPlayerLinks(prev => ({ ...prev, [userId]: player.id }));
+      toast({ title: "Player linked" });
+    }
+  };
+
+  const handleMergePlayers = async () => {
+    setShowMergeConfirm(false);
+    if (!mergeFrom || !mergeInto || mergeFrom === mergeInto) return;
+    
+    // Update all games from mergeFrom to mergeInto
+    const { error: gamesError } = await supabase.from('games').update({ player: mergeInto }).eq('player', mergeFrom);
+    if (gamesError) {
+      toast({ title: "Error", description: "Failed to merge game records", variant: "destructive" });
+      return;
+    }
+    // Update season stats
+    await supabase.from('player_season_stats').update({ player: mergeInto }).eq('player', mergeFrom);
+    // Delete the old player
+    await supabase.from('players').delete().eq('name', mergeFrom);
+    
+    toast({ title: "Players merged", description: `${mergeFrom} merged into ${mergeInto}. Run MMR Recalculation to update ratings.` });
+    setMergeFrom('');
+    setMergeInto('');
+  };
+
+  const handleDeletePlayer = async (name: string) => {
+    const { error } = await supabase.from('players').delete().eq('name', name);
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete player. They may have game records.", variant: "destructive" });
+    } else {
+      toast({ title: "Player deleted" });
     }
   };
 
@@ -126,94 +251,344 @@ const AdminSettings = () => {
             Admin Settings
           </h1>
 
-          <div className="space-y-6">
-            <Card className="bg-card/50 border-border border-primary/30">
-              <CardHeader>
-                <CardTitle>Group Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Placement System</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      When enabled, players with fewer than 10 games will have their MMR hidden until they complete placement.
-                    </p>
+          <Tabs defaultValue="general" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="mmr">MMR Config</TabsTrigger>
+              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="players">Players</TabsTrigger>
+            </TabsList>
+
+            {/* General Tab */}
+            <TabsContent value="general" className="space-y-6">
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader><CardTitle>Group Settings</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Placement System</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        When enabled, players with fewer than 10 games will have their MMR hidden.
+                      </p>
+                    </div>
+                    <Switch checked={localPlacementEnabled} onCheckedChange={handleTogglePlacement} />
                   </div>
-                  <Switch
-                    checked={localPlacementEnabled}
-                    onCheckedChange={handleTogglePlacement}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-card/50 border-border border-primary/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5 text-primary" />
-                  MMR Recalculation
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-xs text-muted-foreground">
-                  Replays all games in chronological order and recalculates every player's MMR from scratch. 
-                  Use this after editing or deleting games, or reordering game sequences. Edits do not auto-recalculate.
-                </p>
-                <Button 
-                  onClick={() => setShowRecalcConfirm(true)} 
-                  disabled={recalculating}
-                  variant="outline"
-                  className="border-primary/30 text-primary hover:bg-primary/10"
-                >
-                  {recalculating ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Recalculating...</>
-                  ) : (
-                    <><RefreshCw className="w-4 h-4 mr-2" />Recalculate All MMR</>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-primary" />
+                    GroupMe Chat Link
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">Paste your GroupMe group link so members can open the chat from the Chat page.</p>
+                  <div className="flex gap-2">
+                    <Input placeholder="https://groupme.com/join_group/..." value={groupmeUrl} onChange={(e) => setGroupmeUrl(e.target.value)} />
+                    <Button onClick={handleSaveGroupmeUrl} disabled={savingGroupme}>
+                      {savingGroupme ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-card/50 border-border border-primary/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-primary" />
-                  GroupMe Chat Link
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-xs text-muted-foreground">
-                  Paste your GroupMe group link so members can open the chat from the Chat page.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="https://groupme.com/join_group/..."
-                    value={groupmeUrl}
-                    onChange={(e) => setGroupmeUrl(e.target.value)}
-                  />
-                  <Button onClick={handleSaveGroupmeUrl} disabled={savingGroupme}>
-                    {savingGroupme ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <RefreshCw className="w-5 h-5 text-primary" />
+                    MMR Recalculation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Replays games and recalculates all player MMR. Use after editing/deleting games. All players reset to starting MMR at the beginning of each season.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-sm">Recalculation Scope</Label>
+                    <Select value={recalcMode} onValueChange={(v: any) => setRecalcMode(v)}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Games (All Seasons)</SelectItem>
+                        <SelectItem value="season">Specific Season</SelectItem>
+                        <SelectItem value="from_date">From Specific Date</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {recalcMode === 'season' && (
+                      <Select value={recalcSeason} onValueChange={setRecalcSeason}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Season 1</SelectItem>
+                          <SelectItem value="2">Season 2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {recalcMode === 'from_date' && (
+                      <Input type="date" value={recalcFromDate} onChange={e => setRecalcFromDate(e.target.value)} />
+                    )}
+                  </div>
+
+                  <Button 
+                    onClick={() => setShowRecalcConfirm(true)} 
+                    disabled={recalculating}
+                    variant="outline"
+                    className="border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    {recalculating ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Recalculating...</>
+                    ) : (
+                      <><RefreshCw className="w-4 h-4 mr-2" />Recalculate MMR</>
+                    )}
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* MMR Config Tab */}
+            <TabsContent value="mmr" className="space-y-6">
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-primary" />
+                    MMR Calculation Variables
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Adjust these values and run Recalculate MMR to see how changes affect ratings. These overrides apply only during recalculation.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Default Starting MMR</Label>
+                      <Input type="number" value={mmrConfig.defaultMmr} onChange={e => setMmrConfig(c => ({ ...c, defaultMmr: +e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Default RD</Label>
+                      <Input type="number" value={mmrConfig.defaultRd} onChange={e => setMmrConfig(c => ({ ...c, defaultRd: +e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">System Volatility (τ)</Label>
+                      <Input type="number" step="0.1" value={mmrConfig.tau} onChange={e => setMmrConfig(c => ({ ...c, tau: +e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Placement Boost Multiplier</Label>
+                      <Input type="number" step="0.1" value={mmrConfig.placementMultiplier} onChange={e => setMmrConfig(c => ({ ...c, placementMultiplier: +e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Placement Games Count</Label>
+                      <Input type="number" value={mmrConfig.placementGames} onChange={e => setMmrConfig(c => ({ ...c, placementGames: +e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Soft Reset Factor</Label>
+                      <Input type="number" step="0.1" value={mmrConfig.softResetFactor} onChange={e => setMmrConfig(c => ({ ...c, softResetFactor: +e.target.value }))} />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border pt-4 mt-4">
+                    <Label className="text-sm font-medium">Victory Type Multipliers</Label>
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">🏆 Golden Pickle (×)</Label>
+                        <Input type="number" step="0.1" value={mmrConfig.goldenPickleMultiplier} onChange={e => setMmrConfig(c => ({ ...c, goldenPickleMultiplier: +e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">🥒 Pickled (×)</Label>
+                        <Input type="number" step="0.1" value={mmrConfig.pickledMultiplier} onChange={e => setMmrConfig(c => ({ ...c, pickledMultiplier: +e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">🚂 Steamroller (×)</Label>
+                        <Input type="number" step="0.1" value={mmrConfig.steamrollerMultiplier} onChange={e => setMmrConfig(c => ({ ...c, steamrollerMultiplier: +e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">⭐ Standard (×)</Label>
+                        <Input type="number" step="0.1" value={mmrConfig.standardMultiplier} onChange={e => setMmrConfig(c => ({ ...c, standardMultiplier: +e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">🐁 Squeaker (×)</Label>
+                        <Input type="number" step="0.1" value={mmrConfig.squeakerMultiplier} onChange={e => setMmrConfig(c => ({ ...c, squeakerMultiplier: +e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">🔥👑 Clutch God (×)</Label>
+                        <Input type="number" step="0.1" value={mmrConfig.clutchGodMultiplier} onChange={e => setMmrConfig(c => ({ ...c, clutchGodMultiplier: +e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">🔥👑 Clutch God Bonus (pts)</Label>
+                        <Input type="number" value={mmrConfig.clutchGodBonus} onChange={e => setMmrConfig(c => ({ ...c, clutchGodBonus: +e.target.value }))} />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Users Tab */}
+            <TabsContent value="users" className="space-y-6">
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    User Accounts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingUsers ? (
+                    <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                  ) : (
+                    <div className="space-y-3">
+                      {allUsers.map((user: any) => {
+                        const playerName = (user.players as any)?.name || 'Unlinked';
+                        return (
+                          <div key={user.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+                            <div className="min-w-0">
+                              <div className="font-medium text-sm text-foreground truncate">
+                                {user.display_name || 'No name'}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Player: {playerName}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Joined {new Date(user.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Select
+                                value={playerLinks[user.user_id] ? players.find(p => {
+                                  // rough match
+                                  return p === playerName;
+                                }) || '' : ''}
+                                onValueChange={(val) => handleLinkPlayer(user.user_id, val)}
+                              >
+                                <SelectTrigger className="w-28 h-8 text-xs">
+                                  <SelectValue placeholder="Link player" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {players.map(p => (
+                                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs"
+                                onClick={() => handleAssignRole(user.user_id, 'admin')}
+                              >
+                                Make Admin
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Players Tab */}
+            <TabsContent value="players" className="space-y-6">
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Merge className="w-5 h-5 text-primary" />
+                    Merge Players
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Merge a duplicate player into an existing one. All game records will be transferred.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Merge from (will be deleted)</Label>
+                      <Select value={mergeFrom} onValueChange={setMergeFrom}>
+                        <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
+                        <SelectContent>
+                          {players.filter(p => p !== mergeInto).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Merge into (will keep)</Label>
+                      <Select value={mergeInto} onValueChange={setMergeInto}>
+                        <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
+                        <SelectContent>
+                          {players.filter(p => p !== mergeFrom).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    disabled={!mergeFrom || !mergeInto}
+                    onClick={() => setShowMergeConfirm(true)}
+                    className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                  >
+                    <Merge className="w-4 h-4 mr-2" />
+                    Merge Players
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader><CardTitle>All Players</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {players.map(name => (
+                      <div key={name} className="flex items-center justify-between p-2 rounded border border-border">
+                        <span className="text-sm text-foreground">{name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeletePlayer(name)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
       <AlertDialog open={showRecalcConfirm} onOpenChange={setShowRecalcConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Recalculate All MMR?</AlertDialogTitle>
+            <AlertDialogTitle>Recalculate MMR?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replay every game in order and recalculate all player MMR ratings from scratch. 
-              This may take a moment depending on the number of games.
+              This will replay {recalcMode === 'all' ? 'all games across all seasons' : recalcMode === 'season' ? `Season ${recalcSeason} games` : `games from ${recalcFromDate}`} and recalculate all player MMR ratings. All players will start at {mmrConfig.defaultMmr} MMR at the beginning of each season.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleRecalculateMMR} className="bg-primary text-primary-foreground">
               Recalculate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showMergeConfirm} onOpenChange={setShowMergeConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Merge Players?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All game records for <strong>{mergeFrom}</strong> will be transferred to <strong>{mergeInto}</strong>, and "{mergeFrom}" will be deleted. This cannot be undone. You should run MMR Recalculation afterwards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMergePlayers} className="bg-destructive text-destructive-foreground">
+              Merge
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

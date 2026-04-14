@@ -15,12 +15,12 @@ const GLICKO_SCALE = 173.7178; // Scaling factor for Glicko-2
 
 // Victory type multipliers
 const VICTORY_MULTIPLIERS: Record<string, { multiplier: number; bonus: number }> = {
-  'golden_pickle': { multiplier: 2.0, bonus: 0 },      // 11-0, opponent never served
-  'pickled': { multiplier: 1.5, bonus: 0 },             // 11-0 shutout
-  'steamroller': { multiplier: 1.2, bonus: 0 },         // 11-1 to 11-4
-  'standard': { multiplier: 1.0, bonus: 0 },            // 11-5 to 11-8
-  'squeaker': { multiplier: 0.9, bonus: 0 },            // 11-9
-  'clutch_god': { multiplier: 1.0, bonus: 2 },          // 12+ with margin of 2
+  'golden_pickle': { multiplier: 2.0, bonus: 0 },
+  'pickled': { multiplier: 1.5, bonus: 0 },
+  'steamroller': { multiplier: 1.2, bonus: 0 },
+  'standard': { multiplier: 1.0, bonus: 0 },
+  'squeaker': { multiplier: 0.9, bonus: 0 },
+  'clutch_god': { multiplier: 1.0, bonus: 2 },
 };
 
 interface GameInput {
@@ -32,6 +32,7 @@ interface GameInput {
   groupId?: string;
   eventId?: string;
   neverServed?: boolean;
+  gameMode?: 'doubles' | 'singles';
 }
 
 interface PlayerRating {
@@ -262,7 +263,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const gameInput: GameInput = await req.json();
-    const { winningPlayers, losingPlayers, winningScore, losingScore, date, groupId, eventId, neverServed } = gameInput;
+    const { winningPlayers, losingPlayers, winningScore, losingScore, date, groupId, eventId, neverServed, gameMode } = gameInput;
 
     console.log('Processing game:', { winningPlayers, losingPlayers, score: `${winningScore}-${losingScore}`, date, neverServed });
 
@@ -478,6 +479,7 @@ Deno.serve(async (req) => {
         victory_type: victoryType,
         group_id: groupId || null,
         event_id: eventId || null,
+        game_mode: gameMode || 'doubles',
       });
     }
 
@@ -512,6 +514,7 @@ Deno.serve(async (req) => {
         victory_type: victoryType,
         group_id: groupId || null,
         event_id: eventId || null,
+        game_mode: gameMode || 'doubles',
       });
     }
 
