@@ -1,4 +1,4 @@
-import { LogIn, LogOut, User, Map, Settings, Smartphone } from "lucide-react";
+import { LogIn, LogOut, User, Map, Settings, Smartphone, MessageSquarePlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -8,6 +8,7 @@ import AuthDialog from "@/components/AuthDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { AddToHomeScreenDialog } from "@/components/AddToHomeScreenDialog";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
