@@ -105,6 +105,7 @@ export type Database = {
           created_at: string
           date: string
           event_id: string | null
+          game_mode: string
           game_number: number
           group_id: string | null
           id: string
@@ -126,6 +127,7 @@ export type Database = {
           created_at?: string
           date: string
           event_id?: string | null
+          game_mode?: string
           game_number: number
           group_id?: string | null
           id?: string
@@ -147,6 +149,7 @@ export type Database = {
           created_at?: string
           date?: string
           event_id?: string | null
+          game_mode?: string
           game_number?: number
           group_id?: string | null
           id?: string
@@ -261,6 +264,7 @@ export type Database = {
           created_at: string
           ending_mmr: number | null
           ending_rd: number | null
+          game_mode: string
           games_played: number
           group_id: string | null
           id: string
@@ -277,6 +281,7 @@ export type Database = {
           created_at?: string
           ending_mmr?: number | null
           ending_rd?: number | null
+          game_mode?: string
           games_played?: number
           group_id?: string | null
           id?: string
@@ -293,6 +298,7 @@ export type Database = {
           created_at?: string
           ending_mmr?: number | null
           ending_rd?: number | null
+          game_mode?: string
           games_played?: number
           group_id?: string | null
           id?: string
