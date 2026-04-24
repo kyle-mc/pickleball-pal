@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Loader2, User } from "lucide-react";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface AvatarUploadProps {
   avatarUrl: string | null;
@@ -19,73 +20,61 @@ const sizeClasses = {
   lg: "w-24 h-24",
 };
 
-export const AvatarUpload = ({ 
-  avatarUrl, 
-  displayName, 
+export const AvatarUpload = ({
+  avatarUrl,
+  displayName,
   onUploadComplete,
-  size = "lg" 
+  size = "lg",
 }: AvatarUploadProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
-  const initials = displayName
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || "?";
+  const initials =
+    displayName
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?";
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an image file.",
-        variant: "destructive",
-      });
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please select an image under 10MB.", variant: "destructive" });
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 5MB.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Read file as data URL and open crop dialog
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
 
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCroppedUpload = async (blob: Blob) => {
+    if (!user) return;
     setUploading(true);
-
     try {
-      // Create a unique file path
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
-
-      // Upload to storage
+      const fileName = `${user.id}/avatar-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true });
-
+        .from("avatars")
+        .upload(fileName, blob, { upsert: true, contentType: "image/jpeg" });
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(fileName);
       onUploadComplete(publicUrl);
-      
-      toast({
-        title: "Avatar updated!",
-        description: "Your profile picture has been updated.",
-      });
+      toast({ title: "Avatar updated!", description: "Your profile picture has been updated." });
+      setCropSrc(null);
     } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
@@ -95,9 +84,6 @@ export const AvatarUpload = ({
       });
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -109,7 +95,7 @@ export const AvatarUpload = ({
           {initials || <User className="w-1/2 h-1/2" />}
         </AvatarFallback>
       </Avatar>
-      
+
       <input
         ref={fileInputRef}
         type="file"
@@ -117,7 +103,7 @@ export const AvatarUpload = ({
         onChange={handleFileSelect}
         className="hidden"
       />
-      
+
       <Button
         type="button"
         size="icon"
@@ -126,12 +112,19 @@ export const AvatarUpload = ({
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Camera className="w-4 h-4" />
-        )}
+        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
       </Button>
+
+      <ImageCropDialog
+        open={!!cropSrc}
+        onOpenChange={(o) => { if (!o) setCropSrc(null); }}
+        imageSrc={cropSrc}
+        aspect={1}
+        outputSize={512}
+        onCropComplete={handleCroppedUpload}
+        title="Crop Profile Picture"
+        saving={uploading}
+      />
     </div>
   );
 };
