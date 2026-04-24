@@ -41,7 +41,9 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
   const [description, setDescription] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("none");
+  const [transcript, setTranscript] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const srtInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (video && open) {
@@ -49,8 +51,22 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
       setDescription(video.description || "");
       setSelectedPlayers(video.players || []);
       setSelectedGameId(video.game_id || "none");
+      setTranscript(video.transcript || "");
     }
   }, [video, open]);
+
+  const handleSrtUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File too large", description: "SRT files must be under 2MB.", variant: "destructive" });
+      return;
+    }
+    const text = await file.text();
+    setTranscript(srtToText(text));
+    toast({ title: "Transcript loaded", description: `Imported from ${file.name}` });
+    if (srtInputRef.current) srtInputRef.current.value = "";
+  };
 
   const togglePlayer = (player: string) => {
     setSelectedPlayers(prev => 
