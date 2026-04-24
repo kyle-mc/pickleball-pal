@@ -622,7 +622,7 @@ const AdminSettings = () => {
                           variant="ghost"
                           size="sm"
                           className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeletePlayer(name)}
+                          onClick={() => handleRequestDeletePlayer(name)}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
