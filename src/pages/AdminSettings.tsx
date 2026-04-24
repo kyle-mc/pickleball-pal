@@ -20,6 +20,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useGroupContext } from "@/contexts/GroupContext";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { usePlayers } from "@/hooks/usePlayers";
+import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentSeason } from "@/lib/seasons";
 
 const AdminSettings = () => {
@@ -67,6 +68,13 @@ const AdminSettings = () => {
   const [mergeFrom, setMergeFrom] = useState('');
   const [mergeInto, setMergeInto] = useState('');
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
+
+  // Player delete state
+  const [deletePlayerName, setDeletePlayerName] = useState<string | null>(null);
+  const [deletePlayerGameCount, setDeletePlayerGameCount] = useState<number>(0);
+  const [deleteReplaceWith, setDeleteReplaceWith] = useState<string>('');
+  const [checkingGameCount, setCheckingGameCount] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!currentGroup?.id) return;
