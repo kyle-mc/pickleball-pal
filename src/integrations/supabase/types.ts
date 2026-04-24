@@ -134,6 +134,7 @@ export type Database = {
       }
       feedback_requests: {
         Row: {
+          admin_notes: string | null
           created_at: string
           description: string | null
           id: string
@@ -146,6 +147,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -158,6 +160,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -396,16 +399,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_name: string | null
           name: string
         }
         Insert: {
           created_at?: string
           id?: string
+          last_name?: string | null
           name: string
         }
         Update: {
           created_at?: string
           id?: string
+          last_name?: string | null
           name?: string
         }
         Relationships: []
@@ -423,12 +429,17 @@ export type Database = {
           display_name: string | null
           dupr_profile_url: string | null
           dupr_rating: number | null
+          first_name: string | null
           groupme_url: string | null
           handedness: Database["public"]["Enums"]["handedness"] | null
           id: string
+          is_blacklisted: boolean
+          last_name: string | null
           linked_player_id: string | null
+          long_press_duration_ms: number
           paddles: string[] | null
           profile_complete: boolean | null
+          requires_verification: boolean
           state: string | null
           typical_play_location: string | null
           updated_at: string
@@ -447,12 +458,17 @@ export type Database = {
           display_name?: string | null
           dupr_profile_url?: string | null
           dupr_rating?: number | null
+          first_name?: string | null
           groupme_url?: string | null
           handedness?: Database["public"]["Enums"]["handedness"] | null
           id?: string
+          is_blacklisted?: boolean
+          last_name?: string | null
           linked_player_id?: string | null
+          long_press_duration_ms?: number
           paddles?: string[] | null
           profile_complete?: boolean | null
+          requires_verification?: boolean
           state?: string | null
           typical_play_location?: string | null
           updated_at?: string
@@ -471,12 +487,17 @@ export type Database = {
           display_name?: string | null
           dupr_profile_url?: string | null
           dupr_rating?: number | null
+          first_name?: string | null
           groupme_url?: string | null
           handedness?: Database["public"]["Enums"]["handedness"] | null
           id?: string
+          is_blacklisted?: boolean
+          last_name?: string | null
           linked_player_id?: string | null
+          long_press_duration_ms?: number
           paddles?: string[] | null
           profile_complete?: boolean | null
+          requires_verification?: boolean
           state?: string | null
           typical_play_location?: string | null
           updated_at?: string
