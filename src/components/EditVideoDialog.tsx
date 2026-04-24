@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useGames } from "@/hooks/useGames";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { srtToText } from "@/lib/srt";
 
 interface Video {
   id: string;
@@ -21,6 +22,7 @@ interface Video {
   players: string[];
   video_type: string;
   game_id: string | null;
+  transcript?: string | null;
 }
 
 interface EditVideoDialogProps {
