@@ -220,20 +220,88 @@ const AdminSettings = () => {
     }
     // Update season stats
     await supabase.from('player_season_stats').update({ player: mergeInto }).eq('player', mergeFrom);
-    // Delete the old player
-    await supabase.from('players').delete().eq('name', mergeFrom);
-    
-    toast({ title: "Players merged", description: `${mergeFrom} merged into ${mergeInto}. Run MMR Recalculation to update ratings.` });
+    // Delete the old player record (now allowed by admin RLS)
+    const { error: deleteErr } = await supabase.from('players').delete().eq('name', mergeFrom);
+    if (deleteErr) {
+      toast({ title: "Records merged but old player not deleted", description: deleteErr.message, variant: "destructive" });
+    } else {
+      toast({ title: "Players merged", description: `${mergeFrom} merged into ${mergeInto}. Run MMR Recalculation to update ratings.` });
+    }
+    // Invalidate queries so UI refreshes
+    await queryClient.invalidateQueries({ queryKey: ['players'] });
+    await queryClient.invalidateQueries({ queryKey: ['games'] });
     setMergeFrom('');
     setMergeInto('');
   };
 
-  const handleDeletePlayer = async (name: string) => {
-    const { error } = await supabase.from('players').delete().eq('name', name);
-    if (error) {
-      toast({ title: "Error", description: "Failed to delete player. They may have game records.", variant: "destructive" });
-    } else {
-      toast({ title: "Player deleted" });
+  // Step 1: User clicks delete — count games and open confirmation dialog
+  const handleRequestDeletePlayer = async (name: string) => {
+    setDeletePlayerName(name);
+    setDeleteReplaceWith('');
+    setCheckingGameCount(true);
+    const { count } = await supabase
+      .from('games')
+      .select('id', { count: 'exact', head: true })
+      .eq('player', name);
+    setDeletePlayerGameCount(count ?? 0);
+    setCheckingGameCount(false);
+  };
+
+  // Step 2: User confirms delete (with optional replacement player)
+  const handleConfirmDeletePlayer = async () => {
+    if (!deletePlayerName) return;
+    const name = deletePlayerName;
+    const replaceWith = deleteReplaceWith;
+
+    try {
+      if (deletePlayerGameCount > 0) {
+        if (replaceWith) {
+          // Reassign games & season stats to replacement player
+          const { error: gErr } = await supabase.from('games').update({ player: replaceWith }).eq('player', name);
+          if (gErr) throw gErr;
+          await supabase.from('player_season_stats').update({ player: replaceWith }).eq('player', name);
+        } else {
+          // No replacement: delete all games featuring this player (affects 3 other players too).
+          // Find all (date, game_number) pairs where this player participated, then delete those whole games.
+          const { data: gameRows } = await supabase
+            .from('games')
+            .select('date, game_number, group_id')
+            .eq('player', name);
+          if (gameRows && gameRows.length > 0) {
+            for (const g of gameRows) {
+              await supabase
+                .from('games')
+                .delete()
+                .eq('date', g.date)
+                .eq('game_number', g.game_number)
+                .eq('group_id', g.group_id ?? null as any);
+            }
+          }
+          // Clean up season stats for this player
+          await supabase.from('player_season_stats').delete().eq('player', name);
+        }
+      }
+
+      // Delete the player record
+      const { error: pErr } = await supabase.from('players').delete().eq('name', name);
+      if (pErr) throw pErr;
+
+      toast({
+        title: "Player deleted",
+        description: deletePlayerGameCount > 0
+          ? (replaceWith
+              ? `Reassigned ${deletePlayerGameCount} games to ${replaceWith}.`
+              : `Deleted ${deletePlayerGameCount} games. Run MMR Recalculation.`)
+          : `${name} had no games.`,
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message ?? "Failed to delete player", variant: "destructive" });
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: ['players'] });
+      await queryClient.invalidateQueries({ queryKey: ['games'] });
+      setDeletePlayerName(null);
+      setDeleteReplaceWith('');
+      setDeletePlayerGameCount(0);
     }
   };
 
