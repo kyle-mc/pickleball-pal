@@ -116,6 +116,7 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
         players: selectedPlayers,
         game_id: gameId && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(gameId) ? gameId : null,
         video_type: videoType,
+        transcript: transcript.trim() || null,
       })
       .eq('id', video.id);
 
@@ -200,6 +201,40 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Transcript — paste text or upload SRT (searchable from the Videos search bar) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-muted-foreground flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" /> Transcript
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => srtInputRef.current?.click()}
+              >
+                <Upload className="w-3 h-3 mr-1" /> Upload .srt
+              </Button>
+              <input
+                ref={srtInputRef}
+                type="file"
+                accept=".srt,text/plain"
+                onChange={handleSrtUpload}
+                className="hidden"
+              />
+            </div>
+            <Textarea
+              value={transcript}
+              onChange={e => setTranscript(e.target.value)}
+              placeholder="Paste transcript text here, or upload an .srt file…"
+              className="bg-muted border-border min-h-[120px] text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Transcripts are searchable from the Videos page search bar.
+            </p>
           </div>
 
           <Button 
