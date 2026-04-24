@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getRankFromMmr, TIER_COLORS, TIER_BG_COLORS, TIER_ICONS } from "@/lib/ranks";
 import { cn } from "@/lib/utils";
@@ -7,11 +7,28 @@ interface RankChangePopupProps {
   playerName: string;
   currentMmr: number;
   gamesPlayed: number;
+  /**
+   * The MMR before the most recent game. When provided, the popup uses this
+   * (DB-sourced) value to determine rank change direction, which avoids stale
+   * localStorage state showing the wrong direction across devices/PWA sessions.
+   */
+  previousMmr?: number;
 }
 
-const RANK_STORAGE_KEY = "pickle_last_known_rank_tier_";
+const RANK_STORAGE_KEY = "pickle_last_known_mmr_";
 
-export function RankChangePopup({ playerName, currentMmr, gamesPlayed }: RankChangePopupProps) {
+const TIER_ORDER = [
+  "bronze",
+  "silver",
+  "gold",
+  "platinum",
+  "diamond",
+  "champion",
+  "grand_champion",
+  "supersonic_legend",
+];
+
+export function RankChangePopup({ playerName, currentMmr, gamesPlayed, previousMmr }: RankChangePopupProps) {
   const [open, setOpen] = useState(false);
   const [changeType, setChangeType] = useState<"promoted" | "demoted">("promoted");
   const [oldTier, setOldTier] = useState("");
@@ -22,40 +39,41 @@ export function RankChangePopup({ playerName, currentMmr, gamesPlayed }: RankCha
 
     const storageKey = RANK_STORAGE_KEY + playerName;
     const currentRank = getRankFromMmr(currentMmr);
-    const storedTier = localStorage.getItem(storageKey);
 
-    if (storedTier && storedTier !== currentRank.tier) {
-      // Tier changed! Show popup
-      const oldRank = getRankFromMmr(
-        storedTier === "supersonic_legend" ? 2700 :
-        storedTier === "grand_champion" ? 2500 :
-        storedTier === "champion" ? 2200 :
-        storedTier === "diamond" ? 1900 :
-        storedTier === "platinum" ? 1600 :
-        storedTier === "gold" ? 1200 :
-        storedTier === "silver" ? 700 : 200
-      );
-      
-      const oldTierIndex = ["bronze", "silver", "gold", "platinum", "diamond", "champion", "grand_champion", "supersonic_legend"].indexOf(storedTier);
-      const newTierIndex = ["bronze", "silver", "gold", "platinum", "diamond", "champion", "grand_champion", "supersonic_legend"].indexOf(currentRank.tier);
-      
-      setChangeType(newTierIndex > oldTierIndex ? "promoted" : "demoted");
-      setOldTier(storedTier);
-      setNewTier(currentRank.tier);
-      setOpen(true);
+    // Prefer the DB-sourced previousMmr (mmr_before of the most recent game).
+    // Fall back to last-seen MMR from localStorage to detect changes between visits.
+    const storedMmrStr = localStorage.getItem(storageKey);
+    const storedMmr = storedMmrStr ? Number(storedMmrStr) : NaN;
+
+    const prevMmr = typeof previousMmr === "number" && !Number.isNaN(previousMmr)
+      ? previousMmr
+      : (!Number.isNaN(storedMmr) ? storedMmr : null);
+
+    if (prevMmr !== null) {
+      const prevRank = getRankFromMmr(prevMmr);
+      if (prevRank.tier !== currentRank.tier) {
+        const oldIdx = TIER_ORDER.indexOf(prevRank.tier);
+        const newIdx = TIER_ORDER.indexOf(currentRank.tier);
+        setChangeType(newIdx > oldIdx ? "promoted" : "demoted");
+        setOldTier(prevRank.tier);
+        setNewTier(currentRank.tier);
+        setOpen(true);
+      }
     }
 
-    // Always update stored tier
-    localStorage.setItem(storageKey, currentRank.tier);
-  }, [playerName, currentMmr, gamesPlayed]);
+    // Always update stored MMR so future returns compare against the latest known value
+    localStorage.setItem(storageKey, String(currentMmr));
+  }, [playerName, currentMmr, gamesPlayed, previousMmr]);
 
   const currentRank = getRankFromMmr(currentMmr);
   const isPromotion = changeType === "promoted";
 
   const tierLabel = (tier: string) => {
-    return tier === "grand_champion" ? "Grand Champion" : 
-           tier === "supersonic_legend" ? "Supersonic Legend" :
-           tier.charAt(0).toUpperCase() + tier.slice(1);
+    return tier === "grand_champion"
+      ? "Grand Champion"
+      : tier === "supersonic_legend"
+        ? "Supersonic Legend"
+        : tier.charAt(0).toUpperCase() + tier.slice(1);
   };
 
   return (
@@ -72,9 +90,7 @@ export function RankChangePopup({ playerName, currentMmr, gamesPlayed }: RankCha
           
           <div className="relative p-8 flex flex-col items-center text-center">
             {/* Icon with animation */}
-            <div className={cn(
-              "text-7xl mb-4 animate-scale-in",
-            )}>
+            <div className="text-7xl mb-4 animate-scale-in">
               {TIER_ICONS[newTier] || "🎖️"}
             </div>
 
