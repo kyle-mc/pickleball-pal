@@ -28,7 +28,7 @@ export const useOnboardingStatus = (): OnboardingStatus => {
         // Check profile completion
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('display_name, profile_complete')
+          .select('display_name, profile_complete, linked_player_id')
           .eq('user_id', user.id)
           .single();
 
@@ -36,9 +36,10 @@ export const useOnboardingStatus = (): OnboardingStatus => {
           console.error('Error fetching profile:', profileError);
         }
 
-        // User needs profile setup if no display_name or profile_complete is false
-        const profileIncomplete = !profile?.display_name || !profile?.profile_complete;
-        setNeedsProfileSetup(profileIncomplete);
+        // A user only truly needs profile setup if they have NEITHER a linked player NOR a display name.
+        // Once either is set, they're considered onboarded — don't show the setup screen on every app return.
+        const hasIdentity = !!profile?.linked_player_id || !!profile?.display_name;
+        setNeedsProfileSetup(!hasIdentity);
         
         // No group onboarding check - everyone is auto-joined to KC Pickleballers
       } catch (error) {
