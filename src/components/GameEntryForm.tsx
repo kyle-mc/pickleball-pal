@@ -318,16 +318,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
             <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
               <div className="flex items-center justify-between mb-3">
                 <Label className="text-primary font-medium">🏆 Winning Team</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSwapTeams}
-                  className="text-muted-foreground hover:text-foreground h-7 text-xs gap-1"
-                  title="Swap with losing team"
-                >
-                  <ArrowLeftRight className="w-3 h-3" />
-                </Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {renderPlayerSelect(winningPlayer1, handlePlayerChange(setWinningPlayer1), "Player 1")}
@@ -367,16 +357,6 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
               <div className="flex items-center justify-between mb-3">
                 <Label className="text-destructive font-medium">Losing Team</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSwapTeams}
-                  className="text-muted-foreground hover:text-foreground h-7 text-xs gap-1"
-                  title="Swap with winning team"
-                >
-                  <ArrowLeftRight className="w-3 h-3" />
-                </Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {renderPlayerSelect(losingPlayer1, handlePlayerChange(setLosingPlayer1), "Player 1")}

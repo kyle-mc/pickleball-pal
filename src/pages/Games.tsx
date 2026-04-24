@@ -249,7 +249,7 @@ const Games = () => {
             <SeasonSelector 
               selectedSeason={selectedSeason} 
               onSeasonChange={setSelectedSeason} 
-              triggerClassName="w-[130px] h-9 text-sm whitespace-nowrap"
+              triggerClassName="w-[170px] h-9 text-sm whitespace-nowrap"
             />
 
             <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>

@@ -376,12 +376,13 @@ const MyMMR = () => {
         onOpenChange={setIsAddVideoOpen}
       />
 
-      {/* Rank change detection */}
+      {/* Rank change detection — uses the most recent game's mmrBefore so direction is always correct */}
       {playerName && stats.gamesPlayed > 0 && (
         <RankChangePopup 
           playerName={playerName} 
           currentMmr={stats.currentMMR} 
-          gamesPlayed={stats.gamesPlayed} 
+          gamesPlayed={stats.gamesPlayed}
+          previousMmr={playerGames[0]?.mmrBefore}
         />
       )}
     </main>

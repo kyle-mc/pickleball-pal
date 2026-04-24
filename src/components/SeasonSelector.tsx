@@ -20,21 +20,32 @@ export function SeasonSelector({
 }: SeasonSelectorProps) {
   const currentSeason = getCurrentSeason();
 
+  const isCurrent = selectedSeason !== "all" && selectedSeason === currentSeason.id;
+  const seasonObj = selectedSeason === "all" ? null : SEASONS.find(s => s.id === selectedSeason);
+
   return (
     <div className={`flex items-center gap-2 ${className ?? ""}`}>
-      <Calendar className="w-4 h-4 text-muted-foreground" />
+      <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
       <Select
         value={String(selectedSeason)}
         onValueChange={(value) => onSeasonChange(value === "all" ? "all" : parseInt(value))}
       >
         <SelectTrigger className={`w-[180px] bg-card border-border ${triggerClassName ?? ""}`}>
-          <SelectValue placeholder="Select season" />
+          {/* Custom trigger content so we can show the Current badge alongside the season name */}
+          <span className="flex items-center gap-1.5 truncate">
+            <span className="whitespace-nowrap">
+              {selectedSeason === "all" ? "All Seasons" : (seasonObj?.name ?? "Season")}
+            </span>
+            {showCurrentBadge && isCurrent && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap">Current</Badge>
+            )}
+          </span>
         </SelectTrigger>
         <SelectContent className="bg-card border-border z-50">
           <SelectItem value="all">All Seasons</SelectItem>
           {SEASONS.map((season) => (
             <SelectItem key={season.id} value={String(season.id)}>
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2 whitespace-nowrap">
                 {season.name}
                 {showCurrentBadge && season.id === currentSeason.id && (
                   <Badge variant="secondary" className="text-xs ml-1">Current</Badge>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useGames } from "@/hooks/useGames";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { srtToText } from "@/lib/srt";
 
 interface Video {
   id: string;
@@ -21,6 +22,7 @@ interface Video {
   players: string[];
   video_type: string;
   game_id: string | null;
+  transcript?: string | null;
 }
 
 interface EditVideoDialogProps {
@@ -39,7 +41,9 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
   const [description, setDescription] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("none");
+  const [transcript, setTranscript] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const srtInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (video && open) {
@@ -47,8 +51,22 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
       setDescription(video.description || "");
       setSelectedPlayers(video.players || []);
       setSelectedGameId(video.game_id || "none");
+      setTranscript(video.transcript || "");
     }
   }, [video, open]);
+
+  const handleSrtUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File too large", description: "SRT files must be under 2MB.", variant: "destructive" });
+      return;
+    }
+    const text = await file.text();
+    setTranscript(srtToText(text));
+    toast({ title: "Transcript loaded", description: `Imported from ${file.name}` });
+    if (srtInputRef.current) srtInputRef.current.value = "";
+  };
 
   const togglePlayer = (player: string) => {
     setSelectedPlayers(prev => 
@@ -98,6 +116,7 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
         players: selectedPlayers,
         game_id: gameId && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(gameId) ? gameId : null,
         video_type: videoType,
+        transcript: transcript.trim() || null,
       })
       .eq('id', video.id);
 
@@ -182,6 +201,40 @@ export function EditVideoDialog({ open, onOpenChange, video }: EditVideoDialogPr
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Transcript — paste text or upload SRT (searchable from the Videos search bar) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-muted-foreground flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" /> Transcript
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => srtInputRef.current?.click()}
+              >
+                <Upload className="w-3 h-3 mr-1" /> Upload .srt
+              </Button>
+              <input
+                ref={srtInputRef}
+                type="file"
+                accept=".srt,text/plain"
+                onChange={handleSrtUpload}
+                className="hidden"
+              />
+            </div>
+            <Textarea
+              value={transcript}
+              onChange={e => setTranscript(e.target.value)}
+              placeholder="Paste transcript text here, or upload an .srt file…"
+              className="bg-muted border-border min-h-[120px] text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Transcripts are searchable from the Videos page search bar.
+            </p>
           </div>
 
           <Button 

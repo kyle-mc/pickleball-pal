@@ -66,7 +66,7 @@ export const VICTORY_TYPES: Record<string, VictoryType> = {
     id: 'clutch_god',
     name: 'The Clutch God',
     description: 'Overtime win by 2',
-    emoji: '🔥👑',
+    emoji: '🔥',
     multiplier: 1.0,
     bonus: 2,
     color: 'text-red-500',
