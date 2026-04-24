@@ -670,6 +670,56 @@ const AdminSettings = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete player confirmation — shows game count and optional replacement */}
+      <AlertDialog
+        open={!!deletePlayerName}
+        onOpenChange={(o) => { if (!o) { setDeletePlayerName(null); setDeleteReplaceWith(''); } }}
+      >
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete player "{deletePlayerName}"?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                {checkingGameCount ? (
+                  <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Counting games…</div>
+                ) : deletePlayerGameCount === 0 ? (
+                  <p>This player has <strong>0 games</strong> logged. Safe to delete.</p>
+                ) : (
+                  <>
+                    <p>
+                      This player has <strong className="text-foreground">{deletePlayerGameCount} game record{deletePlayerGameCount === 1 ? '' : 's'}</strong>.
+                    </p>
+                    <p>
+                      Pick a replacement player (recommended) to reassign all of their games. If you leave this blank, those games will be <strong className="text-destructive">deleted entirely</strong>, which also removes the records of the other 3 players in each game.
+                    </p>
+                    <div className="pt-1">
+                      <Label className="text-xs text-foreground">Replace with</Label>
+                      <Select value={deleteReplaceWith} onValueChange={setDeleteReplaceWith}>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder="-- Don't replace, delete games --" /></SelectTrigger>
+                        <SelectContent>
+                          {players.filter(p => p !== deletePlayerName).map(p => (
+                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeletePlayer}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePlayerGameCount > 0 && !deleteReplaceWith ? 'Delete player & games' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Footer />
       <MobileBottomNav />
     </main>
