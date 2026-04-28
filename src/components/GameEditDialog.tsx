@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
-import { ArrowLeftRight, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Copy, Loader2, Trash2 } from "lucide-react";
 
 interface GameEditDialogProps {
   open: boolean;
