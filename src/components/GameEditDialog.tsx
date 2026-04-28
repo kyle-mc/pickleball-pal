@@ -258,12 +258,7 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
             </div>
 
             <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-primary font-medium">Winning Team</Label>
-                <Button type="button" variant="ghost" size="sm" onClick={handleSwapTeams} className="h-7 px-2 text-muted-foreground">
-                  <ArrowLeftRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
+              <Label className="text-primary font-medium">Winning Team</Label>
               <div className="grid grid-cols-2 gap-3">
                 {renderPlayerSelect(winningPlayer1, setWinningPlayer1, "Player 1")}
                 {renderPlayerSelect(winningPlayer2, setWinningPlayer2, "Player 2")}
@@ -282,12 +277,7 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
             </div>
 
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-destructive font-medium">Losing Team</Label>
-                <Button type="button" variant="ghost" size="sm" onClick={handleSwapTeams} className="h-7 px-2 text-muted-foreground">
-                  <ArrowLeftRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
+              <Label className="text-destructive font-medium">Losing Team</Label>
               <div className="grid grid-cols-2 gap-3">
                 {renderPlayerSelect(losingPlayer1, setLosingPlayer1, "Player 1")}
                 {renderPlayerSelect(losingPlayer2, setLosingPlayer2, "Player 2")}

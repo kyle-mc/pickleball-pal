@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Loader2, User } from "lucide-react";
+import { Camera, Loader2, User, Crop } from "lucide-react";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface AvatarUploadProps {
@@ -87,6 +87,30 @@ export const AvatarUpload = ({
     }
   };
 
+  const handleEditExisting = async () => {
+    if (!avatarUrl) return;
+    try {
+      // Fetch via cache-busting URL so we always get the freshest image
+      const bust = avatarUrl + (avatarUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
+      const res = await fetch(bust, { mode: "cors" });
+      if (!res.ok) throw new Error("Failed to load image");
+      const blob = await res.blob();
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = () => reject(new Error("Read failed"));
+        reader.readAsDataURL(blob);
+      });
+      setCropSrc(dataUrl);
+    } catch (e) {
+      toast({
+        title: "Couldn't open image for editing",
+        description: e instanceof Error ? e.message : "Please try uploading a new one.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="relative inline-block">
       <Avatar className={sizeClasses[size]}>
@@ -104,16 +128,33 @@ export const AvatarUpload = ({
         className="hidden"
       />
 
-      <Button
-        type="button"
-        size="icon"
-        variant="secondary"
-        className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full shadow-md"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-      >
-        {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-      </Button>
+      {/* Camera = upload new; Crop = re-crop existing (only when there's an avatar) */}
+      <div className="absolute -bottom-1 -right-1 flex gap-1">
+        {avatarUrl && (
+          <Button
+            type="button"
+            size="icon"
+            variant="secondary"
+            className="w-8 h-8 rounded-full shadow-md"
+            onClick={handleEditExisting}
+            disabled={uploading}
+            title="Adjust crop"
+          >
+            <Crop className="w-4 h-4" />
+          </Button>
+        )}
+        <Button
+          type="button"
+          size="icon"
+          variant="secondary"
+          className="w-8 h-8 rounded-full shadow-md"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          title="Upload new"
+        >
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+        </Button>
+      </div>
 
       <ImageCropDialog
         open={!!cropSrc}
