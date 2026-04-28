@@ -139,9 +139,9 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
     const tempP1 = winningPlayer1;
     const tempP2 = winningPlayer2;
     setWinningPlayer1(losingPlayer1);
-    setWinningPlayer2(losingPlayer2);
+    setWinningPlayer2(gameMode === 'singles' ? "" : losingPlayer2);
     setLosingPlayer1(tempP1);
-    setLosingPlayer2(tempP2);
+    setLosingPlayer2(gameMode === 'singles' ? "" : tempP2);
   };
 
   const doSubmit = async () => {
