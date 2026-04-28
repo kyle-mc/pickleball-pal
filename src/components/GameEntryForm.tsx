@@ -139,8 +139,8 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
   const doSubmit = async () => {
     const wScore = parseInt(winningScore);
     const lScore = parseInt(losingScore);
-    const winningPlayers = [winningPlayer1, winningPlayer2];
-    const losingPlayers = [losingPlayer1, losingPlayer2];
+    const winningPlayers = gameMode === 'singles' ? [winningPlayer1] : [winningPlayer1, winningPlayer2];
+    const losingPlayers = gameMode === 'singles' ? [losingPlayer1] : [losingPlayer1, losingPlayer2];
 
     try {
       const allPlayersInGame = [...winningPlayers, ...losingPlayers];
@@ -158,11 +158,12 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
         date,
         groupId: currentGroup?.id,
         neverServed,
+        gameMode,
       });
 
       toast({ 
         title: "Game Recorded!", 
-        description: `Season ${dateSeason.id} game has been recorded with MMR calculations.` 
+        description: `Season ${dateSeason.id} ${gameMode} game has been recorded with MMR calculations.` 
       });
       
       setWinningPlayer1(""); 
