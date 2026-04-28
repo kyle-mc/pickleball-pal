@@ -100,13 +100,11 @@ const AdminSettings = () => {
     }
   }, [isAdmin, loading, navigate]);
 
-  // Load users
-  useEffect(() => {
-    if (!isAdmin) return;
+  const loadUsers = () => {
     setLoadingUsers(true);
     supabase
       .from("profiles")
-      .select("user_id, display_name, linked_player_id, avatar_url, created_at, players!profiles_linked_player_id_fkey(name)")
+      .select("user_id, display_name, first_name, last_name, linked_player_id, avatar_url, created_at, is_blacklisted, requires_verification, players!profiles_linked_player_id_fkey(name)")
       .then(({ data }) => {
         setAllUsers(data || []);
         const links: Record<string, string> = {};
@@ -118,6 +116,12 @@ const AdminSettings = () => {
         setPlayerLinks(links);
         setLoadingUsers(false);
       });
+  };
+
+  // Load users
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadUsers();
   }, [isAdmin]);
 
   const handleSaveGroupmeUrl = async () => {
