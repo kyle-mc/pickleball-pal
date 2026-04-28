@@ -334,11 +334,12 @@ const AdminSettings = () => {
           </h1>
 
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="mmr">MMR Config</TabsTrigger>
+              <TabsTrigger value="mmr">MMR</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="players">Players</TabsTrigger>
+              <TabsTrigger value="feedback">Feedback</TabsTrigger>
             </TabsList>
 
             {/* General Tab */}
