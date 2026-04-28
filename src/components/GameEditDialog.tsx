@@ -234,7 +234,43 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
     }
   };
 
-  return (
+  const handleDuplicate = async () => {
+    const wScore = Number.parseInt(winningScore, 10);
+    const lScore = Number.parseInt(losingScore, 10);
+    const participants = [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2];
+
+    if (participants.some((p) => !p) || new Set(participants).size !== 4) {
+      toast({ title: "Cannot duplicate", description: "Fix any player issues first.", variant: "destructive" });
+      return;
+    }
+    if (Number.isNaN(wScore) || Number.isNaN(lScore) || wScore <= lScore || wScore - lScore < 2) {
+      toast({ title: "Cannot duplicate", description: "Fix the score first.", variant: "destructive" });
+      return;
+    }
+
+    setDuplicating(true);
+    try {
+      await submitGameMutation.mutateAsync({
+        winningPlayers: [winningPlayer1, winningPlayer2],
+        losingPlayers: [losingPlayer1, losingPlayer2],
+        winningScore: wScore,
+        losingScore: lScore,
+        date,
+        groupId: currentGroup?.id,
+        neverServed,
+        gameMode: gameRows?.[0]?.gameMode || 'doubles',
+      });
+      toast({ title: "Game duplicated", description: "A new game was created with the same teams and score." });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to duplicate game:", error);
+      toast({ title: "Duplicate failed", description: "Could not duplicate this game.", variant: "destructive" });
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
+
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
