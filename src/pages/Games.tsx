@@ -417,24 +417,32 @@ const Games = () => {
                     
                     if (compactView) {
                       return (
-                        <div key={gameNum} className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border text-xs sm:text-sm">
-                          <span className="text-muted-foreground font-medium w-7 sm:w-10 shrink-0 text-center">G{gameNum}</span>
-                          {playedAtStr && <span className="text-muted-foreground text-[10px] sm:text-xs w-14 sm:w-16 shrink-0 hidden sm:inline">{playedAtStr}</span>}
-                          <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
-                            <span className="text-primary font-medium truncate max-w-[40%]">
-                              {winners.map(w => w.player).join(' & ')}
-                            </span>
-                            <span className="text-muted-foreground mx-0.5">v</span>
-                            <span className="text-destructive/80 truncate max-w-[40%]">
-                              {losers.map(l => l.player).join(' & ')}
-                            </span>
+                        <GameRowActions
+                          key={gameNum}
+                          longPressMs={longPressMs}
+                          onEdit={() => setEditingGameRows(players)}
+                          onDuplicate={() => duplicateGame(players)}
+                          onDelete={() => deleteGame(players)}
+                          onAddVideo={() => handleAddVideo(gameKey)}
+                          onWatchVideo={video ? () => handleWatchVideo(video.id) : undefined}
+                          hasVideo={hasVideo}
+                        >
+                          <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border text-xs sm:text-sm select-none">
+                            <span className="text-muted-foreground font-medium w-7 sm:w-10 shrink-0 text-center">G{gameNum}</span>
+                            {playedAtStr && <span className="text-muted-foreground text-[10px] sm:text-xs w-14 sm:w-16 shrink-0 hidden sm:inline">{playedAtStr}</span>}
+                            <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
+                              <span className="text-primary font-medium truncate max-w-[40%]">
+                                {winners.map(w => w.player).join(' & ')}
+                              </span>
+                              <span className="text-muted-foreground mx-0.5">v</span>
+                              <span className="text-destructive/80 truncate max-w-[40%]">
+                                {losers.map(l => l.player).join(' & ')}
+                              </span>
+                            </div>
+                            {score && <span className="text-muted-foreground text-[10px] sm:text-xs shrink-0">{score}</span>}
+                            <VictoryTypeBadge victoryTypeId={victoryType || 'standard'} size="sm" />
                           </div>
-                          {score && <span className="text-muted-foreground text-[10px] sm:text-xs shrink-0">{score}</span>}
-                          <VictoryTypeBadge victoryTypeId={victoryType || 'standard'} size="sm" />
-                          <button className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground" onClick={() => setEditingGameRows(players)}>
-                            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          </button>
-                        </div>
+                        </GameRowActions>
                       );
                     }
 
