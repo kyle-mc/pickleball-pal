@@ -20,9 +20,10 @@ import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
 
 interface GameEntryFormProps {
   onGameAdded?: () => void;
+  defaultGameMode?: 'doubles' | 'singles';
 }
 
-const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
+const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFormProps) => {
   const { toast } = useToast();
   const { data: players = [] } = usePlayers();
   const submitGameMutation = useSubmitGame();
@@ -30,6 +31,7 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const { currentGroup } = useCurrentGroup();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [gameMode, setGameMode] = useState<'doubles' | 'singles'>(defaultGameMode);
   // Use local date instead of UTC
   const getLocalDateString = () => {
     const now = new Date();
