@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { GameRecord } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
+import { useSubmitGame } from "@/hooks/useGames";
+import { useCurrentGroup } from "@/hooks/useGroups";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
