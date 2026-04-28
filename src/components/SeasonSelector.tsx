@@ -30,14 +30,19 @@ export function SeasonSelector({
         value={String(selectedSeason)}
         onValueChange={(value) => onSeasonChange(value === "all" ? "all" : parseInt(value))}
       >
-        <SelectTrigger className={`w-[180px] bg-card border-border ${triggerClassName ?? ""}`}>
+        <SelectTrigger className={`min-w-[200px] bg-card border-border ${triggerClassName ?? ""}`}>
           {/* Custom trigger content so we can show the Current badge alongside the season name */}
-          <span className="flex items-center gap-1.5 truncate">
-            <span className="whitespace-nowrap">
+          <span className="flex items-center gap-1.5 min-w-0 flex-1">
+            <span className="whitespace-nowrap truncate">
               {selectedSeason === "all" ? "All Seasons" : (seasonObj?.name ?? "Season")}
             </span>
             {showCurrentBadge && isCurrent && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap">Current</Badge>
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-4 leading-none whitespace-nowrap shrink-0 bg-primary/20 text-primary border-primary/30"
+              >
+                Current
+              </Badge>
             )}
           </span>
         </SelectTrigger>
