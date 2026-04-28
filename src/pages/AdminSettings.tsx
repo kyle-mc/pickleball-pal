@@ -525,45 +525,51 @@ const AdminSettings = () => {
                     <div className="space-y-3">
                       {allUsers.map((user: any) => {
                         const playerName = (user.players as any)?.name || 'Unlinked';
+                        const fullName =
+                          user.display_name ||
+                          [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+                          'No name';
                         return (
-                          <div key={user.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
-                            <div className="min-w-0">
-                              <div className="font-medium text-sm text-foreground truncate">
-                                {user.display_name || 'No name'}
+                          <div key={user.user_id} className="p-3 rounded-lg border border-border bg-muted/20 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-sm text-foreground truncate">{fullName}</div>
+                                <div className="text-xs text-muted-foreground">Player: {playerName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Joined {new Date(user.created_at).toLocaleDateString()}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                Player: {playerName}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Joined {new Date(user.created_at).toLocaleDateString()}
+                              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                                <Select
+                                  value={playerLinks[user.user_id] ? players.find(p => p === playerName) || '' : ''}
+                                  onValueChange={(val) => handleLinkPlayer(user.user_id, val)}
+                                >
+                                  <SelectTrigger className="w-32 h-8 text-xs">
+                                    <SelectValue placeholder="Link player" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {players.map(p => (
+                                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-xs"
+                                  onClick={() => handleAssignRole(user.user_id, 'admin')}
+                                >
+                                  Make Admin
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <Select
-                                value={playerLinks[user.user_id] ? players.find(p => {
-                                  // rough match
-                                  return p === playerName;
-                                }) || '' : ''}
-                                onValueChange={(val) => handleLinkPlayer(user.user_id, val)}
-                              >
-                                <SelectTrigger className="w-28 h-8 text-xs">
-                                  <SelectValue placeholder="Link player" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {players.map(p => (
-                                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs"
-                                onClick={() => handleAssignRole(user.user_id, 'admin')}
-                              >
-                                Make Admin
-                              </Button>
-                            </div>
+                            <AdminAccountActions
+                              userId={user.user_id}
+                              isBlacklisted={!!user.is_blacklisted}
+                              requiresVerification={!!user.requires_verification}
+                              displayName={fullName}
+                              onChanged={loadUsers}
+                            />
                           </div>
                         );
                       })}
