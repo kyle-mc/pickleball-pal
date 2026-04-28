@@ -346,12 +346,16 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteConfirm(true)} disabled={saving}>
+          <DialogFooter className="flex-wrap gap-2 sm:gap-2">
+            <Button type="button" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteConfirm(true)} disabled={saving || duplicating}>
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </Button>
-            <Button type="button" variant="hero" onClick={handleSave} disabled={saving}>
+            <Button type="button" variant="outline" onClick={handleDuplicate} disabled={saving || duplicating} className="border-primary/30 text-primary hover:bg-primary/10">
+              {duplicating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
+              Duplicate
+            </Button>
+            <Button type="button" variant="hero" onClick={handleSave} disabled={saving || duplicating}>
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Save Changes
             </Button>
