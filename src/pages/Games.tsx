@@ -57,11 +57,7 @@ const Games = () => {
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const longPressMs = useLongPressDuration();
   const queryClient = useQueryClient();
-  const { toast } = (() => ({ toast: (opts: { title: string; description?: string; variant?: 'destructive' | 'default' }) => {
-    // local re-import not needed; we'll dynamically import via use-toast hook below
-    void opts;
-  } }))();
-  
+
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
   const { placementEnabled } = usePlacementEnabled();
