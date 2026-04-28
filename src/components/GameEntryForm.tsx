@@ -384,11 +384,11 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
 
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
               <div className="flex items-center justify-between mb-3">
-                <Label className="text-destructive font-medium">Losing Team</Label>
+                <Label className="text-destructive font-medium">{gameMode === 'singles' ? 'Loser' : 'Losing Team'}</Label>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {renderPlayerSelect(losingPlayer1, handlePlayerChange(setLosingPlayer1), "Player 1")}
-                {renderPlayerSelect(losingPlayer2, handlePlayerChange(setLosingPlayer2), "Player 2")}
+              <div className={gameMode === 'singles' ? '' : 'grid grid-cols-2 gap-3'}>
+                {renderPlayerSelect(losingPlayer1, handlePlayerChange(setLosingPlayer1), gameMode === 'singles' ? 'Player' : 'Player 1')}
+                {gameMode === 'doubles' && renderPlayerSelect(losingPlayer2, handlePlayerChange(setLosingPlayer2), "Player 2")}
               </div>
               <div className="mt-3 space-y-2">
                 <Label className="text-muted-foreground text-sm">Score</Label>
