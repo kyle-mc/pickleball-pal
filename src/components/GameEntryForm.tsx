@@ -309,15 +309,29 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            <div>
-              <Label className="text-muted-foreground">Date</Label>
-              <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
-              {!isCurrentSeason && (
-                <p className="text-xs text-yellow-500 mt-1">
-                  ⚠️ This date is in Season {dateSeason.id}, not the current season
-                </p>
-              )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-muted-foreground">Date</Label>
+                <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Game Mode</Label>
+                <Select value={gameMode} onValueChange={(v) => setGameMode(v as 'doubles' | 'singles')}>
+                  <SelectTrigger className="bg-muted border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    <SelectItem value="doubles">Doubles (2v2)</SelectItem>
+                    <SelectItem value="singles">Singles (1v1)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            {!isCurrentSeason && (
+              <p className="text-xs text-yellow-500 -mt-2">
+                ⚠️ This date is in Season {dateSeason.id}, not the current season
+              </p>
+            )}
 
             {showNewPlayerInput && (
               <div className="p-3 rounded-lg bg-muted/50 border border-border">
