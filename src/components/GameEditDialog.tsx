@@ -50,6 +50,9 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: players = [] } = usePlayers();
+  const submitGameMutation = useSubmitGame();
+  const { currentGroup } = useCurrentGroup();
+  const [duplicating, setDuplicating] = useState(false);
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
