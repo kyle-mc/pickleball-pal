@@ -182,8 +182,11 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
   };
 
   const handleSubmit = async () => {
-    if (!winningPlayer1 || !winningPlayer2 || !losingPlayer1 || !losingPlayer2) {
-      toast({ title: "Missing Players", description: "Please select all 4 players.", variant: "destructive" });
+    const playersNeeded = gameMode === 'singles'
+      ? [winningPlayer1, losingPlayer1]
+      : [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2];
+    if (playersNeeded.some(p => !p)) {
+      toast({ title: "Missing Players", description: gameMode === 'singles' ? "Please select both players." : "Please select all 4 players.", variant: "destructive" });
       return;
     }
     if (!winningScore || !losingScore) {
