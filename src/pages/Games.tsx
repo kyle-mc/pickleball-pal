@@ -604,8 +604,10 @@ const Games = () => {
                     );
                   })}
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {displayCount < sortedDates.length && (
