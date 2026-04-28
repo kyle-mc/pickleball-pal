@@ -645,6 +645,11 @@ const AdminSettings = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Feedback Tab */}
+            <TabsContent value="feedback" className="space-y-6">
+              <AdminFeedbackPanel />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
