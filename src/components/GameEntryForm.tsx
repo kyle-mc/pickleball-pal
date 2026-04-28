@@ -103,9 +103,17 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
     ? getVictoryTypeFromScore(parseInt(winningScore), parseInt(losingScore), neverServed)
     : null;
 
-  const allPlayersSelected = winningPlayer1 && winningPlayer2 && losingPlayer1 && losingPlayer2;
-  const team1 = useMemo(() => [winningPlayer1, winningPlayer2].filter(Boolean), [winningPlayer1, winningPlayer2]);
-  const team2 = useMemo(() => [losingPlayer1, losingPlayer2].filter(Boolean), [losingPlayer1, losingPlayer2]);
+  const allPlayersSelected = gameMode === 'singles'
+    ? Boolean(winningPlayer1 && losingPlayer1)
+    : Boolean(winningPlayer1 && winningPlayer2 && losingPlayer1 && losingPlayer2);
+  const team1 = useMemo(
+    () => (gameMode === 'singles' ? [winningPlayer1] : [winningPlayer1, winningPlayer2]).filter(Boolean),
+    [winningPlayer1, winningPlayer2, gameMode]
+  );
+  const team2 = useMemo(
+    () => (gameMode === 'singles' ? [losingPlayer1] : [losingPlayer1, losingPlayer2]).filter(Boolean),
+    [losingPlayer1, losingPlayer2, gameMode]
+  );
 
   const handleAddNewPlayer = async () => {
     const name = newPlayerName.trim();
