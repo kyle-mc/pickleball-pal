@@ -653,4 +653,71 @@ const Games = () => {
   );
 };
 
+interface GameRowActionsProps {
+  longPressMs: number;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onAddVideo: () => void;
+  onWatchVideo?: () => void;
+  hasVideo: boolean;
+  children: React.ReactNode;
+}
+
+function GameRowActions({ longPressMs, onEdit, onDuplicate, onDelete, onAddVideo, onWatchVideo, hasVideo, children }: GameRowActionsProps) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<number | null>(null);
+  const fired = useRef(false);
+
+  const start = () => {
+    fired.current = false;
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      fired.current = true;
+      setOpen(true);
+    }, longPressMs);
+  };
+  const cancel = () => {
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = null;
+  };
+
+  return (
+    <div className="relative flex items-stretch gap-1">
+      <div
+        className="flex-1 min-w-0 cursor-pointer"
+        onTouchStart={start}
+        onTouchEnd={cancel}
+        onTouchMove={cancel}
+        onTouchCancel={cancel}
+        onMouseDown={start}
+        onMouseUp={cancel}
+        onMouseLeave={cancel}
+        onContextMenu={(e) => { e.preventDefault(); setOpen(true); }}
+        onClick={() => { if (!fired.current) onEdit(); }}
+      >
+        {children}
+      </div>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button className="shrink-0 px-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50" aria-label="More actions">
+            <MoreVertical className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-card border-border z-50">
+          <DropdownMenuItem onClick={onEdit}><Pencil className="w-4 h-4 mr-2" /> Edit</DropdownMenuItem>
+          <DropdownMenuItem onClick={onDuplicate}><Copy className="w-4 h-4 mr-2" /> Duplicate</DropdownMenuItem>
+          {hasVideo && onWatchVideo
+            ? <DropdownMenuItem onClick={onWatchVideo}><Video className="w-4 h-4 mr-2" /> Watch Video</DropdownMenuItem>
+            : <DropdownMenuItem onClick={onAddVideo}><Video className="w-4 h-4 mr-2" /> Add Video</DropdownMenuItem>}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+            <Trash2 className="w-4 h-4 mr-2" /> Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 export default Games;
