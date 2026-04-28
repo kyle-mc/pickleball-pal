@@ -20,9 +20,10 @@ import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
 
 interface GameEntryFormProps {
   onGameAdded?: () => void;
+  defaultGameMode?: 'doubles' | 'singles';
 }
 
-const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
+const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFormProps) => {
   const { toast } = useToast();
   const { data: players = [] } = usePlayers();
   const submitGameMutation = useSubmitGame();
@@ -30,6 +31,7 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   const { currentGroup } = useCurrentGroup();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [gameMode, setGameMode] = useState<'doubles' | 'singles'>(defaultGameMode);
   // Use local date instead of UTC
   const getLocalDateString = () => {
     const now = new Date();
@@ -101,9 +103,17 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
     ? getVictoryTypeFromScore(parseInt(winningScore), parseInt(losingScore), neverServed)
     : null;
 
-  const allPlayersSelected = winningPlayer1 && winningPlayer2 && losingPlayer1 && losingPlayer2;
-  const team1 = useMemo(() => [winningPlayer1, winningPlayer2].filter(Boolean), [winningPlayer1, winningPlayer2]);
-  const team2 = useMemo(() => [losingPlayer1, losingPlayer2].filter(Boolean), [losingPlayer1, losingPlayer2]);
+  const allPlayersSelected = gameMode === 'singles'
+    ? Boolean(winningPlayer1 && losingPlayer1)
+    : Boolean(winningPlayer1 && winningPlayer2 && losingPlayer1 && losingPlayer2);
+  const team1 = useMemo(
+    () => (gameMode === 'singles' ? [winningPlayer1] : [winningPlayer1, winningPlayer2]).filter(Boolean),
+    [winningPlayer1, winningPlayer2, gameMode]
+  );
+  const team2 = useMemo(
+    () => (gameMode === 'singles' ? [losingPlayer1] : [losingPlayer1, losingPlayer2]).filter(Boolean),
+    [losingPlayer1, losingPlayer2, gameMode]
+  );
 
   const handleAddNewPlayer = async () => {
     const name = newPlayerName.trim();
@@ -129,16 +139,16 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
     const tempP1 = winningPlayer1;
     const tempP2 = winningPlayer2;
     setWinningPlayer1(losingPlayer1);
-    setWinningPlayer2(losingPlayer2);
+    setWinningPlayer2(gameMode === 'singles' ? "" : losingPlayer2);
     setLosingPlayer1(tempP1);
-    setLosingPlayer2(tempP2);
+    setLosingPlayer2(gameMode === 'singles' ? "" : tempP2);
   };
 
   const doSubmit = async () => {
     const wScore = parseInt(winningScore);
     const lScore = parseInt(losingScore);
-    const winningPlayers = [winningPlayer1, winningPlayer2];
-    const losingPlayers = [losingPlayer1, losingPlayer2];
+    const winningPlayers = gameMode === 'singles' ? [winningPlayer1] : [winningPlayer1, winningPlayer2];
+    const losingPlayers = gameMode === 'singles' ? [losingPlayer1] : [losingPlayer1, losingPlayer2];
 
     try {
       const allPlayersInGame = [...winningPlayers, ...losingPlayers];
@@ -156,11 +166,12 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
         date,
         groupId: currentGroup?.id,
         neverServed,
+        gameMode,
       });
 
       toast({ 
         title: "Game Recorded!", 
-        description: `Season ${dateSeason.id} game has been recorded with MMR calculations.` 
+        description: `Season ${dateSeason.id} ${gameMode} game has been recorded with MMR calculations.` 
       });
       
       setWinningPlayer1(""); 
@@ -179,8 +190,11 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
   };
 
   const handleSubmit = async () => {
-    if (!winningPlayer1 || !winningPlayer2 || !losingPlayer1 || !losingPlayer2) {
-      toast({ title: "Missing Players", description: "Please select all 4 players.", variant: "destructive" });
+    const playersNeeded = gameMode === 'singles'
+      ? [winningPlayer1, losingPlayer1]
+      : [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2];
+    if (playersNeeded.some(p => !p)) {
+      toast({ title: "Missing Players", description: gameMode === 'singles' ? "Please select both players." : "Please select all 4 players.", variant: "destructive" });
       return;
     }
     if (!winningScore || !losingScore) {
@@ -295,15 +309,29 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            <div>
-              <Label className="text-muted-foreground">Date</Label>
-              <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
-              {!isCurrentSeason && (
-                <p className="text-xs text-yellow-500 mt-1">
-                  ⚠️ This date is in Season {dateSeason.id}, not the current season
-                </p>
-              )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-muted-foreground">Date</Label>
+                <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-muted border-border" />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Game Mode</Label>
+                <Select value={gameMode} onValueChange={(v) => setGameMode(v as 'doubles' | 'singles')}>
+                  <SelectTrigger className="bg-muted border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    <SelectItem value="doubles">Doubles (2v2)</SelectItem>
+                    <SelectItem value="singles">Singles (1v1)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            {!isCurrentSeason && (
+              <p className="text-xs text-yellow-500 -mt-2">
+                ⚠️ This date is in Season {dateSeason.id}, not the current season
+              </p>
+            )}
 
             {showNewPlayerInput && (
               <div className="p-3 rounded-lg bg-muted/50 border border-border">
@@ -317,11 +345,11 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
 
             <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
               <div className="flex items-center justify-between mb-3">
-                <Label className="text-primary font-medium">🏆 Winning Team</Label>
+                <Label className="text-primary font-medium">🏆 {gameMode === 'singles' ? 'Winner' : 'Winning Team'}</Label>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {renderPlayerSelect(winningPlayer1, handlePlayerChange(setWinningPlayer1), "Player 1")}
-                {renderPlayerSelect(winningPlayer2, handlePlayerChange(setWinningPlayer2), "Player 2")}
+              <div className={gameMode === 'singles' ? '' : 'grid grid-cols-2 gap-3'}>
+                {renderPlayerSelect(winningPlayer1, handlePlayerChange(setWinningPlayer1), gameMode === 'singles' ? 'Player' : 'Player 1')}
+                {gameMode === 'doubles' && renderPlayerSelect(winningPlayer2, handlePlayerChange(setWinningPlayer2), "Player 2")}
               </div>
               <div className="mt-3 space-y-2">
                 <Label className="text-muted-foreground text-sm">Score</Label>
@@ -356,11 +384,11 @@ const GameEntryForm = ({ onGameAdded }: GameEntryFormProps) => {
 
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
               <div className="flex items-center justify-between mb-3">
-                <Label className="text-destructive font-medium">Losing Team</Label>
+                <Label className="text-destructive font-medium">{gameMode === 'singles' ? 'Loser' : 'Losing Team'}</Label>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {renderPlayerSelect(losingPlayer1, handlePlayerChange(setLosingPlayer1), "Player 1")}
-                {renderPlayerSelect(losingPlayer2, handlePlayerChange(setLosingPlayer2), "Player 2")}
+              <div className={gameMode === 'singles' ? '' : 'grid grid-cols-2 gap-3'}>
+                {renderPlayerSelect(losingPlayer1, handlePlayerChange(setLosingPlayer1), gameMode === 'singles' ? 'Player' : 'Player 1')}
+                {gameMode === 'doubles' && renderPlayerSelect(losingPlayer2, handlePlayerChange(setLosingPlayer2), "Player 2")}
               </div>
               <div className="mt-3 space-y-2">
                 <Label className="text-muted-foreground text-sm">Score</Label>

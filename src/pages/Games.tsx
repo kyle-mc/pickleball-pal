@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useGames, getPlayerSeasonGamesCount, type GameRecord } from "@/hooks/useGames";
+import { useGames, getPlayerSeasonGamesCount, useSubmitGame, type GameRecord } from "@/hooks/useGames";
+import { useToast } from "@/hooks/use-toast";
+import { useCurrentGroup } from "@/hooks/useGroups";
 import { useRealtimeGames } from "@/hooks/useRealtime";
 import { useGameVideos } from "@/hooks/useVideos";
 import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
@@ -24,9 +26,13 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid, Pencil } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid, Pencil, ChevronDown, ChevronRight, MoreVertical, Trash2, Copy } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { useLongPressDuration } from "@/hooks/useLongPressDuration";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 type SortDirection = "asc" | "desc";
 
@@ -50,7 +56,13 @@ const Games = () => {
   const [compactView, setCompactView] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [editingGameRows, setEditingGameRows] = useState<GameRecord[] | null>(null);
-  
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
+  const longPressMs = useLongPressDuration();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const submitGame = useSubmitGame();
+  const { currentGroup } = useCurrentGroup();
+
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
   const { placementEnabled } = usePlacementEnabled();
@@ -170,6 +182,54 @@ const Games = () => {
 
   const handleWatchVideo = (videoId: string) => navigate(`/videos?play=${videoId}`);
 
+  const toggleDateCollapsed = (date: string) => {
+    setCollapsedDates(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date); else next.add(date);
+      return next;
+    });
+  };
+
+  const duplicateGame = async (rows: GameRecord[]) => {
+    const winners = rows.filter(r => r.result === 'Winner').map(r => r.player);
+    const losers = rows.filter(r => r.result === 'Loser').map(r => r.player);
+    const score = rows[0]?.score || '';
+    const [w, l] = score.split('-').map(s => parseInt(s, 10));
+    if (Number.isNaN(w) || Number.isNaN(l) || winners.length === 0 || losers.length === 0) {
+      toast({ title: 'Cannot duplicate', description: 'Game data is incomplete.', variant: 'destructive' });
+      return;
+    }
+    try {
+      await submitGame.mutateAsync({
+        winningPlayers: winners,
+        losingPlayers: losers,
+        winningScore: w,
+        losingScore: l,
+        date: rows[0].date,
+        groupId: currentGroup?.id,
+        neverServed: rows[0]?.victoryType === 'golden_pickle',
+        gameMode: rows[0]?.gameMode || 'doubles',
+      });
+      toast({ title: 'Game duplicated' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Duplicate failed', variant: 'destructive' });
+    }
+  };
+
+  const deleteGame = async (rows: GameRecord[]) => {
+    const ids = rows.map(r => r.id).filter(Boolean) as string[];
+    if (!ids.length) return;
+    if (!window.confirm('Delete this game? Ratings will stay until an admin recalculates MMR.')) return;
+    const { error } = await supabase.from('games').delete().in('id', ids);
+    if (error) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['games'] });
+    toast({ title: 'Game deleted' });
+  };
+
   const hasActiveFilters = selectedDate || playerFilters.length > 0 || victoryTypeFilter !== "all";
 
   const formatPlayedAt = (playedAt?: string) => {
@@ -225,7 +285,7 @@ const Games = () => {
                 </Tooltip>
               </TooltipProvider>
               <DataExportPanel />
-              <GameEntryForm />
+              <GameEntryForm defaultGameMode={gameMode} />
             </div>
           </div>
 
@@ -323,11 +383,25 @@ const Games = () => {
 
         {/* Games by Date */}
         <div className="space-y-8">
-          {displayedDates.map(date => (
+          {displayedDates.map(date => {
+            const isCollapsed = collapsedDates.has(date);
+            const dateGameCount = Object.keys(groupedByDate[date]).length;
+            return (
             <div key={date}>
-              <h2 className="text-2xl font-display text-foreground mb-4">
-                {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
-              </h2>
+              <button
+                onClick={() => toggleDateCollapsed(date)}
+                className="flex items-center gap-2 mb-4 text-left w-full group"
+                aria-expanded={!isCollapsed}
+              >
+                {isCollapsed
+                  ? <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground" />
+                  : <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground" />}
+                <h2 className="text-2xl font-display text-foreground">
+                  {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
+                </h2>
+                <span className="text-sm text-muted-foreground">({dateGameCount})</span>
+              </button>
+              {!isCollapsed && (
               <div className="grid gap-4">
                 {Object.entries(groupedByDate[date])
                   .sort(([a], [b]) => sortDirection === "desc" ? Number(b) - Number(a) : Number(a) - Number(b))
@@ -343,24 +417,32 @@ const Games = () => {
                     
                     if (compactView) {
                       return (
-                        <div key={gameNum} className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border text-xs sm:text-sm">
-                          <span className="text-muted-foreground font-medium w-7 sm:w-10 shrink-0 text-center">G{gameNum}</span>
-                          {playedAtStr && <span className="text-muted-foreground text-[10px] sm:text-xs w-14 sm:w-16 shrink-0 hidden sm:inline">{playedAtStr}</span>}
-                          <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
-                            <span className="text-primary font-medium truncate max-w-[40%]">
-                              {winners.map(w => w.player).join(' & ')}
-                            </span>
-                            <span className="text-muted-foreground mx-0.5">v</span>
-                            <span className="text-destructive/80 truncate max-w-[40%]">
-                              {losers.map(l => l.player).join(' & ')}
-                            </span>
+                        <GameRowActions
+                          key={gameNum}
+                          longPressMs={longPressMs}
+                          onEdit={() => setEditingGameRows(players)}
+                          onDuplicate={() => duplicateGame(players)}
+                          onDelete={() => deleteGame(players)}
+                          onAddVideo={() => handleAddVideo(gameKey)}
+                          onWatchVideo={video ? () => handleWatchVideo(video.id) : undefined}
+                          hasVideo={hasVideo}
+                        >
+                          <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-card border border-border text-xs sm:text-sm select-none">
+                            <span className="text-muted-foreground font-medium w-7 sm:w-10 shrink-0 text-center">G{gameNum}</span>
+                            {playedAtStr && <span className="text-muted-foreground text-[10px] sm:text-xs w-14 sm:w-16 shrink-0 hidden sm:inline">{playedAtStr}</span>}
+                            <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
+                              <span className="text-primary font-medium truncate max-w-[40%]">
+                                {winners.map(w => w.player).join(' & ')}
+                              </span>
+                              <span className="text-muted-foreground mx-0.5">v</span>
+                              <span className="text-destructive/80 truncate max-w-[40%]">
+                                {losers.map(l => l.player).join(' & ')}
+                              </span>
+                            </div>
+                            {score && <span className="text-muted-foreground text-[10px] sm:text-xs shrink-0">{score}</span>}
+                            <VictoryTypeBadge victoryTypeId={victoryType || 'standard'} size="sm" />
                           </div>
-                          {score && <span className="text-muted-foreground text-[10px] sm:text-xs shrink-0">{score}</span>}
-                          <VictoryTypeBadge victoryTypeId={victoryType || 'standard'} size="sm" />
-                          <button className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground" onClick={() => setEditingGameRows(players)}>
-                            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          </button>
-                        </div>
+                        </GameRowActions>
                       );
                     }
 
@@ -530,8 +612,10 @@ const Games = () => {
                     );
                   })}
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {displayCount < sortedDates.length && (
@@ -568,5 +652,72 @@ const Games = () => {
     </div>
   );
 };
+
+interface GameRowActionsProps {
+  longPressMs: number;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onAddVideo: () => void;
+  onWatchVideo?: () => void;
+  hasVideo: boolean;
+  children: React.ReactNode;
+}
+
+function GameRowActions({ longPressMs, onEdit, onDuplicate, onDelete, onAddVideo, onWatchVideo, hasVideo, children }: GameRowActionsProps) {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<number | null>(null);
+  const fired = useRef(false);
+
+  const start = () => {
+    fired.current = false;
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      fired.current = true;
+      setOpen(true);
+    }, longPressMs);
+  };
+  const cancel = () => {
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = null;
+  };
+
+  return (
+    <div className="relative flex items-stretch gap-1">
+      <div
+        className="flex-1 min-w-0 cursor-pointer"
+        onTouchStart={start}
+        onTouchEnd={cancel}
+        onTouchMove={cancel}
+        onTouchCancel={cancel}
+        onMouseDown={start}
+        onMouseUp={cancel}
+        onMouseLeave={cancel}
+        onContextMenu={(e) => { e.preventDefault(); setOpen(true); }}
+        onClick={() => { if (!fired.current) onEdit(); }}
+      >
+        {children}
+      </div>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button className="shrink-0 px-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50" aria-label="More actions">
+            <MoreVertical className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-card border-border z-50">
+          <DropdownMenuItem onClick={onEdit}><Pencil className="w-4 h-4 mr-2" /> Edit</DropdownMenuItem>
+          <DropdownMenuItem onClick={onDuplicate}><Copy className="w-4 h-4 mr-2" /> Duplicate</DropdownMenuItem>
+          {hasVideo && onWatchVideo
+            ? <DropdownMenuItem onClick={onWatchVideo}><Video className="w-4 h-4 mr-2" /> Watch Video</DropdownMenuItem>
+            : <DropdownMenuItem onClick={onAddVideo}><Video className="w-4 h-4 mr-2" /> Add Video</DropdownMenuItem>}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+            <Trash2 className="w-4 h-4 mr-2" /> Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
 
 export default Games;

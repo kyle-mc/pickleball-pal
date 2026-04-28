@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { GameRecord } from "@/hooks/useGames";
 import { usePlayers } from "@/hooks/usePlayers";
+import { useSubmitGame } from "@/hooks/useGames";
+import { useCurrentGroup } from "@/hooks/useGroups";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -29,7 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
-import { ArrowLeftRight, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Copy, Loader2, Trash2 } from "lucide-react";
 
 interface GameEditDialogProps {
   open: boolean;
@@ -48,6 +50,9 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: players = [] } = usePlayers();
+  const submitGameMutation = useSubmitGame();
+  const { currentGroup } = useCurrentGroup();
+  const [duplicating, setDuplicating] = useState(false);
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -229,6 +234,42 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
     }
   };
 
+  const handleDuplicate = async () => {
+    const wScore = Number.parseInt(winningScore, 10);
+    const lScore = Number.parseInt(losingScore, 10);
+    const participants = [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2];
+
+    if (participants.some((p) => !p) || new Set(participants).size !== 4) {
+      toast({ title: "Cannot duplicate", description: "Fix any player issues first.", variant: "destructive" });
+      return;
+    }
+    if (Number.isNaN(wScore) || Number.isNaN(lScore) || wScore <= lScore || wScore - lScore < 2) {
+      toast({ title: "Cannot duplicate", description: "Fix the score first.", variant: "destructive" });
+      return;
+    }
+
+    setDuplicating(true);
+    try {
+      await submitGameMutation.mutateAsync({
+        winningPlayers: [winningPlayer1, winningPlayer2],
+        losingPlayers: [losingPlayer1, losingPlayer2],
+        winningScore: wScore,
+        losingScore: lScore,
+        date,
+        groupId: currentGroup?.id,
+        neverServed,
+        gameMode: gameRows?.[0]?.gameMode || 'doubles',
+      });
+      toast({ title: "Game duplicated", description: "A new game was created with the same teams and score." });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to duplicate game:", error);
+      toast({ title: "Duplicate failed", description: "Could not duplicate this game.", variant: "destructive" });
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -305,12 +346,16 @@ export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEdi
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteConfirm(true)} disabled={saving}>
+          <DialogFooter className="flex-wrap gap-2 sm:gap-2">
+            <Button type="button" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteConfirm(true)} disabled={saving || duplicating}>
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </Button>
-            <Button type="button" variant="hero" onClick={handleSave} disabled={saving}>
+            <Button type="button" variant="outline" onClick={handleDuplicate} disabled={saving || duplicating} className="border-primary/30 text-primary hover:bg-primary/10">
+              {duplicating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
+              Duplicate
+            </Button>
+            <Button type="button" variant="hero" onClick={handleSave} disabled={saving || duplicating}>
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Save Changes
             </Button>

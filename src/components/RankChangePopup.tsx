@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import confetti from "canvas-confetti";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getRankFromMmr, TIER_COLORS, TIER_BG_COLORS, TIER_ICONS } from "@/lib/ranks";
 import { cn } from "@/lib/utils";
@@ -28,11 +29,54 @@ const TIER_ORDER = [
   "supersonic_legend",
 ];
 
+const fireConfetti = () => {
+  const duration = 2500;
+  const end = Date.now() + duration;
+
+  const colors = ["#22c55e", "#16a34a", "#fbbf24", "#a78bfa", "#60a5fa"];
+
+  // Initial burst
+  confetti({
+    particleCount: 120,
+    spread: 90,
+    origin: { y: 0.4 },
+    colors,
+    zIndex: 9999,
+  });
+
+  // Sustained side cannons
+  const interval = window.setInterval(() => {
+    if (Date.now() > end) {
+      window.clearInterval(interval);
+      return;
+    }
+    confetti({
+      particleCount: 30,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.6 },
+      colors,
+      zIndex: 9999,
+    });
+    confetti({
+      particleCount: 30,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.6 },
+      colors,
+      zIndex: 9999,
+    });
+  }, 350);
+};
+
 export function RankChangePopup({ playerName, currentMmr, gamesPlayed, previousMmr }: RankChangePopupProps) {
   const [open, setOpen] = useState(false);
   const [changeType, setChangeType] = useState<"promoted" | "demoted">("promoted");
   const [oldTier, setOldTier] = useState("");
   const [newTier, setNewTier] = useState("");
+  // Sequential reveal: 0 = old tier, 1 = arrow + sparkles, 2 = new tier reveal
+  const [phase, setPhase] = useState(0);
+  const phaseTimers = useRef<number[]>([]);
 
   useEffect(() => {
     if (!playerName || gamesPlayed === 0) return;
@@ -54,15 +98,31 @@ export function RankChangePopup({ playerName, currentMmr, gamesPlayed, previousM
       if (prevRank.tier !== currentRank.tier) {
         const oldIdx = TIER_ORDER.indexOf(prevRank.tier);
         const newIdx = TIER_ORDER.indexOf(currentRank.tier);
-        setChangeType(newIdx > oldIdx ? "promoted" : "demoted");
+        const promoted = newIdx > oldIdx;
+        setChangeType(promoted ? "promoted" : "demoted");
         setOldTier(prevRank.tier);
         setNewTier(currentRank.tier);
         setOpen(true);
+        setPhase(0);
+
+        // Sequential reveal
+        phaseTimers.current.forEach(id => window.clearTimeout(id));
+        phaseTimers.current = [
+          window.setTimeout(() => setPhase(1), 700),
+          window.setTimeout(() => setPhase(2), 1400),
+          window.setTimeout(() => {
+            if (promoted) fireConfetti();
+          }, 1500),
+        ];
       }
     }
 
     // Always update stored MMR so future returns compare against the latest known value
     localStorage.setItem(storageKey, String(currentMmr));
+
+    return () => {
+      phaseTimers.current.forEach(id => window.clearTimeout(id));
+    };
   }, [playerName, currentMmr, gamesPlayed, previousMmr]);
 
   const currentRank = getRankFromMmr(currentMmr);
@@ -82,48 +142,65 @@ export function RankChangePopup({ playerName, currentMmr, gamesPlayed, previousM
         <div className="relative">
           {/* Animated background */}
           <div className={cn(
-            "absolute inset-0 opacity-20",
+            "absolute inset-0 opacity-20 transition-opacity duration-700",
             isPromotion 
               ? "bg-gradient-to-br from-primary via-transparent to-accent" 
               : "bg-gradient-to-br from-destructive via-transparent to-muted"
           )} />
           
-          <div className="relative p-8 flex flex-col items-center text-center">
-            {/* Icon with animation */}
-            <div className="text-7xl mb-4 animate-scale-in">
-              {TIER_ICONS[newTier] || "🎖️"}
-            </div>
-
+          <div className="relative p-8 flex flex-col items-center text-center min-h-[420px]">
             {/* Title */}
             <h2 className={cn(
-              "font-display text-3xl mb-2 animate-fade-in",
+              "font-display text-3xl mb-4 animate-fade-in",
               isPromotion ? "text-primary" : "text-destructive"
             )}>
               {isPromotion ? "RANK UP!" : "RANK DOWN"}
             </h2>
 
-            {/* Tier change */}
-            <div className="flex items-center gap-3 mb-4 animate-fade-in">
-              <span className={cn("text-lg", TIER_COLORS[oldTier])}>
-                {TIER_ICONS[oldTier]} {tierLabel(oldTier)}
-              </span>
-              <span className="text-2xl text-muted-foreground">→</span>
-              <span className={cn("text-lg font-bold", TIER_COLORS[newTier])}>
-                {TIER_ICONS[newTier]} {tierLabel(newTier)}
-              </span>
+            {/* Sequential tier reveal */}
+            <div className="flex flex-col items-center gap-4 mb-6">
+              {/* Old tier */}
+              <div className={cn(
+                "flex flex-col items-center transition-all duration-500",
+                phase >= 0 ? "opacity-100 scale-100" : "opacity-0 scale-90"
+              )}>
+                <div className="text-5xl mb-1">{TIER_ICONS[oldTier]}</div>
+                <div className={cn("text-base", TIER_COLORS[oldTier])}>{tierLabel(oldTier)}</div>
+              </div>
+
+              {/* Arrow */}
+              <div className={cn(
+                "text-3xl transition-all duration-500",
+                phase >= 1 ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4",
+                isPromotion ? "text-primary" : "text-destructive"
+              )}>
+                {isPromotion ? "▲" : "▼"}
+              </div>
+
+              {/* New tier — big reveal */}
+              <div className={cn(
+                "flex flex-col items-center transition-all duration-700",
+                phase >= 2 ? "opacity-100 scale-100" : "opacity-0 scale-50"
+              )}>
+                <div className="text-7xl mb-2 drop-shadow-lg">{TIER_ICONS[newTier] || "🎖️"}</div>
+                <div className={cn("text-2xl font-bold", TIER_COLORS[newTier])}>
+                  {tierLabel(newTier)}
+                </div>
+              </div>
             </div>
 
             {/* Current rank detail */}
             <div className={cn(
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-4",
+              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-3 transition-opacity duration-500",
               TIER_BG_COLORS[currentRank.tier],
               TIER_COLORS[currentRank.tier],
+              phase >= 2 ? "opacity-100" : "opacity-0"
             )}>
               {currentRank.name} — {currentMmr} MMR
             </div>
 
             {/* Sparkle effects for promotion */}
-            {isPromotion && (
+            {isPromotion && phase >= 1 && (
               <>
                 <div className="absolute top-4 left-8 text-2xl animate-ping">✨</div>
                 <div className="absolute top-12 right-8 text-2xl animate-ping" style={{ animationDelay: "150ms" }}>✨</div>
@@ -132,7 +209,10 @@ export function RankChangePopup({ playerName, currentMmr, gamesPlayed, previousM
               </>
             )}
 
-            <p className="text-sm text-muted-foreground">
+            <p className={cn(
+              "text-sm text-muted-foreground transition-opacity duration-500",
+              phase >= 2 ? "opacity-100" : "opacity-0"
+            )}>
               {isPromotion 
                 ? "Keep up the great work! 🎉" 
                 : "Don't worry — you'll climb back! 💪"}

@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useGroupContext } from "@/contexts/GroupContext";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
-import { usePlayers } from "@/hooks/usePlayers";
+import { usePlayers, usePlayersWithDetails, useUpdatePlayerLastName } from "@/hooks/usePlayers";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentSeason } from "@/lib/seasons";
 import { AdminFeedbackPanel } from "@/components/admin/AdminFeedbackPanel";
@@ -32,6 +32,9 @@ const AdminSettings = () => {
   const { currentGroup } = useGroupContext();
   const { placementEnabled, loading } = usePlacementEnabled();
   const { data: players = [] } = usePlayers();
+  const { data: playersDetailed = [] } = usePlayersWithDetails();
+  const updateLastName = useUpdatePlayerLastName();
+  const [editingLastNames, setEditingLastNames] = useState<Record<string, string>>({});
   const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
   const [groupmeUrl, setGroupmeUrl] = useState("");
   const [savingGroupme, setSavingGroupme] = useState(false);
@@ -625,22 +628,48 @@ const AdminSettings = () => {
               </Card>
 
               <Card className="bg-card/50 border-border border-primary/30">
-                <CardHeader><CardTitle>All Players</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle>All Players</CardTitle>
+                  <p className="text-xs text-muted-foreground">Edit last names — they'll be shown as "First L." in lists.</p>
+                </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {players.map(name => (
-                      <div key={name} className="flex items-center justify-between p-2 rounded border border-border">
-                        <span className="text-sm text-foreground">{name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleRequestDeletePlayer(name)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    ))}
+                    {playersDetailed.map(p => {
+                      const draft = editingLastNames[p.id] ?? (p.last_name ?? "");
+                      const dirty = draft.trim() !== (p.last_name ?? "").trim();
+                      return (
+                        <div key={p.id} className="flex items-center gap-2 p-2 rounded border border-border">
+                          <span className="text-sm text-foreground flex-1 min-w-0 truncate">{p.name}</span>
+                          <Input
+                            value={draft}
+                            placeholder="Last name"
+                            className="h-8 w-36 bg-muted border-border text-sm"
+                            onChange={(e) => setEditingLastNames(prev => ({ ...prev, [p.id]: e.target.value }))}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            disabled={!dirty || updateLastName.isPending}
+                            onClick={async () => {
+                              await updateLastName.mutateAsync({ id: p.id, last_name: draft });
+                              setEditingLastNames(prev => { const n = { ...prev }; delete n[p.id]; return n; });
+                              toast({ title: "Saved", description: `${p.name}'s last name updated.` });
+                            }}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleRequestDeletePlayer(p.name)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
