@@ -59,6 +59,9 @@ const Games = () => {
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
   const longPressMs = useLongPressDuration();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const submitGame = useSubmitGame();
+  const { currentGroup } = useCurrentGroup();
 
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
