@@ -225,7 +225,7 @@ const Games = () => {
                 </Tooltip>
               </TooltipProvider>
               <DataExportPanel />
-              <GameEntryForm />
+              <GameEntryForm defaultGameMode={gameMode} />
             </div>
           </div>
 
