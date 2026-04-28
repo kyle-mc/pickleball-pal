@@ -24,9 +24,13 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid, Pencil } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid, Pencil, ChevronDown, ChevronRight, MoreVertical, Trash2, Copy } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { useLongPressDuration } from "@/hooks/useLongPressDuration";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 type SortDirection = "asc" | "desc";
 
