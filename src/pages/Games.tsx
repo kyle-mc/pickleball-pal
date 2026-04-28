@@ -182,6 +182,54 @@ const Games = () => {
 
   const handleWatchVideo = (videoId: string) => navigate(`/videos?play=${videoId}`);
 
+  const toggleDateCollapsed = (date: string) => {
+    setCollapsedDates(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date); else next.add(date);
+      return next;
+    });
+  };
+
+  const duplicateGame = async (rows: GameRecord[]) => {
+    const winners = rows.filter(r => r.result === 'Winner').map(r => r.player);
+    const losers = rows.filter(r => r.result === 'Loser').map(r => r.player);
+    const score = rows[0]?.score || '';
+    const [w, l] = score.split('-').map(s => parseInt(s, 10));
+    if (Number.isNaN(w) || Number.isNaN(l) || winners.length === 0 || losers.length === 0) {
+      toast({ title: 'Cannot duplicate', description: 'Game data is incomplete.', variant: 'destructive' });
+      return;
+    }
+    try {
+      await submitGame.mutateAsync({
+        winningPlayers: winners,
+        losingPlayers: losers,
+        winningScore: w,
+        losingScore: l,
+        date: rows[0].date,
+        groupId: currentGroup?.id,
+        neverServed: rows[0]?.victoryType === 'golden_pickle',
+        gameMode: rows[0]?.gameMode || 'doubles',
+      });
+      toast({ title: 'Game duplicated' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Duplicate failed', variant: 'destructive' });
+    }
+  };
+
+  const deleteGame = async (rows: GameRecord[]) => {
+    const ids = rows.map(r => r.id).filter(Boolean) as string[];
+    if (!ids.length) return;
+    if (!window.confirm('Delete this game? Ratings will stay until an admin recalculates MMR.')) return;
+    const { error } = await supabase.from('games').delete().in('id', ids);
+    if (error) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['games'] });
+    toast({ title: 'Game deleted' });
+  };
+
   const hasActiveFilters = selectedDate || playerFilters.length > 0 || victoryTypeFilter !== "all";
 
   const formatPlayedAt = (playedAt?: string) => {
