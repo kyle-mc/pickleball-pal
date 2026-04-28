@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useGroupContext } from "@/contexts/GroupContext";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
-import { usePlayers } from "@/hooks/usePlayers";
+import { usePlayers, usePlayersWithDetails, useUpdatePlayerLastName } from "@/hooks/usePlayers";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentSeason } from "@/lib/seasons";
 import { AdminFeedbackPanel } from "@/components/admin/AdminFeedbackPanel";
