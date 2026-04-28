@@ -32,6 +32,9 @@ const AdminSettings = () => {
   const { currentGroup } = useGroupContext();
   const { placementEnabled, loading } = usePlacementEnabled();
   const { data: players = [] } = usePlayers();
+  const { data: playersDetailed = [] } = usePlayersWithDetails();
+  const updateLastName = useUpdatePlayerLastName();
+  const [editingLastNames, setEditingLastNames] = useState<Record<string, string>>({});
   const [localPlacementEnabled, setLocalPlacementEnabled] = useState(placementEnabled);
   const [groupmeUrl, setGroupmeUrl] = useState("");
   const [savingGroupme, setSavingGroupme] = useState(false);
