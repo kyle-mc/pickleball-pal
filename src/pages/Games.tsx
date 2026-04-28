@@ -383,11 +383,25 @@ const Games = () => {
 
         {/* Games by Date */}
         <div className="space-y-8">
-          {displayedDates.map(date => (
+          {displayedDates.map(date => {
+            const isCollapsed = collapsedDates.has(date);
+            const dateGameCount = Object.keys(groupedByDate[date]).length;
+            return (
             <div key={date}>
-              <h2 className="text-2xl font-display text-foreground mb-4">
-                {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
-              </h2>
+              <button
+                onClick={() => toggleDateCollapsed(date)}
+                className="flex items-center gap-2 mb-4 text-left w-full group"
+                aria-expanded={!isCollapsed}
+              >
+                {isCollapsed
+                  ? <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground" />
+                  : <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground" />}
+                <h2 className="text-2xl font-display text-foreground">
+                  {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
+                </h2>
+                <span className="text-sm text-muted-foreground">({dateGameCount})</span>
+              </button>
+              {!isCollapsed && (
               <div className="grid gap-4">
                 {Object.entries(groupedByDate[date])
                   .sort(([a], [b]) => sortDirection === "desc" ? Number(b) - Number(a) : Number(a) - Number(b))
