@@ -54,6 +54,13 @@ const Games = () => {
   const [compactView, setCompactView] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [editingGameRows, setEditingGameRows] = useState<GameRecord[] | null>(null);
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
+  const longPressMs = useLongPressDuration();
+  const queryClient = useQueryClient();
+  const { toast } = (() => ({ toast: (opts: { title: string; description?: string; variant?: 'destructive' | 'default' }) => {
+    // local re-import not needed; we'll dynamically import via use-toast hook below
+    void opts;
+  } }))();
   
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
