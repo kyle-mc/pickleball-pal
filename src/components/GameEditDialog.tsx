@@ -37,6 +37,9 @@ interface GameEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   gameRows: GameRecord[] | null;
+  /** Optional override: when provided, called instead of submitting a duplicate.
+   *  Use this to open a pre-filled "new game" dialog. */
+  onRequestDuplicate?: (rows: GameRecord[]) => void;
 }
 
 const formatTimeInput = (playedAt?: string) => {
@@ -46,7 +49,7 @@ const formatTimeInput = (playedAt?: string) => {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 };
 
-export default function GameEditDialog({ open, onOpenChange, gameRows }: GameEditDialogProps) {
+export default function GameEditDialog({ open, onOpenChange, gameRows, onRequestDuplicate }: GameEditDialogProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: players = [] } = usePlayers();
