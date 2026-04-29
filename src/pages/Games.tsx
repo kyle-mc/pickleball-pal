@@ -31,6 +31,8 @@ import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useLongPressDuration } from "@/hooks/useLongPressDuration";
+import { usePlayerLastNameMap } from "@/hooks/usePlayers";
+import { formatNameByLookup } from "@/lib/playerNames";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -62,6 +64,8 @@ const Games = () => {
   const { toast } = useToast();
   const submitGame = useSubmitGame();
   const { currentGroup } = useCurrentGroup();
+  const lastNameMap = usePlayerLastNameMap();
+  const fmt = (n: string) => formatNameByLookup(n, lastNameMap);
 
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
@@ -190,31 +194,24 @@ const Games = () => {
     });
   };
 
-  const duplicateGame = async (rows: GameRecord[]) => {
+  const [duplicatePrefill, setDuplicatePrefill] = useState<import("@/components/GameEntryForm").GameEntryPrefill | null>(null);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+
+  const duplicateGame = (rows: GameRecord[]) => {
     const winners = rows.filter(r => r.result === 'Winner').map(r => r.player);
     const losers = rows.filter(r => r.result === 'Loser').map(r => r.player);
     const score = rows[0]?.score || '';
-    const [w, l] = score.split('-').map(s => parseInt(s, 10));
-    if (Number.isNaN(w) || Number.isNaN(l) || winners.length === 0 || losers.length === 0) {
-      toast({ title: 'Cannot duplicate', description: 'Game data is incomplete.', variant: 'destructive' });
-      return;
-    }
-    try {
-      await submitGame.mutateAsync({
-        winningPlayers: winners,
-        losingPlayers: losers,
-        winningScore: w,
-        losingScore: l,
-        date: rows[0].date,
-        groupId: currentGroup?.id,
-        neverServed: rows[0]?.victoryType === 'golden_pickle',
-        gameMode: rows[0]?.gameMode || 'doubles',
-      });
-      toast({ title: 'Game duplicated' });
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Duplicate failed', variant: 'destructive' });
-    }
+    const [w, l] = score.split('-').map(s => s.trim());
+    setDuplicatePrefill({
+      date: rows[0]?.date,
+      gameMode: rows[0]?.gameMode || 'doubles',
+      winningPlayers: winners,
+      losingPlayers: losers,
+      winningScore: w || '11',
+      losingScore: l || '0',
+      neverServed: rows[0]?.victoryType === 'golden_pickle',
+    });
+    setDuplicateOpen(true);
   };
 
   const deleteGame = async (rows: GameRecord[]) => {
@@ -285,7 +282,7 @@ const Games = () => {
                 </Tooltip>
               </TooltipProvider>
               <DataExportPanel />
-              <GameEntryForm defaultGameMode={gameMode} />
+              <GameEntryForm defaultGameMode="doubles" />
             </div>
           </div>
 
@@ -432,11 +429,11 @@ const Games = () => {
                             {playedAtStr && <span className="text-muted-foreground text-[10px] sm:text-xs w-14 sm:w-16 shrink-0 hidden sm:inline">{playedAtStr}</span>}
                             <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                               <span className="text-primary font-medium truncate max-w-[40%]">
-                                {winners.map(w => w.player).join(' & ')}
+                                {winners.map(w => fmt(w.player)).join(' & ')}
                               </span>
                               <span className="text-muted-foreground mx-0.5">v</span>
                               <span className="text-destructive/80 truncate max-w-[40%]">
-                                {losers.map(l => l.player).join(' & ')}
+                                {losers.map(l => fmt(l.player)).join(' & ')}
                               </span>
                             </div>
                             {score && <span className="text-muted-foreground text-[10px] sm:text-xs shrink-0">{score}</span>}
@@ -501,7 +498,7 @@ const Games = () => {
                                         size="xs"
                                       />
                                       <span className={`font-medium truncate ${playerFilters.includes(player.player) ? 'text-primary' : 'text-foreground'}`}>
-                                        {player.player}
+                                        {fmt(player.player)}
                                       </span>
                                     </div>
                                     <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-medium shrink-0 ${
@@ -572,7 +569,7 @@ const Games = () => {
                                           size="xs"
                                         />
                                         <span>
-                                          {player.player}
+                                          {fmt(player.player)}
                                           {isUnranked && (
                                             <span className="ml-2 text-xs text-muted-foreground">(Placing)</span>
                                           )}
@@ -645,6 +642,17 @@ const Games = () => {
             if (!open) setEditingGameRows(null);
           }}
           gameRows={editingGameRows}
+          onRequestDuplicate={(rows) => duplicateGame(rows)}
+        />
+        <GameEntryForm
+          hideTrigger
+          open={duplicateOpen}
+          onOpenChange={(o) => {
+            setDuplicateOpen(o);
+            if (!o) setDuplicatePrefill(null);
+          }}
+          prefill={duplicatePrefill}
+          defaultGameMode="doubles"
         />
       <Footer />
       <MobileBottomNav />
@@ -674,7 +682,7 @@ function GameRowActions({ longPressMs, onEdit, onDuplicate, onDelete, onAddVideo
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       fired.current = true;
-      setOpen(true);
+      onEdit();
     }, longPressMs);
   };
   const cancel = () => {

@@ -19,6 +19,8 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { PlayerProfileDialog } from "@/components/PlayerProfileDialog";
 import { calculateStreaks } from "@/lib/streaks";
+import { usePlayerLastNameMap } from "@/hooks/usePlayers";
+import { formatNameByLookup } from "@/lib/playerNames";
 
 type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints" | "streak";
 type SortDir = "asc" | "desc";
@@ -41,6 +43,7 @@ const Standings = () => {
   const { data: allGames = [], isLoading } = useGames(selectedSeason);
   const { data: allPlayers = [] } = usePlayers();
   const { selectedPlayer } = useSelectedPlayer();
+  const lastNameMap = usePlayerLastNameMap();
   
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -247,7 +250,7 @@ const Standings = () => {
                               onClick={() => setProfilePlayer(player.name)}
                               className="hover:text-primary hover:underline transition-colors"
                             >
-                              {player.name}
+                              {formatNameByLookup(player.name, lastNameMap)}
                             </button>
                             {isHighlighted && (
                               <span className="ml-1 text-xs text-primary/70">(You)</span>
@@ -316,7 +319,7 @@ const Standings = () => {
                       className="text-sm"
                       style={{ color: PLAYER_COLORS[player] || '#888' }}
                     >
-                      {player}
+                      {formatNameByLookup(player, lastNameMap)}
                     </span>
                   </label>
                 ))}

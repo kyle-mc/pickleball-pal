@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -18,19 +18,50 @@ import { SeasonConfirmDialog } from "@/components/SeasonConfirmDialog";
 import { MatchPreview } from "@/components/MatchPreview";
 import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
 
+export interface GameEntryPrefill {
+  date?: string;
+  gameMode?: 'doubles' | 'singles';
+  winningPlayers?: string[];
+  losingPlayers?: string[];
+  winningScore?: string;
+  losingScore?: string;
+  neverServed?: boolean;
+}
+
 interface GameEntryFormProps {
   onGameAdded?: () => void;
   defaultGameMode?: 'doubles' | 'singles';
+  /** When provided, controls dialog open state (hides default trigger button). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Pre-filled values applied whenever the dialog opens. */
+  prefill?: GameEntryPrefill | null;
+  /** Hide the default "Add Game" trigger button (useful when controlled). */
+  hideTrigger?: boolean;
 }
 
-const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFormProps) => {
+const GameEntryForm = ({
+  onGameAdded,
+  defaultGameMode = 'doubles',
+  open: controlledOpen,
+  onOpenChange,
+  prefill,
+  hideTrigger,
+}: GameEntryFormProps) => {
   const { toast } = useToast();
   const { data: players = [] } = usePlayers();
   const submitGameMutation = useSubmitGame();
   const addPlayerMutation = useAddPlayer();
   const { currentGroup } = useCurrentGroup();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? !!controlledOpen : internalOpen;
+  const setIsOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
+
   const [gameMode, setGameMode] = useState<'doubles' | 'singles'>(defaultGameMode);
   // Use local date instead of UTC
   const getLocalDateString = () => {
@@ -282,19 +313,46 @@ const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFo
     return Math.max(0, wScore - 2);
   }, [winningScore]);
 
+  // Apply prefill values whenever the dialog opens with a prefill payload.
+  const appliedPrefillKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isOpen) {
+      appliedPrefillKey.current = null;
+      return;
+    }
+    if (!prefill) return;
+    const key = JSON.stringify(prefill);
+    if (appliedPrefillKey.current === key) return;
+    appliedPrefillKey.current = key;
+
+    if (prefill.gameMode) setGameMode(prefill.gameMode);
+    if (prefill.date) setDate(prefill.date);
+    const wp = prefill.winningPlayers ?? [];
+    const lp = prefill.losingPlayers ?? [];
+    setWinningPlayer1(wp[0] ?? "");
+    setWinningPlayer2(wp[1] ?? "");
+    setLosingPlayer1(lp[0] ?? "");
+    setLosingPlayer2(lp[1] ?? "");
+    if (prefill.winningScore !== undefined) setWinningScore(prefill.winningScore);
+    if (prefill.losingScore !== undefined) setLosingScore(prefill.losingScore);
+    if (prefill.neverServed !== undefined) setNeverServed(prefill.neverServed);
+  }, [isOpen, prefill]);
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
-        if (open) setDate(getLocalDateString());
+        if (open && !prefill) setDate(getLocalDateString());
       }}>
-        <DialogTrigger asChild>
-          <Button variant="hero" className="w-auto min-w-0 px-3 sm:px-4">
-            <Plus className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Game</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </DialogTrigger>
+        {!hideTrigger && !isControlled && (
+          <DialogTrigger asChild>
+            <Button variant="hero" className="w-auto min-w-0 px-3 sm:px-4">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Game</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </DialogTrigger>
+        )}
         <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">

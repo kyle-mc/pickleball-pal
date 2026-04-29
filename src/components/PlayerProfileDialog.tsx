@@ -8,6 +8,8 @@ import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, Trophy, Calendar, Link as LinkIcon, Flame } from "lucide-react";
 import { calculateStreaks } from "@/lib/streaks";
+import { usePlayerLastNameMap } from "@/hooks/usePlayers";
+import { formatNameByLookup } from "@/lib/playerNames";
 
 interface PlayerProfileDialogProps {
   playerName: string | null;
@@ -37,6 +39,7 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
   const [loading, setLoading] = useState(false);
   const { data: allGames = [] } = useGames();
   const { data: avatarMap } = usePlayerAvatars();
+  const lastNameMap = usePlayerLastNameMap();
 
   useEffect(() => {
     if (!playerName || !open) return;
@@ -96,7 +99,7 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
                 size="lg" 
               />
               <div>
-                <h2 className="font-display text-2xl text-foreground">{playerName}</h2>
+                <h2 className="font-display text-2xl text-foreground">{playerName ? formatNameByLookup(playerName, lastNameMap) : ""}</h2>
                 {profile?.bio && (
                   <p className="text-sm text-muted-foreground mt-1">{profile.bio}</p>
                 )}
