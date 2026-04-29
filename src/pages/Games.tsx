@@ -674,7 +674,7 @@ function GameRowActions({ longPressMs, onEdit, onDuplicate, onDelete, onAddVideo
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       fired.current = true;
-      setOpen(true);
+      onEdit();
     }, longPressMs);
   };
   const cancel = () => {
