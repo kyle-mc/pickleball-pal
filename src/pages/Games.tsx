@@ -190,31 +190,24 @@ const Games = () => {
     });
   };
 
-  const duplicateGame = async (rows: GameRecord[]) => {
+  const [duplicatePrefill, setDuplicatePrefill] = useState<import("@/components/GameEntryForm").GameEntryPrefill | null>(null);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+
+  const duplicateGame = (rows: GameRecord[]) => {
     const winners = rows.filter(r => r.result === 'Winner').map(r => r.player);
     const losers = rows.filter(r => r.result === 'Loser').map(r => r.player);
     const score = rows[0]?.score || '';
-    const [w, l] = score.split('-').map(s => parseInt(s, 10));
-    if (Number.isNaN(w) || Number.isNaN(l) || winners.length === 0 || losers.length === 0) {
-      toast({ title: 'Cannot duplicate', description: 'Game data is incomplete.', variant: 'destructive' });
-      return;
-    }
-    try {
-      await submitGame.mutateAsync({
-        winningPlayers: winners,
-        losingPlayers: losers,
-        winningScore: w,
-        losingScore: l,
-        date: rows[0].date,
-        groupId: currentGroup?.id,
-        neverServed: rows[0]?.victoryType === 'golden_pickle',
-        gameMode: rows[0]?.gameMode || 'doubles',
-      });
-      toast({ title: 'Game duplicated' });
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Duplicate failed', variant: 'destructive' });
-    }
+    const [w, l] = score.split('-').map(s => s.trim());
+    setDuplicatePrefill({
+      date: rows[0]?.date,
+      gameMode: rows[0]?.gameMode || 'doubles',
+      winningPlayers: winners,
+      losingPlayers: losers,
+      winningScore: w || '11',
+      losingScore: l || '0',
+      neverServed: rows[0]?.victoryType === 'golden_pickle',
+    });
+    setDuplicateOpen(true);
   };
 
   const deleteGame = async (rows: GameRecord[]) => {
