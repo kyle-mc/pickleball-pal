@@ -342,15 +342,17 @@ const GameEntryForm = ({
     <>
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
-        if (open) setDate(getLocalDateString());
+        if (open && !prefill) setDate(getLocalDateString());
       }}>
-        <DialogTrigger asChild>
-          <Button variant="hero" className="w-auto min-w-0 px-3 sm:px-4">
-            <Plus className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Game</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </DialogTrigger>
+        {!hideTrigger && !isControlled && (
+          <DialogTrigger asChild>
+            <Button variant="hero" className="w-auto min-w-0 px-3 sm:px-4">
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Game</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </DialogTrigger>
+        )}
         <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
