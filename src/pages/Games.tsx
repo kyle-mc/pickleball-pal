@@ -498,7 +498,7 @@ const Games = () => {
                                         size="xs"
                                       />
                                       <span className={`font-medium truncate ${playerFilters.includes(player.player) ? 'text-primary' : 'text-foreground'}`}>
-                                        {player.player}
+                                        {fmt(player.player)}
                                       </span>
                                     </div>
                                     <span className={`inline-flex items-center px-2 py-1 rounded text-[11px] font-medium shrink-0 ${
