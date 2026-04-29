@@ -8,6 +8,8 @@ import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, Trophy, Calendar, Link as LinkIcon, Flame } from "lucide-react";
 import { calculateStreaks } from "@/lib/streaks";
+import { usePlayerLastNameMap } from "@/hooks/usePlayers";
+import { formatNameByLookup } from "@/lib/playerNames";
 
 interface PlayerProfileDialogProps {
   playerName: string | null;
