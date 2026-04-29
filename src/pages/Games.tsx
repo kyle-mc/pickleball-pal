@@ -429,11 +429,11 @@ const Games = () => {
                             {playedAtStr && <span className="text-muted-foreground text-[10px] sm:text-xs w-14 sm:w-16 shrink-0 hidden sm:inline">{playedAtStr}</span>}
                             <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0 overflow-hidden">
                               <span className="text-primary font-medium truncate max-w-[40%]">
-                                {winners.map(w => w.player).join(' & ')}
+                                {winners.map(w => fmt(w.player)).join(' & ')}
                               </span>
                               <span className="text-muted-foreground mx-0.5">v</span>
                               <span className="text-destructive/80 truncate max-w-[40%]">
-                                {losers.map(l => l.player).join(' & ')}
+                                {losers.map(l => fmt(l.player)).join(' & ')}
                               </span>
                             </div>
                             {score && <span className="text-muted-foreground text-[10px] sm:text-xs shrink-0">{score}</span>}
