@@ -250,7 +250,7 @@ const Standings = () => {
                               onClick={() => setProfilePlayer(player.name)}
                               className="hover:text-primary hover:underline transition-colors"
                             >
-                              {player.name}
+                              {formatNameByLookup(player.name, lastNameMap)}
                             </button>
                             {isHighlighted && (
                               <span className="ml-1 text-xs text-primary/70">(You)</span>
