@@ -18,19 +18,50 @@ import { SeasonConfirmDialog } from "@/components/SeasonConfirmDialog";
 import { MatchPreview } from "@/components/MatchPreview";
 import { getVictoryTypeFromScore } from "@/lib/victoryTypes";
 
+export interface GameEntryPrefill {
+  date?: string;
+  gameMode?: 'doubles' | 'singles';
+  winningPlayers?: string[];
+  losingPlayers?: string[];
+  winningScore?: string;
+  losingScore?: string;
+  neverServed?: boolean;
+}
+
 interface GameEntryFormProps {
   onGameAdded?: () => void;
   defaultGameMode?: 'doubles' | 'singles';
+  /** When provided, controls dialog open state (hides default trigger button). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Pre-filled values applied whenever the dialog opens. */
+  prefill?: GameEntryPrefill | null;
+  /** Hide the default "Add Game" trigger button (useful when controlled). */
+  hideTrigger?: boolean;
 }
 
-const GameEntryForm = ({ onGameAdded, defaultGameMode = 'doubles' }: GameEntryFormProps) => {
+const GameEntryForm = ({
+  onGameAdded,
+  defaultGameMode = 'doubles',
+  open: controlledOpen,
+  onOpenChange,
+  prefill,
+  hideTrigger,
+}: GameEntryFormProps) => {
   const { toast } = useToast();
   const { data: players = [] } = usePlayers();
   const submitGameMutation = useSubmitGame();
   const addPlayerMutation = useAddPlayer();
   const { currentGroup } = useCurrentGroup();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? !!controlledOpen : internalOpen;
+  const setIsOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
+
   const [gameMode, setGameMode] = useState<'doubles' | 'singles'>(defaultGameMode);
   // Use local date instead of UTC
   const getLocalDateString = () => {
