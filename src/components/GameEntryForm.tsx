@@ -313,6 +313,31 @@ const GameEntryForm = ({
     return Math.max(0, wScore - 2);
   }, [winningScore]);
 
+  // Apply prefill values whenever the dialog opens with a prefill payload.
+  const appliedPrefillKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isOpen) {
+      appliedPrefillKey.current = null;
+      return;
+    }
+    if (!prefill) return;
+    const key = JSON.stringify(prefill);
+    if (appliedPrefillKey.current === key) return;
+    appliedPrefillKey.current = key;
+
+    if (prefill.gameMode) setGameMode(prefill.gameMode);
+    if (prefill.date) setDate(prefill.date);
+    const wp = prefill.winningPlayers ?? [];
+    const lp = prefill.losingPlayers ?? [];
+    setWinningPlayer1(wp[0] ?? "");
+    setWinningPlayer2(wp[1] ?? "");
+    setLosingPlayer1(lp[0] ?? "");
+    setLosingPlayer2(lp[1] ?? "");
+    if (prefill.winningScore !== undefined) setWinningScore(prefill.winningScore);
+    if (prefill.losingScore !== undefined) setLosingScore(prefill.losingScore);
+    if (prefill.neverServed !== undefined) setNeverServed(prefill.neverServed);
+  }, [isOpen, prefill]);
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => {
