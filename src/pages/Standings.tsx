@@ -319,7 +319,7 @@ const Standings = () => {
                       className="text-sm"
                       style={{ color: PLAYER_COLORS[player] || '#888' }}
                     >
-                      {player}
+                      {formatNameByLookup(player, lastNameMap)}
                     </span>
                   </label>
                 ))}
