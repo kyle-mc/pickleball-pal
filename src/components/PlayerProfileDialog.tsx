@@ -39,6 +39,7 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
   const [loading, setLoading] = useState(false);
   const { data: allGames = [] } = useGames();
   const { data: avatarMap } = usePlayerAvatars();
+  const lastNameMap = usePlayerLastNameMap();
 
   useEffect(() => {
     if (!playerName || !open) return;
