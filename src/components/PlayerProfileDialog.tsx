@@ -99,7 +99,7 @@ export function PlayerProfileDialog({ playerName, open, onOpenChange }: PlayerPr
                 size="lg" 
               />
               <div>
-                <h2 className="font-display text-2xl text-foreground">{playerName}</h2>
+                <h2 className="font-display text-2xl text-foreground">{playerName ? formatNameByLookup(playerName, lastNameMap) : ""}</h2>
                 {profile?.bio && (
                   <p className="text-sm text-muted-foreground mt-1">{profile.bio}</p>
                 )}
