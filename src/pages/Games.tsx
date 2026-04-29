@@ -638,6 +638,7 @@ const Games = () => {
             if (!open) setEditingGameRows(null);
           }}
           gameRows={editingGameRows}
+          onRequestDuplicate={(rows) => duplicateGame(rows)}
         />
         <GameEntryForm
           hideTrigger
