@@ -19,6 +19,8 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { PlayerProfileDialog } from "@/components/PlayerProfileDialog";
 import { calculateStreaks } from "@/lib/streaks";
+import { usePlayerLastNameMap } from "@/hooks/usePlayers";
+import { formatNameByLookup } from "@/lib/playerNames";
 
 type SortField = "rank" | "name" | "mmr" | "wins" | "losses" | "winPct" | "avgPoints" | "streak";
 type SortDir = "asc" | "desc";
