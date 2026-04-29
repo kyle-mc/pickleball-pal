@@ -569,7 +569,7 @@ const Games = () => {
                                           size="xs"
                                         />
                                         <span>
-                                          {player.player}
+                                          {fmt(player.player)}
                                           {isUnranked && (
                                             <span className="ml-2 text-xs text-muted-foreground">(Placing)</span>
                                           )}
