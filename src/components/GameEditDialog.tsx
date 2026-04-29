@@ -238,6 +238,13 @@ export default function GameEditDialog({ open, onOpenChange, gameRows, onRequest
   };
 
   const handleDuplicate = async () => {
+    // If parent wants to handle duplication (e.g. open a pre-filled entry dialog), defer to it.
+    if (onRequestDuplicate && gameRows) {
+      onRequestDuplicate(gameRows);
+      onOpenChange(false);
+      return;
+    }
+
     const wScore = Number.parseInt(winningScore, 10);
     const lScore = Number.parseInt(losingScore, 10);
     const participants = [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2];
