@@ -639,6 +639,16 @@ const Games = () => {
           }}
           gameRows={editingGameRows}
         />
+        <GameEntryForm
+          hideTrigger
+          open={duplicateOpen}
+          onOpenChange={(o) => {
+            setDuplicateOpen(o);
+            if (!o) setDuplicatePrefill(null);
+          }}
+          prefill={duplicatePrefill}
+          defaultGameMode="doubles"
+        />
       <Footer />
       <MobileBottomNav />
       </main>
