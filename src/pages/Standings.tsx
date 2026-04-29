@@ -43,6 +43,7 @@ const Standings = () => {
   const { data: allGames = [], isLoading } = useGames(selectedSeason);
   const { data: allPlayers = [] } = usePlayers();
   const { selectedPlayer } = useSelectedPlayer();
+  const lastNameMap = usePlayerLastNameMap();
   
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
