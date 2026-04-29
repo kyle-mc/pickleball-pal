@@ -64,6 +64,8 @@ const Games = () => {
   const { toast } = useToast();
   const submitGame = useSubmitGame();
   const { currentGroup } = useCurrentGroup();
+  const lastNameMap = usePlayerLastNameMap();
+  const fmt = (n: string) => formatNameByLookup(n, lastNameMap);
 
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [selectedGameForVideo, setSelectedGameForVideo] = useState<string | undefined>(undefined);
