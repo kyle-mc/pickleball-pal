@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Loader2, MessageCircle, RefreshCw, Sliders, Users, Trash2, Merge, MessageSquare } from "lucide-react";
+import { Shield, Loader2, MessageCircle, RefreshCw, Sliders, Users, Trash2, Merge, MessageSquare, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,8 +22,10 @@ import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { usePlayers, usePlayersWithDetails, useUpdatePlayerNames } from "@/hooks/usePlayers";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentSeason } from "@/lib/seasons";
+import { buildDisplayNameMap } from "@/lib/playerNames";
 import { AdminFeedbackPanel } from "@/components/admin/AdminFeedbackPanel";
 import { AdminAccountActions } from "@/components/admin/AdminAccountActions";
+import DataExportPanel from "@/components/DataExportPanel";
 
 const AdminSettings = () => {
   const { toast } = useToast();
