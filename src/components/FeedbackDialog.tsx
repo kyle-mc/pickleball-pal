@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Renders ONLY the trigger button. The actual dialog is portaled to <body>
+ * by Radix, so it cannot be a descendant of <DropdownMenuItem> (which would
+ * eat keystrokes like the spacebar). We therefore split open-state and use
+ * Dialog WITHOUT a DialogTrigger.
+ */
 export function FeedbackDialog() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -101,94 +107,103 @@ export function FeedbackDialog() {
   if (!user) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full">
-          <MessageSquarePlus className="w-4 h-4" />
-          Submit Feedback
-        </button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquarePlus className="w-5 h-5 text-primary" />
-            Submit Feedback
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full"
+      >
+        <MessageSquarePlus className="w-4 h-4" />
+        Submit Feedback
+      </button>
 
-        <div className="space-y-4 mt-2">
-          <div>
-            <Label className="text-sm">Type</Label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bug">🐛 Bug Report</SelectItem>
-                <SelectItem value="feature">💡 Feature Request</SelectItem>
-                <SelectItem value="other">📝 Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="sm:max-w-md max-h-[85vh] overflow-y-auto"
+          /* Ensure no parent menu intercepts keyboard input */
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquarePlus className="w-5 h-5 text-primary" />
+              Submit Feedback
+            </DialogTitle>
+          </DialogHeader>
 
-          <div>
-            <Label className="text-sm">Title *</Label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Brief description of the issue or request" />
-          </div>
-
-          <div>
-            <Label className="text-sm">Details</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the issue or feature in detail..." rows={4} />
-          </div>
-
-          <div>
-            <Label className="text-sm">Screenshot</Label>
-            <div className="mt-1">
-              {screenshotPreview ? (
-                <div className="relative">
-                  <img src={screenshotPreview} alt="Screenshot" className="rounded-lg border border-border max-h-40 object-contain w-full" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-1 right-1 h-6 w-6 p-0 bg-background/80"
-                    onClick={() => { setScreenshotFile(null); setScreenshotPreview(null); }}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Image className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Add screenshot</span>
-                  <input type="file" accept="image/*" onChange={handleScreenshot} className="hidden" />
-                </label>
-              )}
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label className="text-sm">Type</Label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bug">🐛 Bug Report</SelectItem>
+                  <SelectItem value="feature">💡 Feature Request</SelectItem>
+                  <SelectItem value="other">📝 Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          <div>
-            <Label className="text-sm">Screen Recording (max 50MB, 30s)</Label>
-            <div className="mt-1">
-              {videoFile ? (
-                <div className="flex items-center gap-2 p-2 rounded-lg border border-border">
-                  <span className="text-sm text-foreground truncate flex-1">{videoFile.name}</span>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setVideoFile(null)}>
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Upload className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Upload video</span>
-                  <input type="file" accept="video/*" onChange={handleVideo} className="hidden" />
-                </label>
-              )}
+            <div>
+              <Label className="text-sm">Title *</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Brief description of the issue or request" />
             </div>
-          </div>
 
-          <Button onClick={handleSubmit} disabled={submitting} className="w-full" variant="hero">
-            {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</> : "Submit Feedback"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <div>
+              <Label className="text-sm">Details</Label>
+              <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the issue or feature in detail..." rows={4} />
+            </div>
+
+            <div>
+              <Label className="text-sm">Screenshot</Label>
+              <div className="mt-1">
+                {screenshotPreview ? (
+                  <div className="relative">
+                    <img src={screenshotPreview} alt="Screenshot" className="rounded-lg border border-border max-h-40 object-contain w-full" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-1 right-1 h-6 w-6 p-0 bg-background/80"
+                      onClick={() => { setScreenshotFile(null); setScreenshotPreview(null); }}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors">
+                    <Image className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Add screenshot</span>
+                    <input type="file" accept="image/*" onChange={handleScreenshot} className="hidden" />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm">Screen Recording (max 50MB, 30s)</Label>
+              <div className="mt-1">
+                {videoFile ? (
+                  <div className="flex items-center gap-2 p-2 rounded-lg border border-border">
+                    <span className="text-sm text-foreground truncate flex-1">{videoFile.name}</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setVideoFile(null)}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:bg-muted/50 transition-colors">
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Upload video</span>
+                    <input type="file" accept="video/*" onChange={handleVideo} className="hidden" />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <Button onClick={handleSubmit} disabled={submitting} className="w-full" variant="hero">
+              {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</> : "Submit Feedback"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
