@@ -436,6 +436,21 @@ const AdminSettings = () => {
                   </Button>
                 </CardContent>
               </Card>
+
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="w-5 h-5 text-primary" />
+                    Export Game Data
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Export game records as TSV. Filter by season, date range, or game mode before exporting.
+                  </p>
+                  <DataExportPanel />
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* MMR Config Tab */}
