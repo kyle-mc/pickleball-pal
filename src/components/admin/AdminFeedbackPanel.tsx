@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, ExternalLink } from "lucide-react";
+import { Loader2, MessageSquare, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { FeedbackChat } from "@/components/FeedbackChat";
 
 type Feedback = {
   id: string;
@@ -38,6 +40,7 @@ export function AdminFeedbackPanel() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [submitterNames, setSubmitterNames] = useState<Record<string, string>>({});
+  const [openChat, setOpenChat] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     setLoading(true);
@@ -204,6 +207,22 @@ export function AdminFeedbackPanel() {
                     {savingId === f.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save Notes"}
                   </Button>
                 </div>
+
+                <Collapsible
+                  open={!!openChat[f.id]}
+                  onOpenChange={(v) => setOpenChat((s) => ({ ...s, [f.id]: v }))}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button size="sm" variant="outline" className="w-full justify-start">
+                      {openChat[f.id] ? <ChevronDown className="w-3 h-3 mr-2" /> : <ChevronRight className="w-3 h-3 mr-2" />}
+                      <MessageSquare className="w-3 h-3 mr-2" />
+                      {openChat[f.id] ? "Hide" : "Chat with"} {submitterNames[f.user_id] ?? "user"}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3">
+                    <FeedbackChat feedbackId={f.id} isAdmin={true} senderNames={submitterNames} />
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             ))}
           </div>
