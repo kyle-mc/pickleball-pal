@@ -21,6 +21,7 @@ import Schedule from "./pages/Schedule";
 import Videos from "./pages/Videos";
 import Games from "./pages/Games";
 import Chat from "./pages/Chat";
+import MyFeedback from "./pages/MyFeedback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -151,6 +152,11 @@ const AppRoutes = () => {
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile/feedback" element={
+        <ProtectedRoute>
+          <MyFeedback />
         </ProtectedRoute>
       } />
       <Route path="/admin" element={

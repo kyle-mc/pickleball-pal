@@ -17,7 +17,7 @@ import { useGameVideos } from "@/hooks/useVideos";
 import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import GameEntryForm from "@/components/GameEntryForm";
 import GameEditDialog from "@/components/GameEditDialog";
-import DataExportPanel from "@/components/DataExportPanel";
+// (DataExportPanel moved to Admin Settings)
 import BulkGameEntryDialog from "@/components/BulkGameEntryDialog";
 import VoiceMemoGameDialog from "@/components/VoiceMemoGameDialog";
 import { SeasonSelector } from "@/components/SeasonSelector";
@@ -283,7 +283,7 @@ const Games = () => {
                   <TooltipContent>{compactView ? 'Expanded view' : 'Compact view'}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <DataExportPanel />
+              {/* Export moved to Admin Settings */}
               <VoiceMemoGameDialog />
               <BulkGameEntryDialog />
               <GameEntryForm defaultGameMode="doubles" />

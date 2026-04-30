@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGames } from "@/hooks/useGames";
-import { usePlayers } from "@/hooks/usePlayers";
+import { usePlayers, usePlayerLastNameMap } from "@/hooks/usePlayers";
+import { formatNameByLookup } from "@/lib/playerNames";
 import { Swords, Gamepad2 } from "lucide-react";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 
@@ -30,6 +31,7 @@ interface HeadToHeadProps {
 const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: HeadToHeadProps) => {
   const { data: allGames = [], isLoading } = useGames();
   const { data: players = [] } = usePlayers();
+  const lastNameMap = usePlayerLastNameMap();
   const navigate = useNavigate();
 
   const matchupStats = useMemo(() => {
@@ -151,7 +153,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border z-50">
                   {players.filter(p => p !== player2).map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                    <SelectItem key={p} value={p}>{formatNameByLookup(p, lastNameMap)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -162,7 +164,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border z-50">
                   {players.filter(p => p !== player1).map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                    <SelectItem key={p} value={p}>{formatNameByLookup(p, lastNameMap)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

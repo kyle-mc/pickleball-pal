@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Loader2, MessageCircle, RefreshCw, Sliders, Users, Trash2, Merge, MessageSquare } from "lucide-react";
+import { Shield, Loader2, MessageCircle, RefreshCw, Sliders, Users, Trash2, Merge, MessageSquare, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,8 +22,10 @@ import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { usePlayers, usePlayersWithDetails, useUpdatePlayerNames } from "@/hooks/usePlayers";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentSeason } from "@/lib/seasons";
+import { buildDisplayNameMap } from "@/lib/playerNames";
 import { AdminFeedbackPanel } from "@/components/admin/AdminFeedbackPanel";
 import { AdminAccountActions } from "@/components/admin/AdminAccountActions";
+import DataExportPanel from "@/components/DataExportPanel";
 
 const AdminSettings = () => {
   const { toast } = useToast();
@@ -33,6 +35,7 @@ const AdminSettings = () => {
   const { placementEnabled, loading } = usePlacementEnabled();
   const { data: players = [] } = usePlayers();
   const { data: playersDetailed = [] } = usePlayersWithDetails();
+  const displayMap = buildDisplayNameMap(playersDetailed);
   const updatePlayerNames = useUpdatePlayerNames();
   const [editingFirstNames, setEditingFirstNames] = useState<Record<string, string>>({});
   const [editingLastNames, setEditingLastNames] = useState<Record<string, string>>({});
@@ -433,6 +436,21 @@ const AdminSettings = () => {
                   </Button>
                 </CardContent>
               </Card>
+
+              <Card className="bg-card/50 border-border border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="w-5 h-5 text-primary" />
+                    Export Game Data
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Export game records as TSV. Filter by season, date range, or game mode before exporting.
+                  </p>
+                  <DataExportPanel />
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* MMR Config Tab */}
@@ -529,6 +547,7 @@ const AdminSettings = () => {
                     <div className="space-y-3">
                       {allUsers.map((user: any) => {
                         const playerName = (user.players as any)?.name || 'Unlinked';
+                        const playerDisplay = playerName === 'Unlinked' ? 'Unlinked' : (displayMap[playerName] || playerName);
                         const fullName =
                           user.display_name ||
                           [user.first_name, user.last_name].filter(Boolean).join(" ") ||
@@ -538,7 +557,7 @@ const AdminSettings = () => {
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="font-medium text-sm text-foreground truncate">{fullName}</div>
-                                <div className="text-xs text-muted-foreground">Player: {playerName}</div>
+                                <div className="text-xs text-muted-foreground">Player: {playerDisplay}</div>
                                 <div className="text-xs text-muted-foreground">
                                   Joined {new Date(user.created_at).toLocaleDateString()}
                                 </div>
@@ -548,12 +567,12 @@ const AdminSettings = () => {
                                   value={playerLinks[user.user_id] ? players.find(p => p === playerName) || '' : ''}
                                   onValueChange={(val) => handleLinkPlayer(user.user_id, val)}
                                 >
-                                  <SelectTrigger className="w-32 h-8 text-xs">
+                                  <SelectTrigger className="w-40 h-8 text-xs">
                                     <SelectValue placeholder="Link player" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {players.map(p => (
-                                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                                      <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -602,7 +621,7 @@ const AdminSettings = () => {
                       <Select value={mergeFrom} onValueChange={setMergeFrom}>
                         <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
                         <SelectContent>
-                          {players.filter(p => p !== mergeInto).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          {players.filter(p => p !== mergeInto).map(p => <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -611,7 +630,7 @@ const AdminSettings = () => {
                       <Select value={mergeInto} onValueChange={setMergeInto}>
                         <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
                         <SelectContent>
-                          {players.filter(p => p !== mergeFrom).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          {players.filter(p => p !== mergeFrom).map(p => <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -646,8 +665,8 @@ const AdminSettings = () => {
                         lastDraft.trim() !== (p.last_name ?? "").trim();
                       return (
                         <div key={p.id} className="flex flex-wrap items-center gap-2 p-2 rounded border border-border">
-                          <span className="text-xs text-muted-foreground w-24 shrink-0 truncate" title={p.name}>
-                            {p.name}
+                          <span className="text-xs text-muted-foreground w-28 shrink-0 truncate" title={`Key: ${p.name}`}>
+                            {displayMap[p.name] || p.name}
                           </span>
                           <Input
                             value={firstDraft}
@@ -765,7 +784,7 @@ const AdminSettings = () => {
                         <SelectTrigger className="mt-1"><SelectValue placeholder="-- Don't replace, delete games --" /></SelectTrigger>
                         <SelectContent>
                           {players.filter(p => p !== deletePlayerName).map(p => (
-                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                            <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
