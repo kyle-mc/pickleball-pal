@@ -784,7 +784,7 @@ const AdminSettings = () => {
                         <SelectTrigger className="mt-1"><SelectValue placeholder="-- Don't replace, delete games --" /></SelectTrigger>
                         <SelectContent>
                           {players.filter(p => p !== deletePlayerName).map(p => (
-                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                            <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
