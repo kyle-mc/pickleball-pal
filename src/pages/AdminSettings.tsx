@@ -547,6 +547,7 @@ const AdminSettings = () => {
                     <div className="space-y-3">
                       {allUsers.map((user: any) => {
                         const playerName = (user.players as any)?.name || 'Unlinked';
+                        const playerDisplay = playerName === 'Unlinked' ? 'Unlinked' : (displayMap[playerName] || playerName);
                         const fullName =
                           user.display_name ||
                           [user.first_name, user.last_name].filter(Boolean).join(" ") ||
@@ -556,7 +557,7 @@ const AdminSettings = () => {
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="font-medium text-sm text-foreground truncate">{fullName}</div>
-                                <div className="text-xs text-muted-foreground">Player: {playerName}</div>
+                                <div className="text-xs text-muted-foreground">Player: {playerDisplay}</div>
                                 <div className="text-xs text-muted-foreground">
                                   Joined {new Date(user.created_at).toLocaleDateString()}
                                 </div>
@@ -566,12 +567,12 @@ const AdminSettings = () => {
                                   value={playerLinks[user.user_id] ? players.find(p => p === playerName) || '' : ''}
                                   onValueChange={(val) => handleLinkPlayer(user.user_id, val)}
                                 >
-                                  <SelectTrigger className="w-32 h-8 text-xs">
+                                  <SelectTrigger className="w-40 h-8 text-xs">
                                     <SelectValue placeholder="Link player" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {players.map(p => (
-                                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                                      <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
