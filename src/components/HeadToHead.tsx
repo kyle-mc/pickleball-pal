@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGames } from "@/hooks/useGames";
-import { usePlayers } from "@/hooks/usePlayers";
+import { usePlayers, usePlayerLastNameMap } from "@/hooks/usePlayers";
+import { formatNameByLookup } from "@/lib/playerNames";
 import { Swords, Gamepad2 } from "lucide-react";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 
