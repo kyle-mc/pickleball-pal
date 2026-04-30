@@ -239,7 +239,7 @@ const Profile = () => {
                         placeholder="Last name"
                         className="bg-muted/50 border-border"
                       />
-                      <p className="text-xs text-muted-foreground">Used to disambiguate players (e.g. "Billy S.").</p>
+                      
                     </div>
                   </div>
 
