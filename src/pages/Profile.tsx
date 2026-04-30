@@ -16,8 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, User, MapPin, Award, Link as LinkIcon,
-  Plus, X, Trophy, Users, Settings as SettingsIcon
+  Plus, X, Trophy, Users, Settings as SettingsIcon, MessageSquare
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useLongPressDuration, useUpdateLongPressDuration } from "@/hooks/useLongPressDuration";
