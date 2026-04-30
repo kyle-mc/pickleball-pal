@@ -621,7 +621,7 @@ const AdminSettings = () => {
                       <Select value={mergeFrom} onValueChange={setMergeFrom}>
                         <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
                         <SelectContent>
-                          {players.filter(p => p !== mergeInto).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          {players.filter(p => p !== mergeInto).map(p => <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -630,7 +630,7 @@ const AdminSettings = () => {
                       <Select value={mergeInto} onValueChange={setMergeInto}>
                         <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
                         <SelectContent>
-                          {players.filter(p => p !== mergeFrom).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          {players.filter(p => p !== mergeFrom).map(p => <SelectItem key={p} value={p}>{displayMap[p] || p}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -665,8 +665,8 @@ const AdminSettings = () => {
                         lastDraft.trim() !== (p.last_name ?? "").trim();
                       return (
                         <div key={p.id} className="flex flex-wrap items-center gap-2 p-2 rounded border border-border">
-                          <span className="text-xs text-muted-foreground w-24 shrink-0 truncate" title={p.name}>
-                            {p.name}
+                          <span className="text-xs text-muted-foreground w-28 shrink-0 truncate" title={`Key: ${p.name}`}>
+                            {displayMap[p.name] || p.name}
                           </span>
                           <Input
                             value={firstDraft}
