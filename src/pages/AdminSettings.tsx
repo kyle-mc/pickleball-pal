@@ -35,6 +35,7 @@ const AdminSettings = () => {
   const { placementEnabled, loading } = usePlacementEnabled();
   const { data: players = [] } = usePlayers();
   const { data: playersDetailed = [] } = usePlayersWithDetails();
+  const displayMap = buildDisplayNameMap(playersDetailed);
   const updatePlayerNames = useUpdatePlayerNames();
   const [editingFirstNames, setEditingFirstNames] = useState<Record<string, string>>({});
   const [editingLastNames, setEditingLastNames] = useState<Record<string, string>>({});
