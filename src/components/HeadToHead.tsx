@@ -31,6 +31,7 @@ interface HeadToHeadProps {
 const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: HeadToHeadProps) => {
   const { data: allGames = [], isLoading } = useGames();
   const { data: players = [] } = usePlayers();
+  const lastNameMap = usePlayerLastNameMap();
   const navigate = useNavigate();
 
   const matchupStats = useMemo(() => {
@@ -152,7 +153,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border z-50">
                   {players.filter(p => p !== player2).map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                    <SelectItem key={p} value={p}>{formatNameByLookup(p, lastNameMap)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -163,7 +164,7 @@ const HeadToHead = ({ player1, player2, onPlayer1Change, onPlayer2Change }: Head
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border z-50">
                   {players.filter(p => p !== player1).map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                    <SelectItem key={p} value={p}>{formatNameByLookup(p, lastNameMap)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
