@@ -51,6 +51,8 @@ export const usePlayerLastNameMap = () => {
 };
 
 // Update first/last name (admin only via RLS).
+// Also mirrors the change to ALL profiles whose linked_player_id == this player,
+// so the user's own Profile page reflects what admins set.
 export const useUpdatePlayerNames = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -64,6 +66,8 @@ export const useUpdatePlayerNames = () => {
       if (last_name !== undefined) patch.last_name = last_name?.trim() || null;
       const { error } = await supabase.from("players").update(patch).eq("id", id);
       if (error) throw error;
+      // Mirror to linked profiles (admins are allowed to update any profile per RLS)
+      await supabase.from("profiles").update(patch).eq("linked_player_id", id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["players-detailed"] });
