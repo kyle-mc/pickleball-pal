@@ -100,6 +100,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          feedback_id: string
+          id: string
+          is_admin: boolean
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          feedback_id: string
+          id?: string
+          is_admin?: boolean
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          feedback_id?: string
+          id?: string
+          is_admin?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       feedback_comments: {
         Row: {
           content: string
@@ -686,6 +713,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      feedback_chat_within_limit: {
+        Args: { _feedback_id: string }
+        Returns: boolean
+      }
       get_user_group_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
