@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { buildDisplayNameMap } from "@/lib/playerNames";
 
 export interface PlayerRecord {
   id: string;
   name: string;
+  first_name: string | null;
   last_name: string | null;
 }
 
@@ -16,22 +18,22 @@ export const usePlayers = () => {
         .from("players")
         .select("name")
         .order("name");
-      
+
       if (error) throw error;
-      
+
       return (data || []).map(p => p.name);
     },
   });
 };
 
-// Full player records (id, name, last_name) for admin & display lookups
+// Full player records (id, name, first_name, last_name) for admin & display lookups
 export const usePlayersWithDetails = () => {
   return useQuery({
     queryKey: ["players-detailed"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("players")
-        .select("id, name, last_name")
+        .select("id, name, first_name, last_name")
         .order("name");
       if (error) throw error;
       return (data || []) as PlayerRecord[];
@@ -39,15 +41,38 @@ export const usePlayersWithDetails = () => {
   });
 };
 
-// Lookup map: name -> last_name
+/**
+ * Lookup map: players.name -> final display label (with smart disambiguation).
+ * Drop-in replacement for the old `usePlayerLastNameMap`.
+ */
 export const usePlayerLastNameMap = () => {
   const { data } = usePlayersWithDetails();
-  const map: Record<string, string | null> = {};
-  (data || []).forEach(p => { map[p.name] = p.last_name; });
-  return map;
+  return buildDisplayNameMap(data || []);
 };
 
-// Update a player's last_name (admin only via RLS)
+// Update first/last name (admin only via RLS).
+export const useUpdatePlayerNames = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      first_name,
+      last_name,
+    }: { id: string; first_name?: string | null; last_name?: string | null }) => {
+      const patch: Record<string, string | null> = {};
+      if (first_name !== undefined) patch.first_name = first_name?.trim() || null;
+      if (last_name !== undefined) patch.last_name = last_name?.trim() || null;
+      const { error } = await supabase.from("players").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["players-detailed"] });
+      qc.invalidateQueries({ queryKey: ["players"] });
+    },
+  });
+};
+
+// Backwards-compat alias used by existing admin UI.
 export const useUpdatePlayerLastName = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -68,7 +93,7 @@ export const useUpdatePlayerLastName = () => {
 // Add a new player
 export const useAddPlayer = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (name: string) => {
       const { error } = await supabase
@@ -76,9 +101,8 @@ export const useAddPlayer = () => {
         .insert({ name })
         .select()
         .single();
-      
+
       if (error) {
-        // Ignore duplicate key errors - player already exists
         if (error.code === '23505') return;
         throw error;
       }
