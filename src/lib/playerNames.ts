@@ -1,55 +1,59 @@
 /**
- * Helpers for displaying player names. Players have a primary `name` (first name)
- * and an optional `last_name`. We display the smallest unique last-name prefix
- * needed to disambiguate two players who share the same first name.
+ * Helpers for displaying player names. Players have a primary `name` (the
+ * unique in-game key — used by the games table), an optional `first_name`
+ * override (so two players can share the same display first name), and an
+ * optional `last_name`.
  *
- * Examples:
- *   - One "Billy" → "Billy"
- *   - Billy Smith + Billy Jones → "Billy S." / "Billy J."
- *   - Billy Smith + Billy Stange → "Billy Sm." / "Billy St."
- *   - Billy Smith + Billy Smithson → "Billy Smith." / "Billy Smiths."
+ * Disambiguation rule:
+ *   - One player with display first name "Billy" → "Billy"
+ *   - Billy Smith + Billy Jones        → "Billy S." / "Billy J."
+ *   - Billy Smith + Billy Stange       → "Billy Sm." / "Billy St."
+ *   - Billy Smith + Billy Smithson     → "Billy Smith." / "Billy Smiths."
  */
+
 export interface PlayerNameInfo {
   name: string;
+  first_name?: string | null;
   last_name?: string | null;
 }
 
+/** First-name shown to users (override falls back to the unique `name` key). */
+export function displayFirstName(p: Pick<PlayerNameInfo, "name" | "first_name">): string {
+  const f = (p.first_name || "").trim();
+  return f || p.name;
+}
+
 /**
- * Build a lookup map of player display names that includes the minimum number
- * of last-name letters required to disambiguate within each first-name group.
- *
- * Returned map: name -> formatted display string.
+ * Build a map: players.name → final display label, with smart prefix-based
+ * disambiguation across players that share a display first name.
  */
 export function buildDisplayNameMap(
-  players: Array<PlayerNameInfo & { id?: string }>
+  players: PlayerNameInfo[]
 ): Record<string, string> {
   const result: Record<string, string> = {};
 
-  // Group players by their first name (the `name` column).
+  // Group by their displayed first name.
   const byFirst = new Map<string, PlayerNameInfo[]>();
   for (const p of players) {
     if (!p?.name) continue;
-    const arr = byFirst.get(p.name) || [];
+    const first = displayFirstName(p);
+    const arr = byFirst.get(first) || [];
     arr.push(p);
-    byFirst.set(p.name, arr);
+    byFirst.set(first, arr);
   }
 
   for (const [first, group] of byFirst) {
-    // No conflict — show first name alone.
     if (group.length <= 1) {
-      result[first] = first;
+      const only = group[0];
+      result[only.name] = first;
       continue;
     }
 
-    // For conflicting first names, find shortest unique last-name prefix
-    // for each player in the group.
     const lasts = group.map((p) => (p.last_name || "").trim());
-
     group.forEach((p, idx) => {
       const last = lasts[idx];
       if (!last) {
-        // Fallback when this player has no last name set.
-        result[first] = first;
+        result[p.name] = first;
         return;
       }
       let prefixLen = 1;
@@ -57,48 +61,39 @@ export function buildDisplayNameMap(
         const myPrefix = last.slice(0, prefixLen).toLowerCase();
         const conflict = lasts.some((other, j) => {
           if (j === idx) return false;
+          if (!other) return false;
           return other.slice(0, prefixLen).toLowerCase() === myPrefix;
         });
         if (!conflict) break;
         prefixLen++;
       }
       const shown = last.slice(0, Math.min(prefixLen, last.length));
-      // Capitalize first char for nicer display (e.g. "S." rather than "s.")
       const pretty = shown.charAt(0).toUpperCase() + shown.slice(1);
-      result[first] = `${first} ${pretty}.`;
+      result[p.name] = `${first} ${pretty}.`;
     });
-
-    // The simple object above only stores one entry per `first` key, which is
-    // fine for lookup-by-name (every conflicting player has the same first
-    // name and we look them up by that). But we want each *individual* player
-    // to map to its own disambiguated label too, keyed by last_name when
-    // available, so the caller can resolve them via formatNameByLookup using
-    // the `name` field. Since the games table only stores `player` = first
-    // name, the conflicting case is genuinely ambiguous in raw data and the
-    // admin must rename one of them. Until then we show the prefix from the
-    // first match.
   }
 
   return result;
 }
 
+/** Single-player formatter (no disambiguation context). */
 export function formatPlayerName(player: PlayerNameInfo | null | undefined): string {
   if (!player) return "";
+  const first = displayFirstName(player);
   const last = (player.last_name || "").trim();
-  if (!last) return player.name;
-  return `${player.name} ${last.charAt(0).toUpperCase()}.`;
+  if (!last) return first;
+  return `${first} ${last.charAt(0).toUpperCase()}.`;
 }
 
 /**
- * Resolve a player display name from a lookup map of `name -> last_name`.
- * Uses smart disambiguation when there are multiple players sharing the
- * same first name (computed by walking the lookup once).
+ * Resolve a display label given a `players.name` and a precomputed display map.
+ * Falls back to the raw name if not in the map.
  */
 export function formatNameByLookup(
   name: string,
   lookup: Record<string, string | null | undefined>
 ): string {
-  const last = (lookup[name] || "").trim();
-  if (!last) return name;
-  return `${name} ${last.charAt(0).toUpperCase()}.`;
+  const v = lookup[name];
+  if (typeof v === "string" && v.length > 0) return v;
+  return name;
 }
