@@ -18,6 +18,8 @@ import { usePlayerAvatars, getPlayerAvatar } from "@/hooks/usePlayerAvatars";
 import GameEntryForm from "@/components/GameEntryForm";
 import GameEditDialog from "@/components/GameEditDialog";
 import DataExportPanel from "@/components/DataExportPanel";
+import BulkGameEntryDialog from "@/components/BulkGameEntryDialog";
+import VoiceMemoGameDialog from "@/components/VoiceMemoGameDialog";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { VictoryTypeBadge } from "@/components/VictoryTypeBadge";
 import { MmrChangeTooltip } from "@/components/MmrChangeTooltip";
@@ -282,6 +284,8 @@ const Games = () => {
                 </Tooltip>
               </TooltipProvider>
               <DataExportPanel />
+              <VoiceMemoGameDialog />
+              <BulkGameEntryDialog />
               <GameEntryForm defaultGameMode="doubles" />
             </div>
           </div>

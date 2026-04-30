@@ -41,6 +41,7 @@ interface ProfileData {
   awards: string[] | null;
   bio: string | null;
   long_press_duration_ms: number | null;
+  linked_player_id: string | null;
 }
 
 interface GroupMembership {
@@ -108,6 +109,18 @@ const Profile = () => {
         bio: profile.bio,
       }).eq('user_id', user.id);
       if (error) throw error;
+
+      // Mirror first/last name to the linked player record so admins and the
+      // rest of the app see the change immediately.
+      if (profile.linked_player_id) {
+        await supabase
+          .from('players')
+          .update({
+            first_name: profile.first_name?.trim() || null,
+            last_name: profile.last_name?.trim() || null,
+          })
+          .eq('id', profile.linked_player_id);
+      }
 
       // Save long-press if changed
       if (pressDraft !== longPressMs) {
@@ -239,7 +252,7 @@ const Profile = () => {
                         placeholder="Last name"
                         className="bg-muted/50 border-border"
                       />
-                      <p className="text-xs text-muted-foreground">Used to disambiguate players (e.g. "Billy S.").</p>
+                      
                     </div>
                   </div>
 
