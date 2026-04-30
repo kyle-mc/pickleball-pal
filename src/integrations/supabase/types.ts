@@ -398,18 +398,21 @@ export type Database = {
       players: {
         Row: {
           created_at: string
+          first_name: string | null
           id: string
           last_name: string | null
           name: string
         }
         Insert: {
           created_at?: string
+          first_name?: string | null
           id?: string
           last_name?: string | null
           name: string
         }
         Update: {
           created_at?: string
+          first_name?: string | null
           id?: string
           last_name?: string | null
           name?: string
