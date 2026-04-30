@@ -187,11 +187,19 @@ const Profile = () => {
       <Navbar />
       <div className="pt-24 pb-24 md:pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
-          <div className="flex items-center justify-between mb-6 gap-3">
+          <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
             <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-foreground">My Profile</h1>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>) : ("Save Changes")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link to="/profile/feedback">
+                <Button variant="outline">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  My Feedback
+                </Button>
+              </Link>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>) : ("Save Changes")}
+              </Button>
+            </div>
           </div>
 
           <Tabs defaultValue="basic" className="space-y-6">
