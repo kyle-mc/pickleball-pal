@@ -21,15 +21,10 @@ export interface Video {
   group_id: string | null;
 }
 
-// Generate or get session ID for anonymous likes
-const getSessionId = () => {
-  let sessionId = localStorage.getItem('pickle_session_id');
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    localStorage.setItem('pickle_session_id', sessionId);
-  }
-  return sessionId;
-};
+import { getAnonSessionId } from '@/lib/anonSession';
+
+// Generate or get session ID for anonymous likes (rotates after 7 days)
+const getSessionId = () => getAnonSessionId('pickle_session');
 
 // Helper to extract YouTube video ID
 const getYouTubeVideoId = (url: string): string | null => {
