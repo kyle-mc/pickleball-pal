@@ -141,8 +141,9 @@ export function VideoComments({ videoId }: VideoCommentsProps) {
       <div className="flex gap-2">
         <Textarea
           value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
+          onChange={(e) => setNewComment(e.target.value.slice(0, MAX_COMMENT_LENGTH))}
           placeholder="Add a comment..."
+          maxLength={MAX_COMMENT_LENGTH}
           className="bg-muted border-border min-h-[60px] resize-none"
         />
         <Button 
