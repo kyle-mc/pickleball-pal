@@ -95,15 +95,24 @@ export function VideoComments({ videoId }: VideoCommentsProps) {
   }, [videoId]);
 
   const handleSubmit = async () => {
-    if (!newComment.trim()) return;
+    const trimmed = newComment.trim();
+    if (!trimmed) return;
+    if (trimmed.length > MAX_COMMENT_LENGTH) {
+      toast({
+        title: "Comment too long",
+        description: `Please keep comments under ${MAX_COMMENT_LENGTH} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
-    
+
     const { error } = await supabase.from('video_comments').insert({
       video_id: videoId,
       user_id: user?.id || null,
       session_id: user ? null : sessionId,
-      content: newComment.trim(),
+      content: trimmed,
     });
 
     if (error) {
