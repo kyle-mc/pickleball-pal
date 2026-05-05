@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { MessageCircle, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { getAnonSessionId } from "@/lib/anonSession";
+
+const MAX_COMMENT_LENGTH = 1000;
 
 interface Comment {
   id: string;
@@ -21,15 +24,7 @@ interface VideoCommentsProps {
   videoId: string;
 }
 
-// Generate or get session ID for anonymous comments
-const getSessionId = () => {
-  let sessionId = localStorage.getItem('pickle_session_id');
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    localStorage.setItem('pickle_session_id', sessionId);
-  }
-  return sessionId;
-};
+const getSessionId = () => getAnonSessionId('pickle_session');
 
 export function VideoComments({ videoId }: VideoCommentsProps) {
   const { toast } = useToast();
@@ -100,15 +95,24 @@ export function VideoComments({ videoId }: VideoCommentsProps) {
   }, [videoId]);
 
   const handleSubmit = async () => {
-    if (!newComment.trim()) return;
+    const trimmed = newComment.trim();
+    if (!trimmed) return;
+    if (trimmed.length > MAX_COMMENT_LENGTH) {
+      toast({
+        title: "Comment too long",
+        description: `Please keep comments under ${MAX_COMMENT_LENGTH} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
-    
+
     const { error } = await supabase.from('video_comments').insert({
       video_id: videoId,
       user_id: user?.id || null,
       session_id: user ? null : sessionId,
-      content: newComment.trim(),
+      content: trimmed,
     });
 
     if (error) {
@@ -137,8 +141,9 @@ export function VideoComments({ videoId }: VideoCommentsProps) {
       <div className="flex gap-2">
         <Textarea
           value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
+          onChange={(e) => setNewComment(e.target.value.slice(0, MAX_COMMENT_LENGTH))}
           placeholder="Add a comment..."
+          maxLength={MAX_COMMENT_LENGTH}
           className="bg-muted border-border min-h-[60px] resize-none"
         />
         <Button 

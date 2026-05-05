@@ -6,15 +6,10 @@ type Event = Tables<'events'>;
 type EventInsert = TablesInsert<'events'>;
 type EventRsvp = Tables<'event_rsvps'>;
 
-// Generate a session ID for anonymous users
-const getSessionId = (): string => {
-  let sessionId = localStorage.getItem('event_session_id');
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    localStorage.setItem('event_session_id', sessionId);
-  }
-  return sessionId;
-};
+import { getAnonSessionId } from '@/lib/anonSession';
+
+// Generate session ID for anonymous users (rotates after 7 days)
+const getSessionId = (): string => getAnonSessionId('event_session');
 
 export function useEvents() {
   const [events, setEvents] = useState<Event[]>([]);
