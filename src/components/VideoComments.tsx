@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { MessageCircle, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { getAnonSessionId } from "@/lib/anonSession";
+
+const MAX_COMMENT_LENGTH = 1000;
 
 interface Comment {
   id: string;
