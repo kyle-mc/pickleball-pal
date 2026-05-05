@@ -24,15 +24,7 @@ interface VideoCommentsProps {
   videoId: string;
 }
 
-// Generate or get session ID for anonymous comments
-const getSessionId = () => {
-  let sessionId = localStorage.getItem('pickle_session_id');
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    localStorage.setItem('pickle_session_id', sessionId);
-  }
-  return sessionId;
-};
+const getSessionId = () => getAnonSessionId('pickle_session');
 
 export function VideoComments({ videoId }: VideoCommentsProps) {
   const { toast } = useToast();
