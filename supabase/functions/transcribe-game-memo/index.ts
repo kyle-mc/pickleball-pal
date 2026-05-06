@@ -4,6 +4,8 @@
 // POST { audio: "base64", mimeType: "audio/webm", knownPlayers: string[] }
 // → { transcript, parsed: { winners, losers, winningScore, losingScore } | null }
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -19,6 +21,21 @@ function bad(msg: string, status = 400) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Require authenticated caller to prevent abuse of AI credits
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return bad("Unauthorized", 401);
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await authClient.auth.getUser();
+    if (userErr || !userData?.user) return bad("Unauthorized", 401);
+  } catch {
+    return bad("Unauthorized", 401);
+  }
 
   let body: { audio?: string; mimeType?: string; knownPlayers?: string[] };
   try {
