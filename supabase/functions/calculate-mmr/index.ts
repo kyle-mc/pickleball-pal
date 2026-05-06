@@ -265,6 +265,22 @@ Deno.serve(async (req) => {
     const gameInput: GameInput = await req.json();
     const { winningPlayers, losingPlayers, winningScore, losingScore, date, groupId, eventId, neverServed, gameMode } = gameInput;
 
+    // Authorization: if a groupId is supplied, verify caller is a member
+    if (groupId) {
+      const { data: membership, error: memberErr } = await authClient
+        .from('group_members')
+        .select('id')
+        .eq('group_id', groupId)
+        .eq('user_id', claimsData.user.id)
+        .maybeSingle();
+      if (memberErr || !membership) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: not a member of this group' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('Processing game:', { winningPlayers, losingPlayers, score: `${winningScore}-${losingScore}`, date, neverServed });
 
     const currentSeason = getSeasonFromDate(date);
