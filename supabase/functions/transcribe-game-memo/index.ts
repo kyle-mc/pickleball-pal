@@ -4,6 +4,8 @@
 // POST { audio: "base64", mimeType: "audio/webm", knownPlayers: string[] }
 // → { transcript, parsed: { winners, losers, winningScore, losingScore } | null }
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
