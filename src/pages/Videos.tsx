@@ -6,8 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Eye, Heart, Search, Filter, Plus, X, Video, Edit, MessageCircle, ArrowUp, ArrowDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Eye, Heart, Search, Filter, Plus, X, Video, Edit, MessageCircle, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVideos, useUserLikes, useToggleLike } from "@/hooks/useVideos";
 import { usePlayers } from "@/hooks/usePlayers";
@@ -432,6 +432,9 @@ const Videos = () => {
       {/* Video Player Modal */}
       <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
         <DialogContent className="bg-card border-border max-w-4xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedVideoData?.title || 'Video player'}</DialogTitle>
+          </DialogHeader>
           <button 
             onClick={() => setSelectedVideo(null)}
             className="absolute top-4 right-4 z-10 p-2 bg-background/80 rounded-full hover:bg-background transition-colors"
@@ -457,8 +460,14 @@ const Videos = () => {
                     className="w-full h-full"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    Invalid video URL
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                    <Video className="w-14 h-14" />
+                    <Button asChild variant="hero">
+                      <a href={selectedVideoData.youtube_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Open Video
+                      </a>
+                    </Button>
                   </div>
                 )}
               </div>

@@ -53,7 +53,7 @@ export const useOnboardingTour = () => {
           element: isMobile ? "[data-tour='mobile-nav-videos']" : "[data-tour='nav-videos']",
           popover: {
             title: "Videos 🎬",
-            description: "Watch game highlights and other pickleball content. You can upload YouTube links or record clips directly from your phone (max 60 seconds).",
+            description: "Watch game highlights and other pickleball content. You can add video links or record clips directly from your phone (max 60 seconds).",
             side: isMobile ? "top" : "bottom",
             align: "center",
           },
