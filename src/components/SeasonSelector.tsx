@@ -30,7 +30,7 @@ export function SeasonSelector({
         value={String(selectedSeason)}
         onValueChange={(value) => onSeasonChange(value === "all" ? "all" : parseInt(value))}
       >
-        <SelectTrigger className={`min-w-[200px] bg-card border-border ${triggerClassName ?? ""}`}>
+        <SelectTrigger className={`min-w-0 bg-card border-border ${triggerClassName ?? ""}`}>
           {/* Custom trigger content so we can show the Current badge alongside the season name */}
           <span className="flex items-center gap-1.5 min-w-0 flex-1">
             <span className="whitespace-nowrap truncate">

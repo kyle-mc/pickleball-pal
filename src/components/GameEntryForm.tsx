@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, UserPlus, Loader2, ArrowLeftRight } from "lucide-react";
+import { Plus, Minus, UserPlus, Loader2, ArrowLeftRight, Shuffle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubmitGame, useGames } from "@/hooks/useGames";
 import { usePlayers, useAddPlayer } from "@/hooks/usePlayers";
@@ -130,6 +130,16 @@ const GameEntryForm = ({
     if (v !== 0) setNeverServed(false);
   };
 
+  const adjustWinningScore = (delta: number) => {
+    const current = Number.isNaN(wScoreNum) ? 11 : wScoreNum;
+    handleWinningScoreChange(String(Math.min(99, Math.max(0, current + delta))));
+  };
+
+  const adjustLosingScore = (delta: number) => {
+    const current = Number.isNaN(lScoreNum) ? 0 : lScoreNum;
+    handleLosingScoreChange(String(Math.min(maxLosingScore, Math.max(0, current + delta))));
+  };
+
   const previewVictoryType = winningScore && losingScore 
     ? getVictoryTypeFromScore(parseInt(winningScore), parseInt(losingScore), neverServed)
     : null;
@@ -137,6 +147,10 @@ const GameEntryForm = ({
   const allPlayersSelected = gameMode === 'singles'
     ? Boolean(winningPlayer1 && losingPlayer1)
     : Boolean(winningPlayer1 && winningPlayer2 && losingPlayer1 && losingPlayer2);
+  const selectedPlayers = gameMode === 'singles'
+    ? [winningPlayer1, losingPlayer1].filter(Boolean)
+    : [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2].filter(Boolean);
+  const hasDuplicatePlayers = new Set(selectedPlayers).size !== selectedPlayers.length;
   const team1 = useMemo(
     () => (gameMode === 'singles' ? [winningPlayer1] : [winningPlayer1, winningPlayer2]).filter(Boolean),
     [winningPlayer1, winningPlayer2, gameMode]
@@ -173,6 +187,26 @@ const GameEntryForm = ({
     setWinningPlayer2(gameMode === 'singles' ? "" : losingPlayer2);
     setLosingPlayer1(tempP1);
     setLosingPlayer2(gameMode === 'singles' ? "" : tempP2);
+  };
+
+  const handleShufflePlayers = () => {
+    const current = [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2];
+    let shuffled = [...current];
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      shuffled = [...current];
+      for (let i = shuffled.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      if (shuffled.some((player, index) => player !== current[index])) break;
+    }
+    if (shuffled.every((player, index) => player === current[index])) {
+      shuffled = [current[1], current[2], current[3], current[0]];
+    }
+    setWinningPlayer1(shuffled[0]);
+    setWinningPlayer2(shuffled[1]);
+    setLosingPlayer1(shuffled[2]);
+    setLosingPlayer2(shuffled[3]);
   };
 
   const doSubmit = async () => {
@@ -228,6 +262,10 @@ const GameEntryForm = ({
       toast({ title: "Missing Players", description: gameMode === 'singles' ? "Please select both players." : "Please select all 4 players.", variant: "destructive" });
       return;
     }
+    if (new Set(playersNeeded).size !== playersNeeded.length) {
+      toast({ title: "Duplicate Players", description: "Each player can only appear once in a game.", variant: "destructive" });
+      return;
+    }
     if (!winningScore || !losingScore) {
       toast({ title: "Missing Scores", description: "Please enter scores for both teams.", variant: "destructive" });
       return;
@@ -280,9 +318,6 @@ const GameEntryForm = ({
     }
   };
 
-  const selectedPlayers = [winningPlayer1, winningPlayer2, losingPlayer1, losingPlayer2].filter(Boolean);
-  const getAvailablePlayers = (currentValue: string) => players.filter(p => !selectedPlayers.includes(p) || p === currentValue);
-
   const renderPlayerSelect = (value: string, onChange: (v: string) => void, placeholder: string) => (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className="bg-muted border-border"><SelectValue placeholder={placeholder} /></SelectTrigger>
@@ -293,7 +328,7 @@ const GameEntryForm = ({
             Add New Player
           </span>
         </SelectItem>
-        {getAvailablePlayers(value).map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+        {players.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
       </SelectContent>
     </Select>
   );
@@ -412,6 +447,9 @@ const GameEntryForm = ({
               <div className="mt-3 space-y-2">
                 <Label className="text-muted-foreground text-sm">Score</Label>
                 <div className="flex items-center gap-3">
+                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => adjustWinningScore(-1)} disabled={wScoreNum <= 0} aria-label="Decrease winning score">
+                    <Minus className="w-4 h-4" />
+                  </Button>
                   <Input type="number" placeholder="11" value={winningScore} onChange={e => handleWinningScoreChange(e.target.value)} className="bg-muted border-border w-20" min={0} max={99} />
                   <Slider
                     value={[parseInt(winningScore) || 11]}
@@ -421,22 +459,31 @@ const GameEntryForm = ({
                     step={1}
                     className="flex-1"
                   />
+                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => adjustWinningScore(1)} disabled={wScoreNum >= 99} aria-label="Increase winning score">
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <div className="flex-1 h-px bg-border" />
               <Button 
                 type="button" 
                 variant="default" 
                 size="sm" 
                 onClick={handleSwapTeams}
-                className="mx-3 bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 px-4"
+                className="gap-1.5 px-3"
               >
                 <ArrowLeftRight className="w-4 h-4" />
                 Swap Teams
               </Button>
+              {gameMode === 'doubles' && (
+                <Button type="button" variant="outline" size="sm" onClick={handleShufflePlayers} className="gap-1.5 px-3">
+                  <Shuffle className="w-4 h-4" />
+                  Shuffle
+                </Button>
+              )}
               <div className="flex-1 h-px bg-border" />
             </div>
 
@@ -451,6 +498,9 @@ const GameEntryForm = ({
               <div className="mt-3 space-y-2">
                 <Label className="text-muted-foreground text-sm">Score</Label>
                 <div className="flex items-center gap-3">
+                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => adjustLosingScore(-1)} disabled={lScoreNum <= 0} aria-label="Decrease losing score">
+                    <Minus className="w-4 h-4" />
+                  </Button>
                   <Input type="number" value={losingScore} onChange={e => handleLosingScoreChange(e.target.value)} className="bg-muted border-border w-20" min={0} max={maxLosingScore} />
                   <Slider
                     value={[parseInt(losingScore) || 0]}
@@ -460,6 +510,9 @@ const GameEntryForm = ({
                     step={1}
                     className="flex-1"
                   />
+                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => adjustLosingScore(1)} disabled={lScoreNum >= maxLosingScore} aria-label="Increase losing score">
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -478,6 +531,12 @@ const GameEntryForm = ({
               )}
             </div>
 
+            {hasDuplicatePlayers && (
+              <p className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                Each player must be unique before this game can be recorded.
+              </p>
+            )}
+
             {previewVictoryType && (
               <div className="p-3 rounded-lg bg-muted/30 border border-border flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Victory Type:</span>
@@ -489,7 +548,7 @@ const GameEntryForm = ({
               <MatchPreview team1={team1} team2={team2} onSwapTeams={handleSwapTeams} />
             )}
 
-            <Button onClick={handleSubmit} className="w-full" variant="hero" disabled={submitGameMutation.isPending}>
+            <Button onClick={handleSubmit} className="w-full" variant="hero" disabled={submitGameMutation.isPending || hasDuplicatePlayers}>
               {submitGameMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

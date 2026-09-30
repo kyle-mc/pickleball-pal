@@ -60,7 +60,7 @@ const VideoBulkImport = () => {
     if (videos.length === 0) {
       toast({
         title: "No videos found",
-        description: "Please check your input format: Title, Description, YouTube URL, Duration, Players, Date",
+        description: "Please check your input format: Title, Description, Video URL, Duration, Players, Date",
         variant: "destructive",
       });
     } else {
@@ -132,7 +132,7 @@ const VideoBulkImport = () => {
               Paste rows from Google Sheets (Tab or Comma separated)
             </Label>
             <p className="text-xs text-muted-foreground mt-1 mb-2">
-              Format: Title, Description, YouTube URL, Duration, Players (comma-separated), Date
+              Format: Title, Description, Video URL, Duration, Players (comma-separated), Date
             </p>
             <Textarea
               value={rawInput}

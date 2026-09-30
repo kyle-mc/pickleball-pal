@@ -28,7 +28,7 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
 import { format, parseISO } from "date-fns";
-import { Filter, ArrowUpDown, Loader2, Video, Plus, Calendar, X, List, LayoutGrid, Pencil, ChevronDown, ChevronRight, MoreVertical, Trash2, Copy } from "lucide-react";
+import { Filter, ArrowUpDown, Loader2, Video, Plus, X, List, LayoutGrid, Pencil, ChevronDown, ChevronRight, MoreVertical, Trash2, Copy } from "lucide-react";
 import { getCurrentSeason } from "@/lib/seasons";
 import { usePlacementEnabled } from "@/hooks/usePlacementEnabled";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -84,11 +84,6 @@ const Games = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
-
-  const uniqueDates = useMemo(() => 
-    [...new Set(allGames.map(g => g.date))].sort((a, b) => 
-      new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime()
-    ), [allGames]);
 
   const uniquePlayers = useMemo(() => 
     [...new Set(allGames.map(g => g.player))].sort(), [allGames]);
@@ -268,25 +263,10 @@ const Games = () => {
               </p>
             </div>
             <div className="flex gap-2 flex-shrink-0 items-center">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      onClick={() => setCompactView(!compactView)}
-                      className="h-9 min-w-[110px] justify-center gap-2 px-3"
-                    >
-                      {compactView ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
-                      <span>{compactView ? "Compact" : "Expanded"}</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{compactView ? 'Expanded view' : 'Compact view'}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
               {/* Export moved to Admin Settings */}
-              <VoiceMemoGameDialog />
-              <BulkGameEntryDialog />
-              <GameEntryForm defaultGameMode="doubles" />
+              <div className="order-2 sm:order-1"><VoiceMemoGameDialog /></div>
+              <div className="order-3 sm:order-2"><BulkGameEntryDialog /></div>
+              <div className="order-1 sm:order-3"><GameEntryForm defaultGameMode="doubles" /></div>
             </div>
           </div>
 
@@ -310,23 +290,8 @@ const Games = () => {
             <SeasonSelector 
               selectedSeason={selectedSeason} 
               onSeasonChange={setSelectedSeason} 
-              triggerClassName="w-[170px] h-9 text-sm whitespace-nowrap"
+              triggerClassName="w-auto h-9 text-sm whitespace-nowrap"
             />
-
-            <Select value={selectedDate || "all"} onValueChange={(val) => setSelectedDate(val === "all" ? null : val)}>
-              <SelectTrigger className="w-[142px] bg-card border-border h-9 text-sm">
-                <Calendar className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filter by date" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border z-50 max-h-60">
-                <SelectItem value="all">All Dates</SelectItem>
-                {uniqueDates.map(date => (
-                  <SelectItem key={date} value={date}>
-                    {format(parseISO(date), 'MMM d, yyyy')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             <Popover>
               <PopoverTrigger asChild>
@@ -379,6 +344,17 @@ const Games = () => {
               <ArrowUpDown className="w-4 h-4" />
               {sortDirection === "desc" ? "Newest" : "Oldest"}
             </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" onClick={() => setCompactView(!compactView)} className="h-9 justify-center gap-2 px-3">
+                    {compactView ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+                    <span>{compactView ? "Compact" : "Expanded"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{compactView ? 'Expanded view' : 'Compact view'}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 

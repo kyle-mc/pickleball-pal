@@ -87,7 +87,7 @@ export const AddVideoDialog = ({
   const { currentGroup } = useGroupContext();
 
   const [videoType, setVideoType] = useState<'highlight' | 'other'>(defaultVideoType);
-  const [uploadType, setUploadType] = useState<'youtube' | 'file'>('youtube');
+  const [uploadType, setUploadType] = useState<'link' | 'file'>('link');
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
@@ -240,10 +240,10 @@ export const AddVideoDialog = ({
   };
 
   const handleSubmit = async () => {
-    if (uploadType === 'youtube' && !youtubeUrl) {
+    if (uploadType === 'link' && !youtubeUrl) {
       toast({
         title: "Missing URL",
-        description: "Please provide a YouTube URL.",
+        description: "Please provide a video URL.",
         variant: "destructive",
       });
       return;
@@ -258,22 +258,26 @@ export const AddVideoDialog = ({
       return;
     }
 
-    if (uploadType === 'youtube') {
-      const videoId = getYouTubeVideoId(youtubeUrl);
-      if (!videoId) {
+    if (uploadType === 'link') {
+      let normalizedUrl: string;
+      try {
+        const parsedUrl = new URL(youtubeUrl.trim());
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('Unsupported protocol');
+        normalizedUrl = parsedUrl.toString();
+      } catch {
         toast({
           title: "Invalid URL",
-          description: "Please provide a valid YouTube URL (including Shorts).",
+          description: "Please provide a complete http or https video link.",
           variant: "destructive",
         });
         return;
       }
 
-      // Duplicate video prevention - check if this YouTube URL already exists
+      setYoutubeUrl(normalizedUrl);
       const { data: existing } = await supabase
         .from('videos')
         .select('id, title')
-        .ilike('youtube_url', `%${videoId}%`)
+        .eq('youtube_url', normalizedUrl)
         .limit(1);
       
       if (existing && existing.length > 0) {
@@ -307,7 +311,7 @@ export const AddVideoDialog = ({
           if (uploadError.message?.includes('Bucket not found')) {
             toast({
               title: "Storage Not Set Up",
-              description: "Video storage needs to be configured. Please upload to YouTube and share the link for now.",
+              description: "Video storage needs to be configured. Please host the video elsewhere and share its link for now.",
               variant: "destructive",
             });
             setIsUploading(false);
@@ -335,11 +339,11 @@ export const AddVideoDialog = ({
 
         toast({ title: "Video Uploaded!", description: "Your video has been added." });
       } else {
-        // YouTube video
+        const normalizedUrl = new URL(youtubeUrl.trim()).toString();
         await addVideoMutation.mutateAsync({
           title: finalTitle,
           description: finalDescription,
-          youtube_url: youtubeUrl,
+          youtube_url: normalizedUrl,
           players: videoType === 'highlight' ? selectedPlayers : [],
           game_id: videoType === 'highlight' ? selectedGameId || undefined : undefined,
           video_type: videoType,
@@ -410,12 +414,12 @@ export const AddVideoDialog = ({
           <div className="flex gap-2">
             <Button
               type="button"
-              variant={uploadType === 'youtube' ? 'default' : 'outline'}
-              onClick={() => setUploadType('youtube')}
+              variant={uploadType === 'link' ? 'default' : 'outline'}
+              onClick={() => setUploadType('link')}
               className="flex-1"
               size="sm"
             >
-              YouTube Link
+              Video Link
             </Button>
             <Button
               type="button"
@@ -429,13 +433,13 @@ export const AddVideoDialog = ({
             </Button>
           </div>
 
-          {uploadType === 'youtube' ? (
+          {uploadType === 'link' ? (
             <div>
-              <Label className="text-muted-foreground">YouTube URL *</Label>
+              <Label className="text-muted-foreground">Video URL *</Label>
               <Input
                 value={youtubeUrl}
                 onChange={e => setYoutubeUrl(e.target.value)}
-                placeholder="https://youtu.be/... or youtube.com/shorts/..."
+                placeholder="https://example.com/video"
                 className="bg-muted border-border"
               />
               {isFetchingTitle && (
