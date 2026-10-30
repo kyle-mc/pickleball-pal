@@ -6,6 +6,7 @@ import {
   BarChart3, Video, Zap,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
+import logoMark from "@/assets/logo-mark.png";
 import AuthDialog from "@/components/AuthDialog";
 import { TIERS, TIER_ICONS, TIER_COLORS, TIER_BG_COLORS } from "@/lib/ranks";
 import { VICTORY_TYPES } from "@/lib/victoryTypes";
@@ -46,7 +47,7 @@ const features = [
 const Nav = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
     <div className="container mx-auto px-4 h-16 flex items-center gap-2">
-      <img src={logo} alt="PicklePlayers" className="w-10 h-10 rounded-full object-cover" />
+      <img src={logoMark} alt="PicklePlayers" className="h-9 w-auto -translate-y-px" />
       <BrandWordmark />
     </div>
   </nav>
