@@ -70,11 +70,14 @@ export function AddToHomeScreenDialog() {
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">3</span>
-                <span>Tap <strong className="text-foreground">"Add to Home screen"</strong> or <strong className="text-foreground">"Install app."</strong></span>
+                <span>Tap <strong className="text-foreground">"Install and create shortcut."</strong></span>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">4</span>
-                <span>Tap <strong className="text-foreground">"Add"</strong> to confirm. The app icon will appear on your home screen!</span>
+                <span>Choose <strong className="text-foreground">"Install"</strong> for the full app experience (recommended), or <strong className="text-foreground">"Create shortcut"</strong> to open it in Chrome. The app icon will appear on your home screen!</span>
+              </li>
+              <li className="text-xs pl-9">
+                Tip: If you want both, choose "Create shortcut" first. Once the app is installed, Chrome no longer offers the shortcut option.
               </li>
             </ol>
           </TabsContent>
