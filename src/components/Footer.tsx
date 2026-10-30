@@ -1,3 +1,4 @@
+import BrandWordmark from "@/components/BrandWordmark";
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -16,8 +17,8 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <img src={logo} alt="PicklePlay Logo" className="w-10 h-10 rounded-full object-cover" />
-              <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
+              <img src={logo} alt="PicklePlayers Logo" className="w-10 h-10 rounded-full object-cover" />
+              <BrandWordmark />
             </Link>
             <p className="text-muted-foreground text-sm mb-6">
               Your ultimate companion for pickleball. Find courts, connect with players, and elevate your game.
@@ -72,7 +73,7 @@ const Footer = () => {
 
         <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-muted-foreground text-sm">
-            © 2026 PicklePlay. All rights reserved.
+            © 2026 PicklePlayers. All rights reserved.
           </p>
           <p className="text-muted-foreground text-sm">
             Made with 💚 for pickleball enthusiasts everywhere

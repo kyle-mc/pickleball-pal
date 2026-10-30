@@ -163,7 +163,7 @@ const GroupOnboarding = () => {
       <Card className="w-full max-w-lg bg-card border-border">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={logo} alt="PicklePlay" className="w-16 h-16 rounded-full" />
+            <img src={logo} alt="PicklePlayers" className="w-16 h-16 rounded-full" />
           </div>
           <CardTitle className="font-display text-3xl text-foreground">
             Join a Group

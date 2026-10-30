@@ -1,3 +1,4 @@
+import BrandWordmark from "@/components/BrandWordmark";
 import { LogIn, LogOut, User, Map, Settings, Smartphone, MessageSquarePlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -61,8 +62,8 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="PicklePlay Logo" className="w-10 h-10 rounded-full object-cover" />
-              <span className="font-display text-2xl text-foreground tracking-wide">PICKLEPLAY</span>
+              <img src={logo} alt="PicklePlayers Logo" className="w-10 h-10 rounded-full object-cover" />
+              <BrandWordmark />
             </Link>
 
             {/* Desktop Nav */}

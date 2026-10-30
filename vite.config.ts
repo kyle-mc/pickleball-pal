@@ -21,8 +21,8 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       },
       manifest: {
-        name: "PicklePlay - Rise Through the Ranks",
-        short_name: "PicklePlay",
+        name: "PicklePlayers - Rise Through the Ranks",
+        short_name: "PicklePlayers",
         description: "Precision stat tracking for serious pickleball players.",
         theme_color: "#22c55e",
         background_color: "#0a0a0b",
