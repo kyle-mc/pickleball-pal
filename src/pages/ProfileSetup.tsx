@@ -114,7 +114,7 @@ const ProfileSetup = () => {
 
       toast({
         title: "Profile created!",
-        description: "Welcome to PicklePlay. Let's get you into a group!",
+        description: "Welcome to PicklePlayers. Let's get you into a group!",
       });
 
       navigate('/onboarding/group');
@@ -134,7 +134,7 @@ const ProfileSetup = () => {
       <Card className="w-full max-w-lg bg-card border-border">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={logo} alt="PicklePlay" className="w-16 h-16 rounded-full" />
+            <img src={logo} alt="PicklePlayers" className="w-16 h-16 rounded-full" />
           </div>
           <CardTitle className="font-display text-3xl text-foreground">
             Set Up Your Profile

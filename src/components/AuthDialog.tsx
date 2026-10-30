@@ -79,7 +79,7 @@ const AuthDialog = ({ open, onOpenChange, defaultMode = "signin" }: AuthDialogPr
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="text-foreground text-center text-xl">
-            Welcome to PicklePlay
+            Welcome to PicklePlayers
           </DialogTitle>
         </DialogHeader>
         
