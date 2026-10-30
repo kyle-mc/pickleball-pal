@@ -17,6 +17,7 @@ interface RankChangePopupProps {
 }
 
 const RANK_STORAGE_KEY = "pickle_last_known_mmr_";
+const RANK_SEEN_KEY = "pickle_rank_change_seen_";
 
 const TIER_ORDER = [
   "bronze",
@@ -93,7 +94,14 @@ export function RankChangePopup({ playerName, currentMmr, gamesPlayed, previousM
       ? previousMmr
       : (!Number.isNaN(storedMmr) ? storedMmr : null);
 
-    if (prevMmr !== null) {
+    // Only celebrate each rank change once: remember which change was already shown.
+    const seenKey = RANK_SEEN_KEY + playerName;
+    const changeSignature = prevMmr !== null ? `${Math.round(prevMmr)}->${Math.round(currentMmr)}` : "";
+    const alreadySeen = localStorage.getItem(seenKey) === changeSignature;
+    // If we last saw this exact MMR, nothing new has happened since the last visit.
+    const unchangedSinceLastVisit = !Number.isNaN(storedMmr) && Math.round(storedMmr) === Math.round(currentMmr) && localStorage.getItem(seenKey) !== null;
+
+    if (prevMmr !== null && !alreadySeen && !unchangedSinceLastVisit) {
       const prevRank = getRankFromMmr(prevMmr);
       if (prevRank.tier !== currentRank.tier) {
         const oldIdx = TIER_ORDER.indexOf(prevRank.tier);
@@ -117,6 +125,7 @@ export function RankChangePopup({ playerName, currentMmr, gamesPlayed, previousM
       }
     }
 
+    if (changeSignature) localStorage.setItem(seenKey, changeSignature);
     // Always update stored MMR so future returns compare against the latest known value
     localStorage.setItem(storageKey, String(currentMmr));
 
