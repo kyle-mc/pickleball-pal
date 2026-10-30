@@ -138,6 +138,7 @@ export function FeedbackDialog() {
                 <SelectContent>
                   <SelectItem value="bug">🐛 Bug Report</SelectItem>
                   <SelectItem value="feature">💡 Feature Request</SelectItem>
+                  <SelectItem value="ui_improvement">🎨 Formatting / UI Improvement</SelectItem>
                   <SelectItem value="other">📝 Other</SelectItem>
                 </SelectContent>
               </Select>

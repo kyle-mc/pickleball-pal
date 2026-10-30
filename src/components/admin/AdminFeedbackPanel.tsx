@@ -1,3 +1,4 @@
+import { formatFeedbackType } from "@/lib/feedbackTypes";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,7 +154,7 @@ export function AdminFeedbackPanel() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-xs">{f.type}</Badge>
+                      <Badge variant="outline" className="text-xs">{formatFeedbackType(f.type)}</Badge>
                       <Badge variant="outline" className={`text-xs ${STATUS_COLORS[f.status] ?? ""}`}>
                         {f.status.replace("_", " ")}
                       </Badge>
