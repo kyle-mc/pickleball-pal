@@ -9,6 +9,7 @@ import { GroupProvider } from "@/contexts/GroupContext";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { Loader2 } from "lucide-react";
+import { InstallAppBanner } from "@/components/InstallAppBanner";
 
 // Pages
 import Landing from "./pages/Landing";
@@ -180,6 +181,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AppRoutes />
+            <InstallAppBanner />
           </BrowserRouter>
         </TooltipProvider>
       </GroupProvider>
